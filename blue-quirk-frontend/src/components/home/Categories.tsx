@@ -11,30 +11,34 @@ export default async function Categories({ lang }: { lang: string }) {
   }
 
   return (
-    <section className="py-8">
+    <section className="py-12">
       <div className="mx-auto max-w-7xl px-6">
-        <h2 className="mb-8 text-2xl font-semibold text-gray-700">
-          Shop by Category
-        </h2>
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
+            Shop by category
+          </h2>
+          <p className="mt-1 text-sm text-gray-500">
+            Browse the things people love most.
+          </p>
+        </div>
 
-        <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-3 lg:grid-cols-4">
           {categories.map((category) => (
             <Link
               key={category.id}
               href={`/${lang}/category/${category.id}`}
-              className="group relative overflow-hidden rounded-sm bg-blue-200"
+              className="group"
             >
-              <div className="relative aspect-[4/5]">
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
                 <Image
                   src={category.imageUrl}
                   alt={category.name}
                   fill
-                  className="object-cover transition duration-500 group-hover:scale-110"
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover transition duration-500 group-hover:scale-105"
                 />
-              </div>
-
-              <div className="absolute bottom-8 left-1/2 -translate-x-1/2">
-                <span className="whitespace-nowrap rounded-full bg-white/90 px-4 py-3 text-sm font-semibold text-gray-800 backdrop-blur-md">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
+                <span className="absolute bottom-3 left-3 right-3 text-base font-bold text-white drop-shadow">
                   {category.name}
                 </span>
               </div>

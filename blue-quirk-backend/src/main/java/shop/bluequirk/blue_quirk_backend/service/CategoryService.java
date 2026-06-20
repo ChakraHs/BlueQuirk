@@ -55,6 +55,7 @@ public class CategoryService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id, String lang) {
     	Category category = categoryRepository.findByIdWithChildren(id)
                 .orElseThrow(() -> new RuntimeException("Category not found"));

@@ -1,22 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Check, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { Check, Heart, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
 import { Product } from "@/types/product";
+import { addToCart } from "@/lib/cart";
+import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
-
-type CartItem = {
-  id: number;
-  name: string;
-  price: number;
-  image: string;
-  quantity: number;
-  lang: string;
-  attributes: Record<string, string>;
-};
 
 function getInitialSelection(product: Product) {
   return Object.fromEntries(
@@ -25,14 +17,6 @@ function getInitialSelection(product: Product) {
       return [String(attribute.id), selectedValue ? String(selectedValue.id) : ""];
     })
   );
-}
-
-function readCart(): CartItem[] {
-  try {
-    return JSON.parse(localStorage.getItem("bluequirk_cart") ?? "[]") as CartItem[];
-  } catch {
-    return [];
-  }
 }
 
 export default function ProductDetailClient({
@@ -47,8 +31,32 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(product));
   const [added, setAdded] = useState(false);
+  const [wishlisted, setWishlisted] = useState(false);
 
   const canBuy = product.status === "PUBLISHED";
+
+  useEffect(() => {
+    const sync = () => setWishlisted(isWishlisted(product.id));
+    sync();
+    window.addEventListener(WISHLIST_EVENT, sync);
+    window.addEventListener("storage", sync);
+    return () => {
+      window.removeEventListener(WISHLIST_EVENT, sync);
+      window.removeEventListener("storage", sync);
+    };
+  }, [product.id]);
+
+  const toggleWishlistItem = () => {
+    setWishlisted(
+      toggleWishlist({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: images[0],
+        lang,
+      })
+    );
+  };
 
   const selectedAttributeLabels = useMemo(() => {
     return Object.fromEntries(
@@ -60,13 +68,12 @@ export default function ProductDetailClient({
     );
   }, [product.attributes, selectedAttributes]);
 
-  const addToCart = () => {
+  const handleAddToCart = () => {
     if (!canBuy) {
       return;
     }
 
-    const cart = readCart();
-    const cartItem: CartItem = {
+    addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
@@ -74,31 +81,8 @@ export default function ProductDetailClient({
       quantity,
       lang,
       attributes: selectedAttributeLabels,
-    };
-    const cartKey = JSON.stringify({
-      id: cartItem.id,
-      lang: cartItem.lang,
-      attributes: cartItem.attributes,
-    });
-    const existingIndex = cart.findIndex((item) => {
-      const itemKey = JSON.stringify({
-        id: item.id,
-        lang: item.lang,
-        attributes: item.attributes,
-      });
-      return itemKey === cartKey;
     });
 
-    if (existingIndex >= 0) {
-      cart[existingIndex] = {
-        ...cart[existingIndex],
-        quantity: cart[existingIndex].quantity + quantity,
-      };
-    } else {
-      cart.push(cartItem);
-    }
-
-    localStorage.setItem("bluequirk_cart", JSON.stringify(cart));
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
   };
@@ -106,7 +90,7 @@ export default function ProductDetailClient({
   return (
     <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:px-12 md:py-12">
       <section aria-label="Product images" className="space-y-4">
-        <div className="relative aspect-[4/5] overflow-hidden rounded-sm bg-gray-100">
+        <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
           <Image
             src={activeImage}
             alt={product.name}
@@ -124,8 +108,8 @@ export default function ProductDetailClient({
                 key={image}
                 type="button"
                 onClick={() => setActiveImage(image)}
-                className={`relative aspect-square overflow-hidden rounded-sm border bg-gray-100 ${
-                  activeImage === image ? "border-gray-950" : "border-gray-200"
+                className={`relative aspect-square overflow-hidden rounded-xl border-2 bg-gray-100 transition ${
+                  activeImage === image ? "border-blue-600" : "border-transparent hover:border-gray-300"
                 }`}
                 aria-label="Select product image"
               >
@@ -188,10 +172,10 @@ export default function ProductDetailClient({
                             [String(attribute.id)]: String(value.id),
                           }))
                         }
-                        className={`min-h-10 rounded-sm border px-4 text-sm font-medium transition ${
+                        className={`min-h-10 rounded-full border px-4 text-sm font-medium transition ${
                           selected
-                            ? "border-gray-950 bg-gray-950 text-white"
-                            : "border-gray-300 bg-white text-gray-700 hover:border-gray-700"
+                            ? "border-blue-600 bg-blue-600 text-white"
+                            : "border-gray-300 bg-white text-gray-700 hover:border-blue-400"
                         }`}
                       >
                         {value.value}
@@ -205,7 +189,7 @@ export default function ProductDetailClient({
         )}
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-sm border border-gray-300 sm:w-36">
+          <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-full border border-gray-300 sm:w-36">
             <button
               type="button"
               onClick={() => setQuantity((value) => Math.max(1, value - 1))}
@@ -229,12 +213,26 @@ export default function ProductDetailClient({
 
           <button
             type="button"
-            onClick={addToCart}
+            onClick={handleAddToCart}
             disabled={!canBuy}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-sm bg-gray-950 px-5 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <ShoppingBag className="size-4" />
             {canBuy ? "Add to cart" : "Unavailable"}
+          </button>
+
+          <button
+            type="button"
+            onClick={toggleWishlistItem}
+            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+            aria-pressed={wishlisted}
+            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
+              wishlisted
+                ? "border-blue-600 bg-blue-50 text-blue-600"
+                : "border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
+            }`}
+          >
+            <Heart className={`size-5 ${wishlisted ? "fill-blue-600" : ""}`} />
           </button>
         </div>
 

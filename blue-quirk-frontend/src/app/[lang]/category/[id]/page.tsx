@@ -42,68 +42,72 @@ export default async function CategoryPage({
   const category = await getCategory(id, lang);
 
   return (
-    <div className="mx-auto max-w-7xl md:px-12 py-0 md:py-12 text-gray-600">
-      
+    <div className="mx-auto max-w-7xl px-6 py-8 md:px-12 md:py-10 text-gray-600">
+
+      {/* Breadcrumb */}
+      <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
+        <Link href={`/${lang}`} className="hover:text-gray-900">
+          Home
+        </Link>
+        <span>/</span>
+        <span className="text-gray-900">{category.name}</span>
+      </nav>
+
       {/* Hero */}
-
-      <div className="mx-auto max-w-7xl py-4">
-        <div className="flex flex-col md:flex-row-reverse justify-between items-center gap-8 md:bg-violet-500 text-gray-900 md:text-white rounded-sm">
-
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700">
+        <div className="flex flex-col items-center gap-8 md:flex-row-reverse md:justify-between">
           {/* Image */}
-          <div className="relative w-full md:w-96 h-72 overflow-hidden flex-shrink-0">
+          <div className="relative h-56 w-full flex-shrink-0 md:h-72 md:w-96">
             <Image
               src={category.imageUrl}
               alt={category.name}
               fill
               className="object-cover"
             />
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-700/60 to-transparent md:bg-gradient-to-l" />
           </div>
 
           {/* Content */}
-          <div className="p-0 text-center md:text-start md:px-8">
-            <h1 className="text-3xl font-bold md:text-4xl whitespace-nowrap">
+          <div className="px-6 pb-8 text-center text-white md:px-10 md:py-10 md:text-start">
+            <h1 className="text-3xl font-bold md:text-4xl">
               {category.name}
             </h1>
 
-            <p className="mt-4 max-w-xl text-lg md:text-xl">
-              {category.description}
-            </p>
+            {category.description && (
+              <p className="mt-4 max-w-xl text-base text-blue-100 md:text-lg">
+                {category.description}
+              </p>
+            )}
           </div>
-
         </div>
       </div>
 
       {/* Sub Categories */}
       {category.children?.length > 0 ? (
-        <>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 px-5 md:px-0 mt-8">
-            {category.children.map((child) => (
-                <Link
-                key={child.id}
-                href={`/${lang}/category/${child.id}`}
-                className="rounded-sm overflow-hidden hover:shadow-lg transition block"
-                >
-                {/* IMAGE WRAPPER */}
-                <div className="relative w-full aspect-[3/4]">
-                    <Image
-                    src={child.imageUrl}
-                    alt={child.name}
-                    fill
-                    className="object-cover"
-                    />
-                </div>
-
-                {/* TEXT */}
-                <div className="p-4">
-                    <h3 className="font-semibold text-lg text-center whitespace-nowrap text-gray-800">
-                    {child.name}
-                    </h3>
-                </div>
-                </Link>
-            ))}
-            </div>
-        </>
-      ):(
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">
+          {category.children.map((child) => (
+            <Link
+              key={child.id}
+              href={`/${lang}/category/${child.id}`}
+              className="group"
+            >
+              <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
+                <Image
+                  src={child.imageUrl}
+                  alt={child.name}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="object-cover transition duration-500 group-hover:scale-105"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
+                <span className="absolute bottom-3 left-3 right-3 text-base font-bold text-white drop-shadow">
+                  {child.name}
+                </span>
+              </div>
+            </Link>
+          ))}
+        </div>
+      ) : (
         <ProductsGrid products={category.products ?? []} lang={lang} />
       )}
     </div>

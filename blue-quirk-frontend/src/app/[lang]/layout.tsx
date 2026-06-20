@@ -3,6 +3,7 @@ import "../globals.css";
 import { Providers } from "../../components/Providers";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import { CategoryService } from "@/services/category.service";
 
 
 const geistSans = Geist({
@@ -25,14 +26,17 @@ export default async function LangLayout({
 
   const { lang } = await params;
 
+  const categories = await CategoryService.getAll(lang).catch(() => []);
+  const topCategories = categories.filter((c) => !c.parentId);
+
   return (
-    <html 
+    <html
       lang={lang}
       dir={lang === "ar" ? "rtl" : "ltr"}
     >
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
             {/* <ShopNavbar /> */}
-            <Header lang={lang} />
+            <Header lang={lang} categories={topCategories} />
             <Providers>{children}</Providers>
             <Footer lang={lang}/>
       </body>

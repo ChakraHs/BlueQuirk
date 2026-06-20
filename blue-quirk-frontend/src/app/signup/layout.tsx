@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
-import Sidebar from "@/components/admin/Sidebar";
-import Topbar from "@/components/admin/Topbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,23 +13,19 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Admin · BlueQuirk",
-  description: "BlueQuirk admin dashboard.",
+  title: "Sign up · BlueQuirk",
+  description: "Create your BlueQuirk account.",
 };
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function SignupLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <div className="flex min-h-screen bg-gray-100">
-          <Sidebar />
-
-          <div className="flex-1">
-            <Topbar />
-
-            <main className="p-6">{children}</main>
-          </div>
-        </div>
+        {children}
       </body>
     </html>
   );

@@ -13,10 +13,10 @@ export default async function HomePage({
 
   return (
     <main>
-      <Hero />
-      <ValueIntro />
+      <Hero lang={lang} />
       <Categories lang={lang} />
       <FeaturedProducts lang={lang} />
+      <ValueIntro />
       <TrustBar />
     </main>
   );
