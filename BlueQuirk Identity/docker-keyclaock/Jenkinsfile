@@ -1,0 +1,62 @@
+pipeline {
+    agent any
+
+    environment {
+        // Define variables if needed
+        IDENTITY_SERVICE_DIR = 'Identity-Service'   // Directory where the identity-service is located
+        COMPOSE_FILE = 'docker-keyclaock/docker-compose.yml'         // Path to docker-compose.yml file
+    }
+
+    stages {
+        stage('Clone Repository') {
+            steps {
+                // Clone the repository where your Docker Compose and Maven projects are stored
+                git url: 'https://github.com/ChakraHs/identity-keycloak.git', branch: 'main'
+            }
+        }
+
+        stage('Check Files') {
+            steps {
+                script {
+                    sh 'ls -la ${IDENTITY_SERVICE_DIR}'  // List files in the Identity-Service directory
+                }
+            }
+        }
+
+        stage('Build Identity Service Docker Image') {
+            steps {
+                dir("${IDENTITY_SERVICE_DIR}") {
+                    script {
+                        // Build the identity-service image using Maven
+                        sh 'mvn clean package -Pbuild-image'
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Compose') {
+            steps {
+               script {
+                   // Navigate to the directory with docker-compose.yml file and run docker-compose
+                       // Ensure Docker is available and run docker-compose to start all services
+                       sh 'docker compose up -d'
+               }
+            }
+        }
+    }
+
+    post {
+        always {
+            // Optionally, you can clean up the workspace after running the pipeline
+            cleanWs()
+        }
+
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+
+        failure {
+            echo 'Pipeline failed.'
+        }
+    }
+}

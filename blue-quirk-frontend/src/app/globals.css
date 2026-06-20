@@ -1,0 +1,96 @@
+/* @import '~react-quill/dist/quill.snow.css';
+@import '~react-quill/dist/quill.core.css'; */
+@import "tailwindcss";
+
+
+
+
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@property --angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+.swep {
+  position: absolute;
+  margin: 0 auto;
+  padding: 2em;
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  text-align: center;
+  z-index: 0;
+  isolation: isolate; /* 🔥 IMPORTANT FIX */
+}
+
+.swep::before,
+.swep::after {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  border-radius: 12px;
+  background: conic-gradient(
+    from var(--angle),
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+  animation: spin 4s linear infinite;
+  z-index: -1;
+}
+
+.swep::before {
+  filter: blur(15px);
+  opacity: 0.5;
+}
+
+@keyframes spin {
+  to {
+    --angle: 360deg;
+  }
+}

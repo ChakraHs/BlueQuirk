@@ -1,0 +1,42 @@
+# Dependencies
+**/node_modules/
+
+# Build output
+**/.next/
+**/out/
+**/build/
+**/target/
+*.tsbuildinfo
+
+# Logs
+*.log
+dev-server.*.log
+backend-dev.*.log
+tmp-next-*.log
+
+# Runtime uploads (user-uploaded images)
+blue-quirk-backend/uploads/
+blue-quirk-backend/docker/uploads/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Maven wrapper jar
+**/.mvn/wrapper/maven-wrapper.jar
+
+# IDE / editor
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+.factorypath
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,6 @@
+services: {}
+
+networks:
+  base:
+    name: ji-network
+    driver: bridge

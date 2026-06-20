@@ -1,0 +1,79 @@
+#spring:
+#  docker:
+#    compose:
+#      enabled: false
+#  application:
+#    name: identity-service
+#  config:
+#    import: "optional:configserver:http://config-service:8888"
+#    activate:
+#      on-profile: docker
+#---
+springdoc:
+  packagesToScan: com.ev.pcs.keycloakauth
+server:
+  port: 8087
+
+spring:
+  docker:
+    compose:
+      enabled: false
+  application:
+    name: identity-service
+  #consul config
+  cloud:
+    consul:
+      host: localhost  # Consul host
+      port: 8500       # Consul port
+      fail-fast: false
+
+  output:
+    ansi:
+      enabled: always
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: http://keycloak-server:8080/realms/blue-quirk-realm
+          jwk-set-uri: ${JWT_JWK_SET_URI:http://keycloak-server:8080/realms/blue-quirk-realm/protocol/openid-connect/certs}
+      client:
+        provider:
+          keycloak:
+            issuer-uri: http://keycloak-server:8080/auth/realms/blue-quirk-realm
+
+keycloak:
+  auth-server-url: http://keycloak-server:8080
+  realm: blue-quirk-realm
+  resource: blue-quirk-client
+  credentials:
+    secret: 3an2hV7l6GoIreW8wyi8D0uH2bZgEN6B
+  client-id: blue-quirk-client
+  grant-type: password
+  name: admin
+  password: admin@123
+
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+#  tracing:
+#    sampling:
+#      probability: 1.0
+#  zipkin:
+#    tracing:
+#      endpoint: http://zipkin:9411/api/v2/spans
+
+#tracing
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: true
+
+tracing:
+  url: http://localhost:4317

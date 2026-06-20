@@ -1,0 +1,40 @@
+export interface Product {
+  id: number;
+  name: string;
+  price: number;
+  description: string;
+  quantity?: number;
+  status: string;
+
+  images?: {
+    id: number;
+    url: string;
+  }[];
+
+  categories?: {
+    id: number;
+    name: string;
+  }[];
+
+  attributes?: ProductAttribute[];
+
+  translations?: ProductTranslation[];
+  
+}
+
+export interface ProductAttribute {
+  id: number;
+  name: string;
+  values: {
+    id: number;
+    value: string;
+    selected?: boolean;
+  }[];
+}
+
+export interface ProductTranslation {
+  id?: number;
+  lang: string;
+  name: string;
+  description: string;
+}

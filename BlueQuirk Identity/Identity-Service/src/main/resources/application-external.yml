@@ -1,0 +1,19 @@
+spring:
+  docker:
+    compose:
+      enabled: false
+  application:
+    name: identity-service
+  config:
+    import: "optional:configserver:http://config-service:8888"
+    activate:
+      on-profile: docker
+---
+spring:
+  docker:
+    compose:
+      enabled: false
+  application:
+    name: identity-service
+  config:
+    import: "optional:configserver:http://config-service:8888"
