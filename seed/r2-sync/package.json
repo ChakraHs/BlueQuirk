@@ -1,0 +1,17 @@
+{
+  "name": "bluequirk-r2-sync",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Uploads BlueQuirk catalog images to Cloudflare R2 and rewrites DB image URLs.",
+  "scripts": {
+    "sync": "node sync.js",
+    "sync:api": "node sync-api.js",
+    "repoint": "node repoint-db.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.658.0",
+    "dotenv": "^16.4.5",
+    "mysql2": "^3.11.3"
+  }
+}

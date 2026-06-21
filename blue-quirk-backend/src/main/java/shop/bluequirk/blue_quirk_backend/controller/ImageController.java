@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
+import shop.bluequirk.blue_quirk_backend.service.R2StorageService;
 
 
 @RestController
@@ -32,13 +33,15 @@ import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
 public class ImageController {
 
     private final ImageRepository imageRepository;
+    private final R2StorageService r2StorageService;
 
-    // Folder to store uploaded images
+    // Folder to store uploaded images (fallback when R2 is not configured)
     private final String uploadDir = "/app/uploads/";
 
     @Autowired
-    public ImageController(ImageRepository imageRepository) {
+    public ImageController(ImageRepository imageRepository, R2StorageService r2StorageService) {
         this.imageRepository = imageRepository;
+        this.r2StorageService = r2StorageService;
 
         // Create the upload folder if it doesn't exist
         Path uploadPath = Paths.get(uploadDir);
@@ -82,18 +85,23 @@ public class ImageController {
             // Normalize file name
             String filename = StringUtils.cleanPath(file.getOriginalFilename());
 
-            // Copy file to the upload directory
-            Path targetPath = Paths.get(uploadDir).resolve(filename);
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-
-            // Save image info in DB
             Image image = new Image();
             image.setFileName(filename);
-            image.setUrl("/uploads/" + filename); // relative URL for frontend
-            Image saved = imageRepository.save(image);
 
+            if (r2StorageService.isConfigured()) {
+                // Preferred: store in Cloudflare R2 and keep its public URL.
+                String url = r2StorageService.upload(file.getBytes(), filename, file.getContentType());
+                image.setUrl(url);
+            } else {
+                // Fallback: store on local disk, served by WebConfig's /uploads/** handler.
+                Path targetPath = Paths.get(uploadDir).resolve(filename);
+                Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+                image.setUrl("/uploads/" + filename);
+            }
+
+            Image saved = imageRepository.save(image);
             return ResponseEntity.ok(saved);
-        } catch (IOException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(500).build();
         }
