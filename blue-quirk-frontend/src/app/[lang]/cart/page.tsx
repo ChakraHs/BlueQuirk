@@ -3,7 +3,7 @@
 import { use } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, Truck } from "lucide-react";
 import {
   useCart,
   cartItemKey,
@@ -12,6 +12,7 @@ import {
   removeFromCart,
   clearCart,
 } from "@/lib/cart";
+import { formatPrice } from "@/lib/money";
 
 export default function CartPage({
   params,
@@ -86,7 +87,7 @@ export default function CartPage({
                       )}
                     </div>
                     <p className="text-sm font-bold text-gray-900">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      {formatPrice(item.price * item.quantity)}
                     </p>
                   </div>
 
@@ -135,27 +136,28 @@ export default function CartPage({
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between text-gray-600">
               <dt>Subtotal</dt>
-              <dd className="font-medium text-gray-900">${total.toFixed(2)}</dd>
+              <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
             </div>
             <div className="flex justify-between text-gray-600">
               <dt>Shipping</dt>
-              <dd className="font-medium text-gray-900">Calculated at checkout</dd>
+              <dd className="font-medium text-emerald-600">Free</dd>
             </div>
           </dl>
 
           <div className="mt-5 flex justify-between border-t border-gray-200 pt-5">
             <span className="text-base font-bold text-gray-900">Total</span>
             <span className="text-base font-bold text-gray-900">
-              ${total.toFixed(2)}
+              {formatPrice(total)}
             </span>
           </div>
 
-          <button
-            type="button"
-            className="mt-6 w-full rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+          <Link
+            href={`/${lang}/checkout`}
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
-            Proceed to checkout
-          </button>
+            <Truck className="size-4" />
+            Order · Cash on delivery
+          </Link>
 
           <div className="mt-4 flex items-center justify-between text-sm">
             <Link

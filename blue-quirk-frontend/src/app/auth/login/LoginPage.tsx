@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, Lock, User, AlertCircle } from "lucide-react";
@@ -15,6 +15,16 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Optional post-login destination (e.g. set by the checkout flow).
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRedirectTo(new URLSearchParams(window.location.search).get("redirect"));
+  }, []);
+
+  const signupHref = redirectTo
+    ? `/signup?redirect=${encodeURIComponent(redirectTo)}`
+    : "/signup";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +45,9 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await authProvider.login(credentials);
-      // Route by role: admins to the dashboard, customers to their account.
-      router.push(accountHref());
+      // Honour an explicit redirect (e.g. back to checkout); otherwise route by
+      // role: admins to the dashboard, customers to their account.
+      router.push(redirectTo || accountHref());
     } catch {
       setError("Invalid credentials. Please try again.");
     } finally {
@@ -185,7 +196,7 @@ export default function LoginPage() {
           <p className="mt-8 text-center text-sm text-gray-500">
             Don&apos;t have an account?{" "}
             <Link
-              href="/signup"
+              href={signupHref}
               className="font-semibold text-blue-600 hover:text-blue-700"
             >
               Sign up

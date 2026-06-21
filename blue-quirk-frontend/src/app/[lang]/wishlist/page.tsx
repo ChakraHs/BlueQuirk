@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Heart, Trash2, ShoppingBag } from "lucide-react";
 import { useWishlist, removeFromWishlist } from "@/lib/wishlist";
 import { addToCart } from "@/lib/cart";
+import { formatPrice } from "@/lib/money";
 
 export default function WishlistPage({
   params,
@@ -65,7 +66,7 @@ export default function WishlistPage({
                 {item.name}
               </h3>
               <p className="px-1 text-sm font-bold text-gray-900">
-                ${item.price}
+                {formatPrice(item.price)}
               </p>
             </Link>
 

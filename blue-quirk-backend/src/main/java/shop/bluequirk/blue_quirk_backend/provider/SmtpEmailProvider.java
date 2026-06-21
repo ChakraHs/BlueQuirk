@@ -28,6 +28,15 @@ public class SmtpEmailProvider implements EmailProvider {
 
     @Override
     public void sendEmail(String to, String subject, String body) {
+        send(to, subject, body, false);
+    }
+
+    @Override
+    public void sendHtmlEmail(String to, String subject, String html) {
+        send(to, subject, html, true);
+    }
+
+    private void send(String to, String subject, String body, boolean html) {
 
         EmailConfig config = configService.getActiveConfig();
 
@@ -48,14 +57,18 @@ public class SmtpEmailProvider implements EmailProvider {
         });
 
         try {
-            Message message = new MimeMessage(session);
+            MimeMessage message = new MimeMessage(session);
             message.setFrom(new InternetAddress(config.getUsername()));
             message.setRecipients(
                     Message.RecipientType.TO,
                     InternetAddress.parse(to)
             );
-            message.setSubject(subject);
-            message.setText(body);
+            message.setSubject(subject, "UTF-8");
+            if (html) {
+                message.setContent(body, "text/html; charset=UTF-8");
+            } else {
+                message.setText(body, "UTF-8");
+            }
 
             Transport.send(message);
 

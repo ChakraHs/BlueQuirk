@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import { Check, Heart, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Check, Heart, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
 import { Product } from "@/types/product";
 import { addToCart } from "@/lib/cart";
+import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 
 const FALLBACK_IMAGE =
@@ -48,6 +50,7 @@ export default function ProductDetailClient({
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
+  const router = useRouter();
 
   const canBuy = product.status === "PUBLISHED";
 
@@ -84,23 +87,32 @@ export default function ProductDetailClient({
     );
   }, [productAttributes, selectedAttributes]);
 
+  const buildCartItem = () => ({
+    id: product.id,
+    name: product.name,
+    price: product.price,
+    image: activeImage,
+    quantity,
+    lang,
+    attributes: selectedAttributeLabels,
+  });
+
   const handleAddToCart = () => {
     if (!canBuy) {
       return;
     }
-
-    addToCart({
-      id: product.id,
-      name: product.name,
-      price: product.price,
-      image: activeImage,
-      quantity,
-      lang,
-      attributes: selectedAttributeLabels,
-    });
-
+    addToCart(buildCartItem());
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
+  };
+
+  const handleBuyNow = () => {
+    if (!canBuy) {
+      return;
+    }
+    addToCart(buildCartItem());
+    // The checkout page gates on auth (redirects guests to sign up).
+    router.push(`/${lang}/checkout`);
   };
 
   return (
@@ -155,7 +167,7 @@ export default function ProductDetailClient({
           </h1>
 
           <p className="text-2xl font-semibold">
-            ${product.price.toFixed(2)}
+            {formatPrice(product.price)}
           </p>
         </div>
 
@@ -204,51 +216,64 @@ export default function ProductDetailClient({
           </div>
         )}
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-full border border-gray-300 sm:w-36">
-            <button
-              type="button"
-              onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-              className="flex items-center justify-center hover:bg-gray-50"
-              aria-label="Decrease quantity"
-            >
-              <Minus className="size-4" />
-            </button>
-            <div className="flex items-center justify-center text-sm font-semibold">
-              {quantity}
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-full border border-gray-300 sm:w-36">
+              <button
+                type="button"
+                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
+                className="flex items-center justify-center hover:bg-gray-50"
+                aria-label="Decrease quantity"
+              >
+                <Minus className="size-4" />
+              </button>
+              <div className="flex items-center justify-center text-sm font-semibold">
+                {quantity}
+              </div>
+              <button
+                type="button"
+                onClick={() => setQuantity((value) => value + 1)}
+                className="flex items-center justify-center hover:bg-gray-50"
+                aria-label="Increase quantity"
+              >
+                <Plus className="size-4" />
+              </button>
             </div>
+
             <button
               type="button"
-              onClick={() => setQuantity((value) => value + 1)}
-              className="flex items-center justify-center hover:bg-gray-50"
-              aria-label="Increase quantity"
+              onClick={handleAddToCart}
+              disabled={!canBuy}
+              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-white px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
             >
-              <Plus className="size-4" />
+              <ShoppingBag className="size-4" />
+              {canBuy ? "Add to cart" : "Unavailable"}
+            </button>
+
+            <button
+              type="button"
+              onClick={toggleWishlistItem}
+              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              aria-pressed={wishlisted}
+              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
+                wishlisted
+                  ? "border-blue-600 bg-blue-50 text-blue-600"
+                  : "border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
+              }`}
+            >
+              <Heart className={`size-5 ${wishlisted ? "fill-blue-600" : ""}`} />
             </button>
           </div>
 
+          {/* Buy Now — adds to cart and jumps straight to the COD checkout. */}
           <button
             type="button"
-            onClick={handleAddToCart}
+            onClick={handleBuyNow}
             disabled={!canBuy}
-            className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
-            <ShoppingBag className="size-4" />
-            {canBuy ? "Add to cart" : "Unavailable"}
-          </button>
-
-          <button
-            type="button"
-            onClick={toggleWishlistItem}
-            aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
-            aria-pressed={wishlisted}
-            className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
-              wishlisted
-                ? "border-blue-600 bg-blue-50 text-blue-600"
-                : "border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
-            }`}
-          >
-            <Heart className={`size-5 ${wishlisted ? "fill-blue-600" : ""}`} />
+            <Zap className="size-4" />
+            {canBuy ? "Acheter maintenant" : "Indisponible"}
           </button>
         </div>
 

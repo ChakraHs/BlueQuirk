@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -41,6 +41,16 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // Optional destination after sign-up (e.g. the checkout flow sends guests here).
+  const [redirectTo, setRedirectTo] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRedirectTo(new URLSearchParams(window.location.search).get("redirect"));
+  }, []);
+
+  const loginHref = redirectTo
+    ? `/login?redirect=${encodeURIComponent(redirectTo)}`
+    : "/login";
 
   const update =
     (field: keyof Form) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -102,13 +112,13 @@ export default function SignupPage() {
         if (token.refreshToken) {
           localStorage.setItem("refresh_token", token.refreshToken);
         }
-        router.push("/");
+        router.push(redirectTo || "/");
         return;
       }
 
-      // Otherwise send them to the login page to sign in.
+      // Otherwise send them to the login page to sign in (keeping the redirect).
       setSuccess("Account created! Redirecting you to sign in…");
-      setTimeout(() => router.push("/login"), 1200);
+      setTimeout(() => router.push(loginHref), 1200);
     } catch {
       setError("Could not reach the server. Please try again.");
     } finally {
@@ -344,7 +354,7 @@ export default function SignupPage() {
           <p className="mt-8 text-center text-sm text-gray-500">
             Already have an account?{" "}
             <Link
-              href="/login"
+              href={loginHref}
               className="font-semibold text-blue-600 hover:text-blue-700"
             >
               Sign in

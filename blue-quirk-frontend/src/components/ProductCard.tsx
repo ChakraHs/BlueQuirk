@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Product } from "@/types/product";
+import { formatPrice } from "@/lib/money";
 import WishlistButton from "./WishlistButton";
 
 export default function ProductCard({
@@ -58,7 +59,7 @@ export default function ProductCard({
         )}
 
         <p className="mt-1.5 text-sm font-bold text-gray-900">
-          ${product.price}
+          {formatPrice(product.price)}
         </p>
       </div>
     </Link>
