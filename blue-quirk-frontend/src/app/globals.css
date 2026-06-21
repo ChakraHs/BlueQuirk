@@ -94,3 +94,78 @@ body {
     --angle: 360deg;
   }
 }
+
+/* ---- Redbubble-style animated gradient search border ---- */
+/* NOTE: keyframe name must be unique — `spin` collides with Tailwind's built-in
+   rotate animation and would actually rotate the element. */
+@keyframes bq-border-rotate {
+  to {
+    --angle: 360deg;
+  }
+}
+
+.search-rainbow {
+  position: relative;
+  border-radius: 9999px;
+  padding: 2px; /* gradient border thickness */
+  background: conic-gradient(
+    from var(--angle),
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+  animation: bq-border-rotate 6s linear infinite;
+  opacity: 0.9;
+  transition: opacity 0.3s ease, padding 0.3s ease;
+}
+
+/* soft glow that blooms on focus */
+.search-rainbow::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 9999px;
+  background: conic-gradient(
+    from var(--angle),
+    #ff4545,
+    #00ff99,
+    #006aff,
+    #ff0095,
+    #ff4545
+  );
+  animation: bq-border-rotate 6s linear infinite;
+  filter: blur(11px);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.search-rainbow:hover {
+  opacity: 1;
+}
+
+.search-rainbow:focus-within {
+  opacity: 1;
+  padding: 3px;
+  animation-duration: 2.8s;
+}
+
+.search-rainbow:focus-within::after {
+  opacity: 0.55;
+  animation-duration: 2.8s;
+}
+
+/* the actual input pill sits on top of the gradient padding */
+.search-rainbow > .search-rainbow-inner {
+  border-radius: 9999px;
+  background: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .search-rainbow,
+  .search-rainbow::after {
+    animation: none;
+  }
+}

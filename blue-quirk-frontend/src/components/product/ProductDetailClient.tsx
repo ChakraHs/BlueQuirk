@@ -10,12 +10,27 @@ import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
 
-function getInitialSelection(product: Product) {
+// The API returns every attribute with each value flagged `selected` for this
+// product. Like a real store (WooCommerce-style), a product should only expose
+// the values actually assigned to it — so we keep only selected values and drop
+// attributes that have none.
+type ProductAttribute = NonNullable<Product["attributes"]>[number];
+
+function getProductAttributes(product: Product): ProductAttribute[] {
+  return (product.attributes ?? [])
+    .map((attribute) => ({
+      ...attribute,
+      values: attribute.values.filter((value) => value.selected),
+    }))
+    .filter((attribute) => attribute.values.length > 0);
+}
+
+function getInitialSelection(attributes: ProductAttribute[]) {
   return Object.fromEntries(
-    (product.attributes ?? []).map((attribute) => {
-      const selectedValue = attribute.values.find((value) => value.selected) ?? attribute.values[0];
-      return [String(attribute.id), selectedValue ? String(selectedValue.id) : ""];
-    })
+    attributes.map((attribute) => [
+      String(attribute.id),
+      attribute.values[0] ? String(attribute.values[0].id) : "",
+    ])
   );
 }
 
@@ -27,9 +42,10 @@ export default function ProductDetailClient({
   lang: string;
 }) {
   const images = product.images?.length ? product.images.map((image) => image.url) : [FALLBACK_IMAGE];
+  const productAttributes = useMemo(() => getProductAttributes(product), [product]);
   const [activeImage, setActiveImage] = useState(images[0]);
   const [quantity, setQuantity] = useState(1);
-  const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(product));
+  const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
 
@@ -60,13 +76,13 @@ export default function ProductDetailClient({
 
   const selectedAttributeLabels = useMemo(() => {
     return Object.fromEntries(
-      (product.attributes ?? []).map((attribute) => {
+      productAttributes.map((attribute) => {
         const selectedId = selectedAttributes[String(attribute.id)];
         const selectedValue = attribute.values.find((value) => String(value.id) === selectedId);
         return [attribute.name, selectedValue?.value ?? ""];
       })
     );
-  }, [product.attributes, selectedAttributes]);
+  }, [productAttributes, selectedAttributes]);
 
   const handleAddToCart = () => {
     if (!canBuy) {
@@ -150,9 +166,9 @@ export default function ProductDetailClient({
           />
         )}
 
-        {!!product.attributes?.length && (
+        {!!productAttributes.length && (
           <div className="space-y-5">
-            {product.attributes.map((attribute) => (
+            {productAttributes.map((attribute) => (
               <fieldset key={attribute.id} className="space-y-3">
                 <legend className="text-sm font-semibold text-gray-800">
                   {attribute.name}

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, Loader2, Lock, User, AlertCircle } from "lucide-react";
 import { authProvider } from "../authProvider";
+import { accountHref } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -34,7 +35,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await authProvider.login(credentials);
-      router.push("/admin-v2");
+      // Route by role: admins to the dashboard, customers to their account.
+      router.push(accountHref());
     } catch {
       setError("Invalid credentials. Please try again.");
     } finally {

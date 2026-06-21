@@ -4,9 +4,11 @@ import { Heart, ShoppingCart, Menu, User as UserIcon, LogOut, X } from "lucide-r
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SearchBar from "./SearchBar";
+import LanguageSwitcher from "./LanguageSwitcher";
 import { Category } from "@/types/category";
 import { useCart, cartCount } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { accountHref, logout } from "@/lib/auth";
 
 export default function Header({
   lang,
@@ -17,22 +19,27 @@ export default function Header({
 }) {
   const [open, setOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  // Where "Account" points depends on the role in the JWT: admins go to the
+  // dashboard, customers go to their profile page.
+  const [accountUrl, setAccountUrl] = useState("/login");
   const cart = useCart();
   const wishlist = useWishlist();
   const cartQty = cartCount(cart);
 
   // Reflect auth state. login/signup store the Identity token under `access_token`.
   useEffect(() => {
-    const sync = () => setLoggedIn(!!localStorage.getItem("access_token"));
+    const sync = () => {
+      setLoggedIn(!!localStorage.getItem("access_token"));
+      setAccountUrl(accountHref());
+    };
     sync();
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
     setLoggedIn(false);
+    logout(`/${lang}`);
   };
 
   return (
@@ -58,7 +65,7 @@ export default function Header({
             {loggedIn ? (
               <>
                 <Link
-                  href="/admin-v2"
+                  href={accountUrl}
                   className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   <UserIcon size={18} />
@@ -88,6 +95,8 @@ export default function Header({
                 </Link>
               </>
             )}
+
+            <LanguageSwitcher current={lang} />
 
             <Link
               href={`/${lang}/wishlist`}
@@ -157,7 +166,7 @@ export default function Header({
           <div className="space-y-1 px-4 py-3">
             {loggedIn ? (
               <>
-                <Link href="/admin-v2" className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
+                <Link href={accountUrl} className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
                   Account
                 </Link>
                 <button
@@ -177,6 +186,10 @@ export default function Header({
                 </Link>
               </div>
             )}
+
+            <div className="border-t border-gray-100 pt-2">
+              <LanguageSwitcher current={lang} />
+            </div>
 
             {categories.length > 0 && (
               <div className="border-t border-gray-100 pt-2">

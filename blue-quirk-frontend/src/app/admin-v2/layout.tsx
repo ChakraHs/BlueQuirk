@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import Sidebar from "@/components/admin/Sidebar";
 import Topbar from "@/components/admin/Topbar";
+import RoleGuard from "@/components/auth/RoleGuard";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -29,7 +30,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex-1">
             <Topbar />
 
-            <main className="p-6">{children}</main>
+            <main className="p-6">
+              <RoleGuard requireRole="admin">{children}</RoleGuard>
+            </main>
           </div>
         </div>
       </body>

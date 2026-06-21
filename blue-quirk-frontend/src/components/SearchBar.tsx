@@ -16,26 +16,28 @@ export default function SearchBar({ lang = "fr" }: { lang?: string }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      role="search"
-      className="group flex w-full items-center rounded-full border border-gray-300 bg-gray-50 transition focus-within:border-blue-600 focus-within:bg-white focus-within:ring-2 focus-within:ring-blue-600/15"
-    >
-      <input
-        type="text"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        placeholder="Search for designs, products, artists…"
-        aria-label="Search"
-        className="h-11 w-full bg-transparent pl-5 pr-2 text-sm text-gray-800 placeholder:text-gray-400 outline-none"
-      />
-      <button
-        type="submit"
-        aria-label="Search"
-        className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700"
+    <div className="search-rainbow w-full">
+      <form
+        onSubmit={handleSubmit}
+        role="search"
+        className="search-rainbow-inner flex w-full items-center"
       >
-        <Search className="h-4 w-4" />
-      </button>
-    </form>
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search for designs, products, artists…"
+          aria-label="Search"
+          className="h-11 w-full bg-transparent pl-5 pr-2 text-sm text-gray-800 placeholder:text-gray-400 outline-none"
+        />
+        <button
+          type="submit"
+          aria-label="Search"
+          className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700"
+        >
+          <Search className="h-4 w-4" />
+        </button>
+      </form>
+    </div>
   );
 }
