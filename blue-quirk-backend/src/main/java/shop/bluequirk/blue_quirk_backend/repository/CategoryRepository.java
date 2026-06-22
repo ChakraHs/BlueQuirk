@@ -12,7 +12,7 @@ import shop.bluequirk.blue_quirk_backend.entity.Category;
 
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Long> {
-	@Query("SELECT DISTINCT c FROM Category c LEFT JOIN FETCH c.children")
+	@Query("SELECT DISTINCT c FROM Category c LEFT JOIN FETCH c.children LEFT JOIN FETCH c.translations")
 	List<Category> findAllWithChildren();
 	
 	@Query("""

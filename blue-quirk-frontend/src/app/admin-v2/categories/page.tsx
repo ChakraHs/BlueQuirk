@@ -1,18 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Tags, Trash2, Plus, CornerDownRight, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Tags,
+  Trash2,
+  Plus,
+  Pencil,
+  CornerDownRight,
+  X,
+} from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { CategoryService } from "@/services/category.service";
 import { Category } from "@/types/category";
 
+type Translation = { name: string; description: string };
 type FormState = {
-  name: string;
+  name: string; // English base (default)
   description: string;
   parentId: string; // "" = root
   imageUrl: string;
+  fr: Translation;
+  ar: Translation;
 };
 
 const EMPTY_FORM: FormState = {
@@ -20,7 +30,14 @@ const EMPTY_FORM: FormState = {
   description: "",
   parentId: "",
   imageUrl: "",
+  fr: { name: "", description: "" },
+  ar: { name: "", description: "" },
 };
+
+function translationFor(c: Category, lang: string): Translation {
+  const t = c.translations?.find((x) => x.lang === lang);
+  return { name: t?.name ?? "", description: t?.description ?? "" };
+}
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -30,9 +47,11 @@ export default function CategoriesPage() {
   const [deleting, setDeleting] = useState(false);
 
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
 
   const load = async () => {
     try {
@@ -61,23 +80,65 @@ export default function CategoriesPage() {
     return out;
   }, [categories]);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const openCreate = () => {
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+    setShowForm(true);
+  };
+
+  const startEdit = (c: Category) => {
+    setEditingId(c.id);
+    setForm({
+      name: c.name ?? "",
+      description: c.description ?? "",
+      parentId: c.parentId ? String(c.parentId) : "",
+      imageUrl: c.imageUrl ?? "",
+      fr: translationFor(c, "fr"),
+      ar: translationFor(c, "ar"),
+    });
+    setFormError(null);
+    setShowForm(true);
+    setTimeout(
+      () => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
+      0
+    );
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setFormError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      setFormError("Le nom est requis.");
+      setFormError("Le nom (anglais) est requis.");
       return;
     }
     setSaving(true);
     setFormError(null);
+
+    const payload = {
+      name: form.name.trim(),
+      description: form.description.trim() || null,
+      parentId: form.parentId ? Number(form.parentId) : null,
+      imageUrl: form.imageUrl.trim() || null,
+      translations: [
+        { lang: "fr", name: form.fr.name.trim(), description: form.fr.description.trim() },
+        { lang: "ar", name: form.ar.name.trim(), description: form.ar.description.trim() },
+      ],
+    };
+
     try {
-      await CategoryService.create({
-        name: form.name.trim(),
-        description: form.description.trim() || null,
-        parentId: form.parentId ? Number(form.parentId) : null,
-        imageUrl: form.imageUrl.trim() || null,
-      });
-      setForm(EMPTY_FORM);
-      setShowForm(false);
+      if (editingId != null) {
+        await CategoryService.update(editingId, payload);
+      } else {
+        await CategoryService.create(payload);
+      }
+      closeForm();
       await load();
     } catch (err: unknown) {
       const status =
@@ -87,7 +148,7 @@ export default function CategoriesPage() {
       setFormError(
         status === 409
           ? "Une catégorie portant ce nom existe déjà."
-          : "Échec de la création de la catégorie."
+          : "Échec de l'enregistrement de la catégorie."
       );
     } finally {
       setSaving(false);
@@ -108,17 +169,43 @@ export default function CategoriesPage() {
     }
   };
 
+  const renderTranslationCard = (lang: "fr" | "ar", label: string) => (
+    <div className="rounded-md border bg-gray-50 p-3">
+      <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {label}
+      </h3>
+      <input
+        value={form[lang].name}
+        onChange={(e) =>
+          setForm({ ...form, [lang]: { ...form[lang], name: e.target.value } })
+        }
+        placeholder={`Nom (${lang})`}
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        className="mb-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+      />
+      <input
+        value={form[lang].description}
+        onChange={(e) =>
+          setForm({
+            ...form,
+            [lang]: { ...form[lang], description: e.target.value },
+          })
+        }
+        placeholder={`Description (${lang})`}
+        dir={lang === "ar" ? "rtl" : "ltr"}
+        className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+      />
+    </div>
+  );
+
   return (
     <div>
       <PageHeader
         title="Catégories"
-        subtitle="Organisez votre catalogue en catégories et sous-catégories."
+        subtitle="Organisez votre catalogue en catégories et sous-catégories (FR / AR)."
       >
         <button
-          onClick={() => {
-            setShowForm((v) => !v);
-            setFormError(null);
-          }}
+          onClick={() => (showForm ? closeForm() : openCreate())}
           className="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-black"
         >
           {showForm ? <X size={16} /> : <Plus size={16} />}
@@ -126,16 +213,23 @@ export default function CategoriesPage() {
         </button>
       </PageHeader>
 
-      {/* Create form */}
+      {/* Create / edit form */}
       {showForm && (
         <form
-          onSubmit={handleCreate}
+          ref={formRef}
+          onSubmit={handleSubmit}
           className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
         >
+          <h2 className="mb-4 text-sm font-semibold text-gray-800">
+            {editingId != null
+              ? "Modifier la catégorie"
+              : "Nouvelle catégorie"}
+          </h2>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Nom *
+                Nom (anglais) *
               </label>
               <input
                 value={form.name}
@@ -143,6 +237,9 @@ export default function CategoriesPage() {
                 placeholder="ex. T-shirts"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
+              <p className="mt-1 text-xs text-gray-400">
+                Valeur par défaut affichée si une traduction manque.
+              </p>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -154,16 +251,18 @@ export default function CategoriesPage() {
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
               >
                 <option value="">— Aucune (catégorie racine)</option>
-                {flatOptions.map((o) => (
-                  <option key={o.id} value={o.id}>
-                    {o.label}
-                  </option>
-                ))}
+                {flatOptions
+                  .filter((o) => o.id !== editingId)
+                  .map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
               </select>
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Description
+                Description (anglais)
               </label>
               <input
                 value={form.description}
@@ -187,25 +286,34 @@ export default function CategoriesPage() {
             </div>
           </div>
 
-          {formError && (
-            <p className="mt-3 text-sm text-rose-600">{formError}</p>
-          )}
+          {/* Translations */}
+          <div className="mt-5">
+            <h3 className="mb-3 text-sm font-semibold text-gray-800">
+              Traductions
+            </h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {renderTranslationCard("fr", "Français")}
+              {renderTranslationCard("ar", "العربية (Arabe)")}
+            </div>
+          </div>
 
-          <div className="mt-4 flex gap-2">
+          {formError && <p className="mt-3 text-sm text-rose-600">{formError}</p>}
+
+          <div className="mt-5 flex gap-2">
             <button
               type="submit"
               disabled={saving}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
             >
-              {saving ? "Création…" : "Créer la catégorie"}
+              {saving
+                ? "Enregistrement…"
+                : editingId != null
+                ? "Enregistrer les modifications"
+                : "Créer la catégorie"}
             </button>
             <button
               type="button"
-              onClick={() => {
-                setShowForm(false);
-                setForm(EMPTY_FORM);
-                setFormError(null);
-              }}
+              onClick={closeForm}
               className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
               Annuler
@@ -246,9 +354,7 @@ export default function CategoriesPage() {
                   <div>
                     <p className="font-semibold text-gray-800">{root.name}</p>
                     {root.description && (
-                      <p className="text-xs text-gray-400">
-                        {root.description}
-                      </p>
+                      <p className="text-xs text-gray-400">{root.description}</p>
                     )}
                   </div>
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
@@ -256,13 +362,22 @@ export default function CategoriesPage() {
                     {(root.children?.length ?? 0) > 1 ? "s" : ""}
                   </span>
                 </div>
-                <button
-                  onClick={() => setToDelete(root)}
-                  className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
-                  aria-label="Supprimer"
-                >
-                  <Trash2 size={16} />
-                </button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => startEdit(root)}
+                    className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
+                    aria-label="Modifier"
+                  >
+                    <Pencil size={16} />
+                  </button>
+                  <button
+                    onClick={() => setToDelete(root)}
+                    className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
+                    aria-label="Supprimer"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
               </div>
 
               {/* Children */}
@@ -275,13 +390,22 @@ export default function CategoriesPage() {
                     <CornerDownRight size={15} className="text-gray-400" />
                     <span className="text-sm">{child.name}</span>
                   </div>
-                  <button
-                    onClick={() => setToDelete(child)}
-                    className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
-                    aria-label="Supprimer"
-                  >
-                    <Trash2 size={15} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => startEdit(child)}
+                      className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
+                      aria-label="Modifier"
+                    >
+                      <Pencil size={15} />
+                    </button>
+                    <button
+                      onClick={() => setToDelete(child)}
+                      className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
+                      aria-label="Supprimer"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

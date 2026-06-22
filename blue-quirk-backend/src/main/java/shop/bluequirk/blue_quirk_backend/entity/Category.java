@@ -33,8 +33,8 @@ public class Category {
     @ManyToMany(mappedBy = "categories")
     private Set<Product> products = new HashSet<>();
     
-    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL)
-    private Set<CategoryTranslation> translations;
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CategoryTranslation> translations = new HashSet<>();
     
     
     @Column(name = "image_url")

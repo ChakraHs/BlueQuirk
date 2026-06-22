@@ -1,6 +1,8 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.dao.DataIntegrityViolationException;
@@ -11,7 +13,9 @@ import org.springframework.web.server.ResponseStatusException;
 
 import shop.bluequirk.blue_quirk_backend.dto.CategoryRequest;
 import shop.bluequirk.blue_quirk_backend.dto.CategoryResponse;
+import shop.bluequirk.blue_quirk_backend.dto.CategoryTranslationDto;
 import shop.bluequirk.blue_quirk_backend.entity.Category;
+import shop.bluequirk.blue_quirk_backend.entity.translation.CategoryTranslation;
 import shop.bluequirk.blue_quirk_backend.repository.CategoryRepository;
 
 @Service
@@ -51,12 +55,94 @@ public class CategoryService {
             category.setParent(parent);
         }
 
+        applyTranslations(category, req.translations());
+
         try {
             Category saved = categoryRepository.saveAndFlush(category);
             return toDto(saved, null);
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Une catégorie portant ce nom existe déjà");
         }
+    }
+
+    /**
+     * Updates a category from an admin request: base fields, optional parent
+     * (rejecting self/descendant cycles), and the fr/ar translations.
+     */
+    @Transactional
+    public CategoryResponse updateCategory(Long id, CategoryRequest req) {
+        if (req == null || req.name() == null || req.name().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la catégorie est requis");
+        }
+
+        Category existing = categoryRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Catégorie introuvable"));
+
+        existing.setName(req.name().trim());
+        existing.setSlug(slugify(req.slug() != null && !req.slug().isBlank() ? req.slug() : req.name()));
+        existing.setDescription(req.description() != null ? req.description().trim() : null);
+        existing.setImageUrl(req.imageUrl() != null && !req.imageUrl().isBlank() ? req.imageUrl().trim() : null);
+
+        if (req.parentId() == null) {
+            existing.setParent(null);
+        } else if (req.parentId().equals(id)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Une catégorie ne peut pas être sa propre parente");
+        } else {
+            Category parent = categoryRepository.findById(req.parentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Catégorie parente introuvable"));
+            existing.setParent(parent);
+        }
+
+        applyTranslations(existing, req.translations());
+
+        try {
+            Category saved = categoryRepository.saveAndFlush(existing);
+            return toDto(saved, null);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Une catégorie portant ce nom existe déjà");
+        }
+    }
+
+    /**
+     * Merges the supplied fr/ar entries into a category's translations in place.
+     * We update existing rows per-lang (rather than clear + recreate) so we never
+     * insert a new (category_id, lang) before deleting the old one — which would
+     * violate the unique constraint mid-flush. Blank entries remove that lang.
+     */
+    private void applyTranslations(Category category, List<CategoryTranslationDto> translations) {
+        Set<CategoryTranslation> existing = category.getTranslations();
+        Set<String> keepLangs = new HashSet<>();
+
+        if (translations != null) {
+            for (CategoryTranslationDto dto : translations) {
+                if (dto == null || dto.lang() == null || dto.lang().isBlank()) {
+                    continue;
+                }
+                String lang = dto.lang().trim();
+                boolean hasContent = (dto.name() != null && !dto.name().isBlank())
+                        || (dto.description() != null && !dto.description().isBlank());
+                if (!hasContent) {
+                    continue; // dropped below since not in keepLangs
+                }
+
+                CategoryTranslation t = existing.stream()
+                        .filter(x -> lang.equals(x.getLang()))
+                        .findFirst()
+                        .orElse(null);
+                if (t == null) {
+                    t = new CategoryTranslation();
+                    t.setLang(lang);
+                    t.setCategory(category);
+                    existing.add(t);
+                }
+                t.setName(dto.name());
+                t.setDescription(dto.description());
+                keepLangs.add(lang);
+            }
+        }
+
+        // Drop any translation whose lang was not supplied (or was blanked out).
+        existing.removeIf(t -> !keepLangs.contains(t.getLang()));
     }
 
     private String slugify(String input) {
@@ -154,6 +240,7 @@ public class CategoryService {
                             resolveDescription(child, lang),
                             child.getParent() != null ? child.getParent().getId() : null,
                             child.getImageUrl(),
+                            toTranslationDtos(child),
                             List.of() // STOP recursion
                     ))
                     .toList();
@@ -165,8 +252,20 @@ public class CategoryService {
                 description,
                 c.getParent() != null ? c.getParent().getId() : null,
                 c.getImageUrl(),
+                toTranslationDtos(c),
                 children
         );
+    }
+
+    /** Raw fr/ar translations for the admin editor (empty list when none). */
+    private List<CategoryTranslationDto> toTranslationDtos(Category c) {
+        Set<CategoryTranslation> translations = c.getTranslations();
+        if (translations == null || translations.isEmpty()) {
+            return List.of();
+        }
+        return translations.stream()
+                .map(t -> new CategoryTranslationDto(t.getLang(), t.getName(), t.getDescription()))
+                .collect(Collectors.toList());
     }
     
     
