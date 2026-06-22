@@ -2,6 +2,7 @@ package shop.bluequirk.blue_quirk_backend.provider;
 
 import java.util.Properties;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
@@ -16,8 +17,10 @@ import jakarta.mail.Transport;
 import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 
+/** Active when email.provider=smtp (the default if the property is absent). */
 @Primary
 @Service
+@ConditionalOnProperty(name = "email.provider", havingValue = "smtp", matchIfMissing = true)
 public class SmtpEmailProvider implements EmailProvider {
 
     private final EmailConfigService configService;
