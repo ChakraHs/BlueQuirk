@@ -39,10 +39,27 @@ export type ProfileUpdate = {
 };
 
 export const IdentityService = {
+  /**
+   * GET /users — every account registered in Keycloak (the customer directory).
+   * This endpoint is public on the Identity-Service, so we deliberately call it
+   * WITHOUT the bearer token: the service is an OAuth2 resource server and would
+   * reject a present-but-expired token with 401 even on a permit-all route.
+   */
+  getAllUsers: async (): Promise<Profile[]> => {
+    const res = await axios.get<Profile[]>(`${IDENTITY_BASE_URL}/users`);
+    // The endpoint replies 204 (no body) when there are no users.
+    return res.status === 204 || !res.data ? [] : res.data;
+  },
+
   /** GET /user/{id} — full profile from Keycloak. */
   getProfile: async (id: string): Promise<Profile> => {
     const { data } = await identityApi.get<Profile>(`/user/${id}`);
     return data;
+  },
+
+  /** DELETE /user/{id} — remove the account from Keycloak. */
+  deleteUser: async (id: string): Promise<void> => {
+    await identityApi.delete(`/user/${id}`);
   },
 
   /** PUT /user/{id} — update email / first name / last name. */

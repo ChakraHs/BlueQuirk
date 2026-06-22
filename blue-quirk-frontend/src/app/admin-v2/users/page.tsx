@@ -5,24 +5,27 @@ import { Search, Users as UsersIcon, Trash2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
-import { UserService } from "@/services/user.service";
+import { IdentityService, type Profile } from "@/services/identity.service";
 import { OrderService, type OrderResponse } from "@/services/order.service";
-import { User } from "@/types/user";
 import { formatPrice } from "@/lib/money";
 
+function fullName(u: Profile): string {
+  return `${u.firstName ?? ""} ${u.lastName ?? ""}`.trim() || u.username || "—";
+}
+
 export default function CustomersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [orders, setOrders] = useState<OrderResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [toDelete, setToDelete] = useState<User | null>(null);
+  const [toDelete, setToDelete] = useState<Profile | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     (async () => {
       const [u, o] = await Promise.allSettled([
-        UserService.getAll(),
+        IdentityService.getAllUsers(),
         OrderService.getAll(),
       ]);
       if (u.status === "fulfilled") setUsers(u.value);
@@ -50,8 +53,9 @@ export default function CustomersPage() {
     const q = query.trim().toLowerCase();
     return users.filter((u) =>
       q
-        ? (u.name || "").toLowerCase().includes(q) ||
-          (u.email || "").toLowerCase().includes(q)
+        ? fullName(u).toLowerCase().includes(q) ||
+          (u.email || "").toLowerCase().includes(q) ||
+          (u.username || "").toLowerCase().includes(q)
         : true
     );
   }, [users, query]);
@@ -60,7 +64,7 @@ export default function CustomersPage() {
     if (!toDelete) return;
     setDeleting(true);
     try {
-      await UserService.delete(toDelete.id);
+      await IdentityService.deleteUser(toDelete.id);
       setUsers((prev) => prev.filter((u) => u.id !== toDelete.id));
       setToDelete(null);
     } catch {
@@ -74,7 +78,7 @@ export default function CustomersPage() {
     <div>
       <PageHeader
         title="Clients"
-        subtitle="Les comptes clients et leur activité d'achat."
+        subtitle="Les comptes clients (Keycloak) et leur activité d'achat."
       />
 
       <div className="relative mb-4 max-w-sm">
@@ -120,16 +124,20 @@ export default function CustomersPage() {
                 const s = u.email
                   ? statsByEmail.get(u.email.toLowerCase())
                   : undefined;
+                const name = fullName(u);
                 return (
                   <tr key={u.id} className="hover:bg-gray-50">
                     <td className="px-5 py-3">
                       <div className="flex items-center gap-3">
                         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold uppercase text-blue-700">
-                          {(u.name || u.email || "?").charAt(0)}
+                          {(name || u.email || "?").charAt(0)}
                         </span>
-                        <span className="font-medium text-gray-800">
-                          {u.name || "—"}
-                        </span>
+                        <div>
+                          <div className="font-medium text-gray-800">{name}</div>
+                          <div className="text-xs text-gray-400">
+                            @{u.username}
+                          </div>
+                        </div>
                       </div>
                     </td>
                     <td className="px-5 py-3 text-gray-600">{u.email}</td>
@@ -158,7 +166,9 @@ export default function CustomersPage() {
       <ConfirmDialog
         open={toDelete !== null}
         title="Supprimer le client"
-        message={`Supprimer « ${toDelete?.name || toDelete?.email} » ?`}
+        message={`Supprimer le compte « ${
+          toDelete ? fullName(toDelete) : ""
+        } » de Keycloak ? Cette action est irréversible.`}
         confirmLabel="Supprimer"
         busy={deleting}
         onConfirm={handleDelete}

@@ -21,7 +21,7 @@ import MiniBarChart, {
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { ProductService } from "@/services/product.service";
-import { UserService } from "@/services/user.service";
+import { IdentityService } from "@/services/identity.service";
 import { Product } from "@/types/product";
 import { ORDER_STATUSES } from "@/types/order";
 import { formatPrice } from "@/lib/money";
@@ -57,7 +57,7 @@ export default function AdminDashboard() {
       const [ordersRes, productsRes, usersRes] = await Promise.allSettled([
         OrderService.getAll(),
         ProductService.getAll(0, 1000),
-        UserService.getAll(),
+        IdentityService.getAllUsers(),
       ]);
       if (cancelled) return;
 
