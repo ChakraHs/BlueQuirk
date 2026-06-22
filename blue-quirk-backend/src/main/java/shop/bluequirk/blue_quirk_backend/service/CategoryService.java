@@ -3,9 +3,13 @@ package shop.bluequirk.blue_quirk_backend.service;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import shop.bluequirk.blue_quirk_backend.dto.CategoryRequest;
 import shop.bluequirk.blue_quirk_backend.dto.CategoryResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Category;
 import shop.bluequirk.blue_quirk_backend.repository.CategoryRepository;
@@ -22,6 +26,43 @@ public class CategoryService {
     @Transactional
     public Category createCategory(Category category) {
         return categoryRepository.save(category);
+    }
+
+    /**
+     * Creates a category from an admin request. Resolves the optional parent,
+     * auto-generates a slug from the name when none is supplied, and returns the
+     * locale-neutral DTO.
+     */
+    @Transactional
+    public CategoryResponse createCategory(CategoryRequest req) {
+        if (req == null || req.name() == null || req.name().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la catégorie est requis");
+        }
+
+        Category category = new Category();
+        category.setName(req.name().trim());
+        category.setSlug(slugify(req.slug() != null && !req.slug().isBlank() ? req.slug() : req.name()));
+        category.setDescription(req.description() != null ? req.description().trim() : null);
+        category.setImageUrl(req.imageUrl() != null && !req.imageUrl().isBlank() ? req.imageUrl().trim() : null);
+
+        if (req.parentId() != null) {
+            Category parent = categoryRepository.findById(req.parentId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Catégorie parente introuvable"));
+            category.setParent(parent);
+        }
+
+        try {
+            Category saved = categoryRepository.saveAndFlush(category);
+            return toDto(saved, null);
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Une catégorie portant ce nom existe déjà");
+        }
+    }
+
+    private String slugify(String input) {
+        return input.trim().toLowerCase()
+                .replaceAll("[^a-z0-9]+", "-")
+                .replaceAll("(^-|-$)", "");
     }
 
     @Transactional
