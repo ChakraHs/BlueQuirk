@@ -15,6 +15,7 @@ export default function NewProductPage() {
   const [form, setForm] = useState({
     name: "",
     price: 0,
+    stockQuantity: 0,
     description: "",
     status: "PUBLISHED",
   });
@@ -87,6 +88,7 @@ export default function NewProductPage() {
       await ProductService.create({
         ...form,
         price: Number(form.price),
+        stockQuantity: Number(form.stockQuantity),
         attributes,
         images: [],
         translations: Object.entries(translations)
@@ -137,21 +139,40 @@ export default function NewProductPage() {
             />
           </div>
 
-          {/* Price */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Price
-            </label>
-            <input
-              name="price"
-              type="number"
-              placeholder="0.00"
-              onChange={handleChange}
-              required
-              className="w-full border border-gray-300 rounded-md px-3 py-2
-                         text-gray-900
-                         focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-            />
+          {/* Price + Stock */}
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Price (DH)
+              </label>
+              <input
+                name="price"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                onChange={handleChange}
+                required
+                className="w-full border border-gray-300 rounded-md px-3 py-2
+                           text-gray-900
+                           focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Stock
+              </label>
+              <input
+                name="stockQuantity"
+                type="number"
+                min="0"
+                placeholder="0"
+                value={form.stockQuantity}
+                onChange={handleChange}
+                className="w-full border border-gray-300 rounded-md px-3 py-2
+                           text-gray-900
+                           focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+              />
+            </div>
           </div>
 
           {/* Description */}

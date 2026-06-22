@@ -26,7 +26,12 @@ public class Product {
 
     @Column(nullable = false)
     private double price;
-    
+
+    // Units in stock for this product. Defaults to 0; used for low-stock alerts
+    // and the admin inventory view.
+    @Column(nullable = false)
+    private Integer stockQuantity = 0;
+
     @Enumerated(EnumType.STRING) // store as text, not number
     private ProductStatus status;
 
@@ -82,6 +87,9 @@ public class Product {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Integer getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
 
     public Set<AttributeValue> getSelectedValues() { return selectedValues; }
     public void setSelectedValues(Set<AttributeValue> selectedValues) { this.selectedValues = selectedValues; }

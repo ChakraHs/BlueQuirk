@@ -9,6 +9,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.dto.CreateOrderRequest;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.User;
@@ -79,6 +80,22 @@ public class OrderController {
     public List<OrderResponse> getOrdersByUser(@PathVariable Long userId) {
         return orderService.getOrdersByUserId(userId);
     }
+
+    /** Admin: move an order through its lifecycle (PENDING → CONFIRMED → SHIPPED → DELIVERED / CANCELLED). */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<OrderResponse> updateStatus(
+            @PathVariable Long id,
+            @RequestBody UpdateStatusRequest request) {
+        OrderStatus status;
+        try {
+            status = OrderStatus.valueOf(request.status());
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown order status: " + request.status());
+        }
+        return ResponseEntity.ok(orderService.updateStatus(id, status));
+    }
+
+    public record UpdateStatusRequest(String status) {}
 
     @DeleteMapping("/{id}")
     public void deleteOrder(@PathVariable Long id) {

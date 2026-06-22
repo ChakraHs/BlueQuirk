@@ -12,6 +12,7 @@ public class ProductDTO {
 	private Long id;
     private String name;
     private Double price;
+    private Integer stockQuantity;
     private String description;
     private ProductStatus status;
     
@@ -40,6 +41,9 @@ public class ProductDTO {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Integer getStockQuantity() { return stockQuantity; }
+    public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }

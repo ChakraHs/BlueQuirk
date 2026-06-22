@@ -115,6 +115,27 @@ public class OrderService {
         return orderRepository.findByUserId(userId).stream().map(OrderResponse::from).toList();
     }
 
+    /**
+     * Updates an order's lifecycle status (admin action) and, when the status
+     * actually changes, emails the customer a best-effort notification.
+     */
+    @Transactional
+    public OrderResponse updateStatus(Long id, OrderStatus status) {
+        require(status != null, "A target status is required");
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        OrderStatus previous = order.getStatus();
+        order.setStatus(status);
+        Order saved = orderRepository.save(order);
+        OrderResponse response = OrderResponse.from(saved);
+
+        if (previous != status) {
+            notificationService.sendStatusUpdate(response, status);
+        }
+        return response;
+    }
+
     public void deleteOrder(Long id) {
         orderRepository.deleteById(id);
     }

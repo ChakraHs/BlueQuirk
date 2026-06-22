@@ -10,6 +10,7 @@ public record ProductResponse(
 	    Long id,
 	    String name,
 	    Double price,
+	    Integer stockQuantity,
 	    String description,
 	    ProductStatus status,
 	    Set<Image> images,

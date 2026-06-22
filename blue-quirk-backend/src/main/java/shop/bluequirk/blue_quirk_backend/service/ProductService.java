@@ -56,6 +56,9 @@ public class ProductService {
     	
     	existing.setName(dto.getName());
         existing.setPrice(dto.getPrice());
+        if (dto.getStockQuantity() != null) {
+            existing.setStockQuantity(dto.getStockQuantity());
+        }
     	existing.setDescription(dto.getDescription());
         existing.setStatus(dto.getStatus());
         existing.setImages(dto.getImages());
@@ -136,6 +139,7 @@ public class ProductService {
             product.getId(),
             resolveName(product, lang),
             product.getPrice(),
+            product.getStockQuantity(),
             resolveDescription(product, lang),
             product.getStatus(),
             product.getImages(),
@@ -201,6 +205,7 @@ public class ProductService {
         product.setId(dto.getId());
         product.setName(dto.getName());
         product.setPrice(dto.getPrice());
+        product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
         product.setStatus(dto.getStatus());
         product.setImages(dto.getImages());
@@ -256,6 +261,7 @@ public class ProductService {
                 product.getId(),
                 resolveName(product, lang),
                 product.getPrice(),
+                product.getStockQuantity(),
                 resolveDescription(product, lang),
                 product.getStatus(),
                 product.getImages(),

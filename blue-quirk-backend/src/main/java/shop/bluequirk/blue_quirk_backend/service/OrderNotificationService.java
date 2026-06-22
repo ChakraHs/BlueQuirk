@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.provider.EmailProvider;
 
@@ -46,6 +47,60 @@ public class OrderNotificationService {
                     "Nouvelle commande #" + order.id() + " — " + money(order.total()),
                     adminHtml(order));
         }
+    }
+
+    /**
+     * Emails the customer when an admin changes the order's status. Best-effort,
+     * async, and skipped when there is no customer email.
+     */
+    @Async
+    public void sendStatusUpdate(OrderResponse order, OrderStatus status) {
+        if (order.email() == null || order.email().isBlank()) {
+            return;
+        }
+        trySend(order.email(), statusSubject(order, status), statusHtml(order, status));
+    }
+
+    private String statusSubject(OrderResponse order, OrderStatus status) {
+        return switch (status) {
+            case CONFIRMED -> "Votre commande BlueQuirk #" + order.id() + " est confirmée";
+            case SHIPPED   -> "Votre commande BlueQuirk #" + order.id() + " a été expédiée";
+            case DELIVERED -> "Votre commande BlueQuirk #" + order.id() + " a été livrée";
+            case CANCELLED -> "Votre commande BlueQuirk #" + order.id() + " a été annulée";
+            default        -> "Mise à jour de votre commande BlueQuirk #" + order.id();
+        };
+    }
+
+    private String statusHtml(OrderResponse order, OrderStatus status) {
+        String title;
+        String intro;
+        switch (status) {
+            case CONFIRMED -> {
+                title = "Commande confirmée";
+                intro = "Bonne nouvelle " + esc(order.customerName()) + " ! Votre commande <strong>#" + order.id()
+                        + "</strong> est confirmée et en cours de préparation.";
+            }
+            case SHIPPED -> {
+                title = "Commande expédiée";
+                intro = "Votre commande <strong>#" + order.id() + "</strong> est en route. "
+                        + "Notre livreur vous contactera au " + esc(order.phone()) + " pour la livraison.";
+            }
+            case DELIVERED -> {
+                title = "Commande livrée";
+                intro = "Votre commande <strong>#" + order.id() + "</strong> a bien été livrée. "
+                        + "Merci d'avoir choisi BlueQuirk — à très bientôt !";
+            }
+            case CANCELLED -> {
+                title = "Commande annulée";
+                intro = "Votre commande <strong>#" + order.id() + "</strong> a été annulée. "
+                        + "Pour toute question, répondez simplement à cet e-mail.";
+            }
+            default -> {
+                title = "Mise à jour de commande";
+                intro = "Le statut de votre commande <strong>#" + order.id() + "</strong> a été mis à jour.";
+            }
+        }
+        return wrap(title, intro, itemsTable(order) + totals(order) + shipping(order));
     }
 
     private void trySend(String to, String subject, String html) {

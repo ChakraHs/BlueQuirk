@@ -67,4 +67,27 @@ export const OrderService = {
     const { data } = await api.post<OrderResponse>("/orders", payload);
     return data;
   },
+
+  // --- Admin operations ---
+
+  getAll: async (): Promise<OrderResponse[]> => {
+    const { data } = await api.get<OrderResponse[]>("/orders");
+    return data;
+  },
+
+  getById: async (id: number): Promise<OrderResponse> => {
+    const { data } = await api.get<OrderResponse>(`/orders/${id}`);
+    return data;
+  },
+
+  updateStatus: async (id: number, status: string): Promise<OrderResponse> => {
+    const { data } = await api.patch<OrderResponse>(`/orders/${id}/status`, {
+      status,
+    });
+    return data;
+  },
+
+  delete: async (id: number): Promise<void> => {
+    await api.delete(`/orders/${id}`);
+  },
 };
