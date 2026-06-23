@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, Heart, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
-import { Product } from "@/types/product";
+import { Check, ChevronLeft, ChevronRight, Heart, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
+import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
+import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
@@ -43,11 +44,50 @@ export default function ProductDetailClient({
   product: Product;
   lang: string;
 }) {
-  const images = product.images?.length ? product.images.map((image) => image.url) : [FALLBACK_IMAGE];
+  const allImages: ProductImage[] = useMemo(
+    () => (product.images?.length ? product.images : [{ id: -1, url: FALLBACK_IMAGE }]),
+    [product.images]
+  );
   const productAttributes = useMemo(() => getProductAttributes(product), [product]);
-  const [activeImage, setActiveImage] = useState(images[0]);
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
+
+  // Color-aware gallery: when a color is selected, show that color's images
+  // first then generic ones (falling back to generics when the color has none).
+  const colorAttribute = useMemo(() => findColorAttribute(productAttributes), [productAttributes]);
+  const selectedColorId = colorAttribute
+    ? Number(selectedAttributes[String(colorAttribute.id)]) || null
+    : null;
+  const galleryImages = useMemo(
+    () => (colorAttribute ? imagesForColor(allImages, selectedColorId) : allImages),
+    [colorAttribute, allImages, selectedColorId]
+  );
+
+  const [activeImage, setActiveImage] = useState(galleryImages[0]?.url ?? FALLBACK_IMAGE);
+  const touchStartX = useRef<number | null>(null);
+
+  // When the color (and thus the gallery) changes, jump to the first matching image.
+  useEffect(() => {
+    setActiveImage(galleryImages[0]?.url ?? FALLBACK_IMAGE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedColorId]);
+
+  // Browse the (color-filtered) gallery with arrows / swipe, wrapping around.
+  const activeIndex = Math.max(0, galleryImages.findIndex((img) => img.url === activeImage));
+  const stepImage = (dir: number) => {
+    if (galleryImages.length < 2) return;
+    const next = (activeIndex + dir + galleryImages.length) % galleryImages.length;
+    setActiveImage(galleryImages[next].url);
+  };
+  const onTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+  const onTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    if (Math.abs(dx) > 40) stepImage(dx < 0 ? 1 : -1);
+    touchStartX.current = null;
+  };
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const router = useRouter();
@@ -71,7 +111,7 @@ export default function ProductDetailClient({
         id: product.id,
         name: product.name,
         price: product.price,
-        image: images[0],
+        image: galleryImages[0]?.url ?? FALLBACK_IMAGE,
         lang,
       })
     );
@@ -118,30 +158,70 @@ export default function ProductDetailClient({
   return (
     <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:px-12 md:py-12">
       <section aria-label="Product images" className="space-y-4">
-        <div className="relative aspect-square overflow-hidden rounded-2xl bg-gray-100">
+        <div
+          className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100"
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+        >
           <Image
+            key={activeImage}
             src={activeImage}
             alt={product.name}
             fill
             priority
             sizes="(max-width: 768px) 100vw, 55vw"
-            className="object-cover"
+            className="object-cover animate-[fadeIn_0.25s_ease]"
           />
+
+          {galleryImages.length > 1 && (
+            <>
+              <button
+                type="button"
+                onClick={() => stepImage(-1)}
+                aria-label="Image précédente"
+                className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-white md:opacity-0 md:group-hover:opacity-100"
+              >
+                <ChevronLeft size={20} />
+              </button>
+              <button
+                type="button"
+                onClick={() => stepImage(1)}
+                aria-label="Image suivante"
+                className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-white md:opacity-0 md:group-hover:opacity-100"
+              >
+                <ChevronRight size={20} />
+              </button>
+
+              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+                {galleryImages.map((img, i) => (
+                  <button
+                    key={img.id ?? img.url}
+                    type="button"
+                    onClick={() => setActiveImage(img.url)}
+                    aria-label={`Image ${i + 1}`}
+                    className={`h-2 rounded-full transition-all ${
+                      i === activeIndex ? "w-5 bg-gray-900" : "w-2 bg-gray-900/40 hover:bg-gray-900/60"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
-        {images.length > 1 && (
+        {galleryImages.length > 1 && (
           <div className="grid grid-cols-5 gap-3">
-            {images.map((image) => (
+            {galleryImages.map((image) => (
               <button
-                key={image}
+                key={image.id ?? image.url}
                 type="button"
-                onClick={() => setActiveImage(image)}
+                onClick={() => setActiveImage(image.url)}
                 className={`relative aspect-square overflow-hidden rounded-xl border-2 bg-gray-100 transition ${
-                  activeImage === image ? "border-blue-600" : "border-transparent hover:border-gray-300"
+                  activeImage === image.url ? "border-blue-600" : "border-transparent hover:border-gray-300"
                 }`}
                 aria-label="Select product image"
               >
-                <Image src={image} alt="" fill sizes="96px" className="object-cover" />
+                <Image src={image.url} alt="" fill sizes="96px" className="object-cover" />
               </button>
             ))}
           </div>

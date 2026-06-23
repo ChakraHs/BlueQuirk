@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
@@ -8,6 +8,7 @@ import PageHeader from "@/components/admin/ui/PageHeader";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import { ProductService } from "@/services/product.service";
 import { Product, ProductAttribute, ProductImage } from "@/types/product";
+import { colorOptionsFromAttributes } from "@/lib/colorImages";
 
 type FormState = {
   name: string;
@@ -28,6 +29,7 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
+  const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
   const [form, setForm] = useState<FormState>({
     name: "",
     price: 0,
@@ -200,7 +202,7 @@ export default function EditProductPage() {
             />
           </div>
 
-          <ProductImageManager value={images} onChange={setImages} />
+          <ProductImageManager value={images} onChange={setImages} colorOptions={colorOptions} />
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

@@ -5,17 +5,23 @@ import { Star, Trash2, UploadCloud, Loader2, GripVertical, AlertCircle } from "l
 import { ImageService } from "@/services/image.service";
 import type { ProductImage } from "@/types/product";
 
+export type ColorOption = { id: number; label: string };
+
 /**
  * Admin product image manager: drag & drop / multi-select upload (compressed +
- * pushed to Cloudflare), a thumbnail grid with primary selection, removal, and
- * drag-to-reorder. Controlled — the parent owns the image list.
+ * pushed to Cloudflare), a thumbnail grid with primary selection, removal,
+ * drag-to-reorder, and an optional per-image color link. Controlled — the parent
+ * owns the image list.
  */
 export default function ProductImageManager({
   value,
   onChange,
+  colorOptions = [],
 }: {
   value: ProductImage[];
   onChange: (images: ProductImage[]) => void;
+  /** Color attribute values for linking an image to a color (empty = no color attr). */
+  colorOptions?: ColorOption[];
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -82,6 +88,10 @@ export default function ProductImageManager({
 
   const remove = (id: number) => {
     onChange(normalize(value.filter((img) => img.id !== id)));
+  };
+
+  const setColor = (id: number, colorValueId: number | null) => {
+    onChange(value.map((img) => (img.id === id ? { ...img, colorValueId } : img)));
   };
 
   // --- thumbnail drag-to-reorder ---
@@ -162,56 +172,76 @@ export default function ProductImageManager({
       {(ordered.length > 0 || uploads.length > 0) && (
         <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5">
           {ordered.map((img, index) => (
-            <div
-              key={img.id}
-              draggable
-              onDragStart={() => onThumbDragStart(index)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={() => onThumbDrop(index)}
-              className={`group relative aspect-square overflow-hidden rounded-lg border bg-gray-100 ${
-                img.primary ? "border-blue-500 ring-2 ring-blue-500/30" : "border-gray-200"
-              }`}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={img.url}
-                alt={img.fileName || "Image produit"}
-                className="h-full w-full object-cover"
-              />
-
-              {/* drag handle */}
-              <span className="absolute left-1 top-1 rounded bg-black/40 p-0.5 text-white opacity-0 transition group-hover:opacity-100">
-                <GripVertical size={12} />
-              </span>
-
-              {/* primary badge / toggle */}
-              <button
-                type="button"
-                onClick={() => setPrimary(img.id)}
-                title={img.primary ? "Image principale" : "Définir comme principale"}
-                className={`absolute right-1 top-1 rounded-full p-1 transition ${
-                  img.primary
-                    ? "bg-blue-600 text-white"
-                    : "bg-black/40 text-white opacity-0 hover:bg-black/60 group-hover:opacity-100"
+            <div key={img.id} className="flex flex-col gap-1.5">
+              <div
+                draggable
+                onDragStart={() => onThumbDragStart(index)}
+                onDragOver={(e) => e.preventDefault()}
+                onDrop={() => onThumbDrop(index)}
+                className={`group relative aspect-square overflow-hidden rounded-lg border bg-gray-100 ${
+                  img.primary ? "border-blue-500 ring-2 ring-blue-500/30" : "border-gray-200"
                 }`}
               >
-                <Star size={13} className={img.primary ? "fill-current" : ""} />
-              </button>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={img.url}
+                  alt={img.fileName || "Image produit"}
+                  className="h-full w-full object-cover"
+                />
 
-              {/* remove */}
-              <button
-                type="button"
-                onClick={() => remove(img.id)}
-                title="Retirer l'image"
-                className="absolute bottom-1 right-1 rounded-full bg-black/40 p-1 text-white opacity-0 transition hover:bg-rose-600 group-hover:opacity-100"
-              >
-                <Trash2 size={13} />
-              </button>
-
-              {img.primary && (
-                <span className="absolute bottom-1 left-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                  Principale
+                {/* drag handle */}
+                <span className="absolute left-1 top-1 rounded bg-black/40 p-0.5 text-white opacity-0 transition group-hover:opacity-100">
+                  <GripVertical size={12} />
                 </span>
+
+                {/* primary badge / toggle */}
+                <button
+                  type="button"
+                  onClick={() => setPrimary(img.id)}
+                  title={img.primary ? "Image principale" : "Définir comme principale"}
+                  className={`absolute right-1 top-1 rounded-full p-1 transition ${
+                    img.primary
+                      ? "bg-blue-600 text-white"
+                      : "bg-black/40 text-white opacity-0 hover:bg-black/60 group-hover:opacity-100"
+                  }`}
+                >
+                  <Star size={13} className={img.primary ? "fill-current" : ""} />
+                </button>
+
+                {/* remove */}
+                <button
+                  type="button"
+                  onClick={() => remove(img.id)}
+                  title="Retirer l'image"
+                  className="absolute bottom-1 right-1 rounded-full bg-black/40 p-1 text-white opacity-0 transition hover:bg-rose-600 group-hover:opacity-100"
+                >
+                  <Trash2 size={13} />
+                </button>
+
+                {img.primary && (
+                  <span className="absolute bottom-1 left-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                    Principale
+                  </span>
+                )}
+              </div>
+
+              {/* per-image color link (only when the product has a color attribute) */}
+              {colorOptions.length > 0 && (
+                <select
+                  value={img.colorValueId ?? ""}
+                  onChange={(e) =>
+                    setColor(img.id, e.target.value ? Number(e.target.value) : null)
+                  }
+                  title="Couleur associée"
+                  className="w-full rounded-md border border-gray-300 bg-white px-1.5 py-1 text-[11px] text-gray-700 outline-none focus:border-blue-500"
+                >
+                  <option value="">Toutes les couleurs</option>
+                  {colorOptions.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
           ))}

@@ -26,11 +26,15 @@ export interface ProductImage {
   fileName?: string;
   primary?: boolean;
   sortOrder?: number;
+  // Id of the COLOR AttributeValue this image belongs to; null/undefined = generic.
+  colorValueId?: number | null;
 }
 
 export interface ProductAttribute {
   id: number;
   name: string;
+  // Backend AttributeType, e.g. "COLOR", "SIZE". Used to find the color attribute.
+  type?: string;
   values: {
     id: number;
     value: string;

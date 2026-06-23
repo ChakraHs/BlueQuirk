@@ -29,6 +29,13 @@ public class Image {
     @Column(name = "sort_order")
     private Integer sortOrder = 0;
 
+    // Optional link to a color: the id of an AttributeValue under the COLOR
+    // attribute. Null means the image is generic (shown for every color). We
+    // store just the id (not a FK relation) to keep Image lightweight and its
+    // JSON flat — the frontend already knows the color values from the product.
+    @Column(name = "color_value_id")
+    private Long colorValueId;
+
     // Constructors, getters, setters
     public Image() {}
     public Image(String fileName, String url) {
@@ -50,5 +57,8 @@ public class Image {
 
     public Integer getSortOrder() { return sortOrder; }
     public void setSortOrder(Integer sortOrder) { this.sortOrder = sortOrder; }
+
+    public Long getColorValueId() { return colorValueId; }
+    public void setColorValueId(Long colorValueId) { this.colorValueId = colorValueId; }
 }
 

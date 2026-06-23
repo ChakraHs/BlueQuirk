@@ -169,3 +169,13 @@ body {
     animation: none;
   }
 }
+
+/* Soft crossfade used when product images switch (gallery + card carousel). */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

@@ -128,6 +128,7 @@ public class ProductService {
             .map(attr -> new AttributeDto(
                 attr.getId(),
                 attr.getName(),
+                attr.getType() != null ? attr.getType().name() : null,
                 attr.getValues().stream()
                     .map(val -> new AttributeValueDto(
                         val.getId(),
@@ -250,6 +251,7 @@ public class ProductService {
         	    .map(attr -> new AttributeDto(
         	        attr.getId(),
         	        attr.getName(),
+        	        attr.getType() != null ? attr.getType().name() : null,
         	        attr.getValues().stream()
         	            .map(val -> new AttributeValueDto(
         	                val.getId(),
@@ -347,9 +349,10 @@ public class ProductService {
                     ? imageRepository.findById(dtoImage.getId()).orElse(dtoImage)
                     : dtoImage;
 
-            // Keep url/fileName fresh, then write ordering + primary flag.
+            // Keep url/fileName fresh, then write ordering + primary + color link.
             if (dtoImage.getUrl() != null) image.setUrl(dtoImage.getUrl());
             if (dtoImage.getFileName() != null) image.setFileName(dtoImage.getFileName());
+            image.setColorValueId(dtoImage.getColorValueId()); // null = generic
             image.setSortOrder(order++);
 
             boolean wantsPrimary = dtoImage.isPrimary() && !primaryAssigned;

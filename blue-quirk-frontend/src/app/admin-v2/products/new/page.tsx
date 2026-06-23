@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductService } from "@/services/product.service";
 import { AttributeService } from "@/services/attribute.service";
 import { Attribute } from "@/types/attribute";
 import { ProductImage } from "@/types/product";
 import ProductImageManager from "@/components/admin/ProductImageManager";
+import { colorOptionsFromAttributes } from "@/lib/colorImages";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -14,6 +15,10 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
+
+  // Colors the admin can link images to (the product's selected colors, or all
+  // color values before any selection).
+  const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
 
   const [form, setForm] = useState({
     name: "",
@@ -195,7 +200,7 @@ export default function NewProductPage() {
 
           {/* Images */}
           <div className="pt-2">
-            <ProductImageManager value={images} onChange={setImages} />
+            <ProductImageManager value={images} onChange={setImages} colorOptions={colorOptions} />
           </div>
 
           {/* Translations */}
