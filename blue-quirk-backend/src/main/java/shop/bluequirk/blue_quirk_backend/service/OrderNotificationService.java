@@ -1,5 +1,8 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -23,14 +26,17 @@ public class OrderNotificationService {
     private final EmailProvider emailProvider;
     private final String adminEmail;
     private final String currency;
+    private final String frontendBaseUrl;
 
     public OrderNotificationService(
             EmailProvider emailProvider,
             @Value("${order.admin-email:}") String adminEmail,
-            @Value("${order.currency:$}") String currency) {
+            @Value("${order.currency:$}") String currency,
+            @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
         this.emailProvider = emailProvider;
         this.adminEmail = adminEmail == null ? "" : adminEmail.trim();
         this.currency = currency;
+        this.frontendBaseUrl = (frontendBaseUrl == null ? "" : frontendBaseUrl.trim()).replaceAll("/+$", "");
     }
 
     @Async
@@ -47,6 +53,30 @@ public class OrderNotificationService {
                     "Nouvelle commande " + ref(order) + " — " + money(order.total()),
                     adminHtml(order));
         }
+    }
+
+    /** Public tracking URL for this order, or null when it has no order number. */
+    private String trackUrl(OrderResponse order) {
+        if (frontendBaseUrl.isBlank()
+                || order.orderNumber() == null || order.orderNumber().isBlank()) {
+            return null;
+        }
+        return frontendBaseUrl + "/order-tracking?order="
+                + URLEncoder.encode(order.orderNumber(), StandardCharsets.UTF_8);
+    }
+
+    /** A "Suivre ma commande" CTA button, or "" when there is no tracking URL. */
+    private String trackButton(OrderResponse order) {
+        String url = trackUrl(order);
+        if (url == null) return "";
+        return "<div style='margin:18px 0'>"
+                + "<a href='" + url + "' "
+                + "style='display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;"
+                + "font-weight:600;font-size:14px;padding:12px 22px;border-radius:999px'>"
+                + "Suivre ma commande</a>"
+                + "<p style='margin:8px 0 0;color:#6b7280;font-size:12px'>"
+                + "Référence : <strong>" + esc(ref(order)) + "</strong></p>"
+                + "</div>";
     }
 
     /** Customer-facing reference: the order number (BQ-…) when set, else "#id". */
@@ -120,7 +150,7 @@ public class OrderNotificationService {
                 intro = "Le statut de votre commande <strong>" + ref + "</strong> a été mis à jour.";
             }
         }
-        return wrap(title, intro, itemsTable(order) + totals(order) + shipping(order));
+        return wrap(title, intro, trackButton(order) + itemsTable(order) + totals(order) + shipping(order));
     }
 
     private void trySend(String to, String subject, String html) {
@@ -200,7 +230,7 @@ public class OrderNotificationService {
         String intro = "Bonjour " + esc(o.customerName()) + ", votre commande <strong>" + ref(o)
                 + "</strong> a bien été enregistrée. Conservez cette référence pour suivre votre commande. "
                 + "Nous vous appellerons pour confirmer la livraison. Vous payez en espèces à la réception.";
-        return wrap("Commande confirmée", intro, itemsTable(o) + totals(o) + shipping(o));
+        return wrap("Commande confirmée", intro, trackButton(o) + itemsTable(o) + totals(o) + shipping(o));
     }
 
     private String adminHtml(OrderResponse o) {
