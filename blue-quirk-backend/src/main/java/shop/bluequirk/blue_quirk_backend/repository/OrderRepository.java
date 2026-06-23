@@ -5,8 +5,13 @@ import org.springframework.stereotype.Repository;
 import shop.bluequirk.blue_quirk_backend.entity.Order;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findByUserId(Long userId);
+
+    List<Order> findByCustomerIdOrderByOrderDateDesc(Long customerId);
+
+    Optional<Order> findByOrderNumberIgnoreCase(String orderNumber);
 }

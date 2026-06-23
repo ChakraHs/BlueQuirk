@@ -21,9 +21,9 @@ import MiniBarChart, {
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { ProductService } from "@/services/product.service";
-import { IdentityService } from "@/services/identity.service";
+import { CustomerService } from "@/services/customer.service";
 import { Product } from "@/types/product";
-import { ORDER_STATUSES } from "@/types/order";
+import { ORDER_STATUSES, ORDER_STATUS_LABELS } from "@/types/order";
 import { formatPrice } from "@/lib/money";
 
 const LOW_STOCK_THRESHOLD = 5;
@@ -31,18 +31,14 @@ const LOW_STOCK_THRESHOLD = 5;
 const STATUS_BAR_COLORS: Record<string, string> = {
   PENDING: "bg-amber-400",
   CONFIRMED: "bg-blue-500",
+  PROCESSING: "bg-sky-500",
+  PACKED: "bg-indigo-500",
   SHIPPED: "bg-violet-500",
   DELIVERED: "bg-emerald-500",
   CANCELLED: "bg-rose-400",
 };
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  CONFIRMED: "Confirmée",
-  SHIPPED: "Expédiée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
-};
+const STATUS_LABELS = ORDER_STATUS_LABELS;
 
 export default function AdminDashboard() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
@@ -54,10 +50,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const [ordersRes, productsRes, usersRes] = await Promise.allSettled([
+      const [ordersRes, productsRes, customersRes] = await Promise.allSettled([
         OrderService.getAll(),
         ProductService.getAll(0, 1000),
-        IdentityService.getAllUsers(),
+        CustomerService.getAll(),
       ]);
       if (cancelled) return;
 
@@ -66,7 +62,7 @@ export default function AdminDashboard() {
         setProducts(productsRes.value.content as unknown as Product[]);
         setProductTotal(productsRes.value.totalElements);
       }
-      if (usersRes.status === "fulfilled") setCustomerCount(usersRes.value.length);
+      if (customersRes.status === "fulfilled") setCustomerCount(customersRes.value.length);
       setLoading(false);
     })();
     return () => {

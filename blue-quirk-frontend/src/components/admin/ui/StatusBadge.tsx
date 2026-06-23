@@ -1,19 +1,23 @@
-// Coloured pills for order + product statuses, with French labels for orders.
+// Coloured pills for order, payment + product statuses, with French labels.
+import {
+  ORDER_STATUS_LABELS,
+  PAYMENT_STATUS_LABELS,
+} from "@/types/order";
 
 const ORDER_STYLES: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
   CONFIRMED: "bg-blue-100 text-blue-700",
+  PROCESSING: "bg-sky-100 text-sky-700",
+  PACKED: "bg-indigo-100 text-indigo-700",
   SHIPPED: "bg-violet-100 text-violet-700",
   DELIVERED: "bg-emerald-100 text-emerald-700",
   CANCELLED: "bg-rose-100 text-rose-700",
 };
 
-const ORDER_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  CONFIRMED: "Confirmée",
-  SHIPPED: "Expédiée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
+const PAYMENT_STYLES: Record<string, string> = {
+  UNPAID: "bg-amber-100 text-amber-700",
+  PAID: "bg-emerald-100 text-emerald-700",
+  REFUNDED: "bg-slate-200 text-slate-600",
 };
 
 const PRODUCT_STYLES: Record<string, string> = {
@@ -30,12 +34,21 @@ export function StatusBadge({
   kind = "order",
 }: {
   status: string;
-  kind?: "order" | "product";
+  kind?: "order" | "payment" | "product";
 }) {
   const styles =
-    kind === "order" ? ORDER_STYLES : PRODUCT_STYLES;
+    kind === "order"
+      ? ORDER_STYLES
+      : kind === "payment"
+        ? PAYMENT_STYLES
+        : PRODUCT_STYLES;
   const cls = styles[status] ?? "bg-slate-100 text-slate-600";
-  const label = kind === "order" ? ORDER_LABELS[status] ?? status : status;
+  const label =
+    kind === "order"
+      ? ORDER_STATUS_LABELS[status] ?? status
+      : kind === "payment"
+        ? PAYMENT_STATUS_LABELS[status] ?? status
+        : status;
 
   return (
     <span

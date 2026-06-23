@@ -7,17 +7,10 @@ import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { OrderService, type OrderResponse } from "@/services/order.service";
-import { ORDER_STATUSES, type OrderStatus } from "@/types/order";
+import { ORDER_STATUSES, ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 import { formatPrice } from "@/lib/money";
 
-const TAB_LABELS: Record<string, string> = {
-  ALL: "Toutes",
-  PENDING: "En attente",
-  CONFIRMED: "Confirmées",
-  SHIPPED: "Expédiées",
-  DELIVERED: "Livrées",
-  CANCELLED: "Annulées",
-};
+const TAB_LABELS: Record<string, string> = { ALL: "Toutes", ...ORDER_STATUS_LABELS };
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
@@ -64,7 +57,9 @@ export default function OrdersPage() {
         q
           ? o.customerName.toLowerCase().includes(q) ||
             o.phone.includes(q) ||
-            String(o.id).includes(q)
+            String(o.id).includes(q) ||
+            (o.orderNumber || "").toLowerCase().includes(q) ||
+            (o.email || "").toLowerCase().includes(q)
           : true
       )
       .sort((a, b) => (b.orderDate || "").localeCompare(a.orderDate || ""));
@@ -148,9 +143,9 @@ export default function OrdersPage() {
                   <td className="px-5 py-3">
                     <Link
                       href={`/admin-v2/orders/${o.id}`}
-                      className="font-semibold text-gray-800 hover:text-blue-600"
+                      className="font-mono text-xs font-semibold text-gray-800 hover:text-blue-600"
                     >
-                      #{o.id}
+                      {o.orderNumber || `#${o.id}`}
                     </Link>
                   </td>
                   <td className="px-5 py-3 text-gray-500">

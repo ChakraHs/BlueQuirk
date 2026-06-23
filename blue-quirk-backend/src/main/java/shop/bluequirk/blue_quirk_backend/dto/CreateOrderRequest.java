@@ -8,11 +8,17 @@ import java.util.List;
  * variant) are snapshotted from what the customer saw.
  */
 public record CreateOrderRequest(
-        String customerName,
+        String firstName,
+        String lastName,
+        String email,
         String phone,
         String city,
         String address,
+        String postalCode,
         String note,
+        // Kept for backward compatibility: older clients sent a single full name.
+        // When firstName/lastName are present they take precedence.
+        String customerName,
         List<Item> items
 ) {
     public record Item(

@@ -1,6 +1,7 @@
 // Places cash-on-delivery orders against the shop backend (:9090). Goes through
-// the shared `api` client, which attaches the Keycloak bearer token — the
-// backend requires an authenticated user to create an order.
+// the shared `api` client, which attaches the Keycloak bearer token WHEN present.
+// Checkout is open to guests, so an order can be placed with no token at all; a
+// token, when present, links the order to that login account.
 import api from "./api";
 import type { CartItem } from "@/lib/cart";
 
@@ -13,10 +14,13 @@ export type OrderItemPayload = {
 };
 
 export type CreateOrderPayload = {
-  customerName: string;
+  firstName: string;
+  lastName: string;
+  email: string;
   phone: string;
   city: string;
   address: string;
+  postalCode?: string;
   note?: string;
   items: OrderItemPayload[];
 };
@@ -33,12 +37,20 @@ export type OrderResponseItem = {
 
 export type OrderResponse = {
   id: number;
+  orderNumber?: string;
   status: string;
+  paymentStatus?: string;
   paymentMethod: string;
+  trackingNumber?: string;
+  estimatedDelivery?: string;
+  customerId?: number;
   customerName: string;
+  firstName?: string;
+  lastName?: string;
   phone: string;
   city: string;
   address: string;
+  postalCode?: string;
   note?: string;
   email?: string;
   subtotal: number;
@@ -46,6 +58,12 @@ export type OrderResponse = {
   total: number;
   orderDate: string;
   items: OrderResponseItem[];
+};
+
+export type FulfillmentPayload = {
+  paymentStatus?: string;
+  trackingNumber?: string;
+  estimatedDelivery?: string; // YYYY-MM-DD
 };
 
 /** Convert cart lines into the order payload, flattening variant attributes. */
@@ -68,6 +86,21 @@ export const OrderService = {
     return data;
   },
 
+  /** Public order tracking by reference (BQ-YYYY-NNNNNN). Returns null if unknown. */
+  track: async (orderNumber: string): Promise<OrderResponse | null> => {
+    try {
+      const { data } = await api.get<OrderResponse>(
+        `/orders/track/${encodeURIComponent(orderNumber.trim())}`
+      );
+      return data;
+    } catch (err: unknown) {
+      if ((err as { response?: { status?: number } })?.response?.status === 404) {
+        return null;
+      }
+      throw err;
+    }
+  },
+
   // --- Admin operations ---
 
   getAll: async (): Promise<OrderResponse[]> => {
@@ -84,6 +117,17 @@ export const OrderService = {
     const { data } = await api.patch<OrderResponse>(`/orders/${id}/status`, {
       status,
     });
+    return data;
+  },
+
+  updateFulfillment: async (
+    id: number,
+    payload: FulfillmentPayload
+  ): Promise<OrderResponse> => {
+    const { data } = await api.patch<OrderResponse>(
+      `/orders/${id}/fulfillment`,
+      payload
+    );
     return data;
   },
 

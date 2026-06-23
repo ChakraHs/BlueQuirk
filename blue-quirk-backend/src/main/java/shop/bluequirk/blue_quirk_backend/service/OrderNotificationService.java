@@ -38,15 +38,21 @@ public class OrderNotificationService {
         // Customer confirmation
         if (order.email() != null && !order.email().isBlank()) {
             trySend(order.email(),
-                    "Votre commande BlueQuirk #" + order.id() + " est confirmée",
+                    "Votre commande BlueQuirk " + ref(order) + " est confirmée",
                     customerHtml(order));
         }
         // Admin notification
         if (!adminEmail.isBlank()) {
             trySend(adminEmail,
-                    "Nouvelle commande #" + order.id() + " — " + money(order.total()),
+                    "Nouvelle commande " + ref(order) + " — " + money(order.total()),
                     adminHtml(order));
         }
+    }
+
+    /** Customer-facing reference: the order number (BQ-…) when set, else "#id". */
+    private String ref(OrderResponse order) {
+        return order.orderNumber() != null && !order.orderNumber().isBlank()
+                ? order.orderNumber() : "#" + order.id();
     }
 
     /**
@@ -62,42 +68,56 @@ public class OrderNotificationService {
     }
 
     private String statusSubject(OrderResponse order, OrderStatus status) {
+        String ref = ref(order);
         return switch (status) {
-            case CONFIRMED -> "Votre commande BlueQuirk #" + order.id() + " est confirmée";
-            case SHIPPED   -> "Votre commande BlueQuirk #" + order.id() + " a été expédiée";
-            case DELIVERED -> "Votre commande BlueQuirk #" + order.id() + " a été livrée";
-            case CANCELLED -> "Votre commande BlueQuirk #" + order.id() + " a été annulée";
-            default        -> "Mise à jour de votre commande BlueQuirk #" + order.id();
+            case CONFIRMED  -> "Votre commande BlueQuirk " + ref + " est confirmée";
+            case PROCESSING -> "Votre commande BlueQuirk " + ref + " est en préparation";
+            case PACKED     -> "Votre commande BlueQuirk " + ref + " est prête à l'expédition";
+            case SHIPPED    -> "Votre commande BlueQuirk " + ref + " a été expédiée";
+            case DELIVERED  -> "Votre commande BlueQuirk " + ref + " a été livrée";
+            case CANCELLED  -> "Votre commande BlueQuirk " + ref + " a été annulée";
+            default         -> "Mise à jour de votre commande BlueQuirk " + ref;
         };
     }
 
     private String statusHtml(OrderResponse order, OrderStatus status) {
+        String ref = ref(order);
         String title;
         String intro;
         switch (status) {
             case CONFIRMED -> {
                 title = "Commande confirmée";
-                intro = "Bonne nouvelle " + esc(order.customerName()) + " ! Votre commande <strong>#" + order.id()
+                intro = "Bonne nouvelle " + esc(order.customerName()) + " ! Votre commande <strong>" + ref
                         + "</strong> est confirmée et en cours de préparation.";
+            }
+            case PROCESSING -> {
+                title = "Commande en préparation";
+                intro = "Votre commande <strong>" + ref + "</strong> est en cours de préparation dans nos ateliers.";
+            }
+            case PACKED -> {
+                title = "Commande prête";
+                intro = "Votre commande <strong>" + ref + "</strong> est emballée et prête à être remise au transporteur.";
             }
             case SHIPPED -> {
                 title = "Commande expédiée";
-                intro = "Votre commande <strong>#" + order.id() + "</strong> est en route. "
-                        + "Notre livreur vous contactera au " + esc(order.phone()) + " pour la livraison.";
+                String tracking = (order.trackingNumber() != null && !order.trackingNumber().isBlank())
+                        ? " Numéro de suivi : <strong>" + esc(order.trackingNumber()) + "</strong>." : "";
+                intro = "Votre commande <strong>" + ref + "</strong> est en route. "
+                        + "Notre livreur vous contactera au " + esc(order.phone()) + " pour la livraison." + tracking;
             }
             case DELIVERED -> {
                 title = "Commande livrée";
-                intro = "Votre commande <strong>#" + order.id() + "</strong> a bien été livrée. "
+                intro = "Votre commande <strong>" + ref + "</strong> a bien été livrée. "
                         + "Merci d'avoir choisi BlueQuirk — à très bientôt !";
             }
             case CANCELLED -> {
                 title = "Commande annulée";
-                intro = "Votre commande <strong>#" + order.id() + "</strong> a été annulée. "
+                intro = "Votre commande <strong>" + ref + "</strong> a été annulée. "
                         + "Pour toute question, répondez simplement à cet e-mail.";
             }
             default -> {
                 title = "Mise à jour de commande";
-                intro = "Le statut de votre commande <strong>#" + order.id() + "</strong> a été mis à jour.";
+                intro = "Le statut de votre commande <strong>" + ref + "</strong> a été mis à jour.";
             }
         }
         return wrap(title, intro, itemsTable(order) + totals(order) + shipping(order));
@@ -177,16 +197,16 @@ public class OrderNotificationService {
     }
 
     private String customerHtml(OrderResponse o) {
-        String intro = "Bonjour " + esc(o.customerName()) + ", votre commande <strong>#" + o.id()
-                + "</strong> a bien été enregistrée. Nous vous appellerons pour confirmer la livraison. "
-                + "Vous payez en espèces à la réception.";
+        String intro = "Bonjour " + esc(o.customerName()) + ", votre commande <strong>" + ref(o)
+                + "</strong> a bien été enregistrée. Conservez cette référence pour suivre votre commande. "
+                + "Nous vous appellerons pour confirmer la livraison. Vous payez en espèces à la réception.";
         return wrap("Commande confirmée", intro, itemsTable(o) + totals(o) + shipping(o));
     }
 
     private String adminHtml(OrderResponse o) {
-        String intro = "Nouvelle commande <strong>#" + o.id() + "</strong> passée par "
+        String intro = "Nouvelle commande <strong>" + ref(o) + "</strong> passée par "
                 + esc(o.customerName()) + " (" + esc(o.email() != null ? o.email() : "—") + ").";
-        return wrap("Nouvelle commande #" + o.id(), intro, shipping(o) + itemsTable(o) + totals(o));
+        return wrap("Nouvelle commande " + ref(o), intro, shipping(o) + itemsTable(o) + totals(o));
     }
 
     private String esc(String s) {

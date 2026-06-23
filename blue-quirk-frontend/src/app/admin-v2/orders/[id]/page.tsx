@@ -11,21 +11,19 @@ import {
   StickyNote,
   Trash2,
   Loader2,
+  Save,
 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { OrderService, type OrderResponse } from "@/services/order.service";
-import { ORDER_STATUSES, type OrderStatus } from "@/types/order";
+import {
+  ORDER_STATUSES, ORDER_STATUS_LABELS, PAYMENT_STATUSES, PAYMENT_STATUS_LABELS,
+  type OrderStatus,
+} from "@/types/order";
 import { formatPrice } from "@/lib/money";
 
-const STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  CONFIRMED: "Confirmée",
-  SHIPPED: "Expédiée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
-};
+const STATUS_LABELS = ORDER_STATUS_LABELS;
 
 function formatDateTime(iso: string): string {
   if (!iso) return "—";
@@ -53,10 +51,20 @@ export default function OrderDetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  // Fulfillment form (payment status, tracking number, estimated delivery).
+  const [paymentStatus, setPaymentStatus] = useState("UNPAID");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [estimatedDelivery, setEstimatedDelivery] = useState("");
+  const [savingFulfillment, setSavingFulfillment] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
-        setOrder(await OrderService.getById(id));
+        const o = await OrderService.getById(id);
+        setOrder(o);
+        setPaymentStatus(o.paymentStatus ?? "UNPAID");
+        setTrackingNumber(o.trackingNumber ?? "");
+        setEstimatedDelivery(o.estimatedDelivery ?? "");
       } catch {
         setError("Commande introuvable.");
       } finally {
@@ -64,6 +72,25 @@ export default function OrderDetailPage() {
       }
     })();
   }, [id]);
+
+  const saveFulfillment = async () => {
+    setSavingFulfillment(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const updated = await OrderService.updateFulfillment(id, {
+        paymentStatus,
+        trackingNumber: trackingNumber.trim(),
+        estimatedDelivery: estimatedDelivery || undefined,
+      });
+      setOrder(updated);
+      setNotice("Informations de livraison enregistrées.");
+    } catch {
+      setError("Échec de l'enregistrement des informations de livraison.");
+    } finally {
+      setSavingFulfillment(false);
+    }
+  };
 
   const changeStatus = async (status: OrderStatus) => {
     if (!order || order.status === status) return;
@@ -130,10 +157,11 @@ export default function OrderDetailPage() {
       </Link>
 
       <PageHeader
-        title={`Commande #${order.id}`}
+        title={order.orderNumber || `Commande #${order.id}`}
         subtitle={formatDateTime(order.orderDate)}
       >
         <StatusBadge status={order.status} />
+        {order.paymentStatus && <StatusBadge status={order.paymentStatus} kind="payment" />}
         <button
           onClick={() => setConfirmDelete(true)}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
@@ -274,13 +302,60 @@ export default function OrderDetailPage() {
 
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold text-gray-700">
-              Paiement
+              Paiement & expédition
             </h2>
-            <p className="text-sm text-gray-600">
+            <p className="mb-4 text-sm text-gray-600">
               {order.paymentMethod === "COD"
                 ? "Paiement à la livraison (COD)"
                 : order.paymentMethod}
             </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Statut du paiement
+                </label>
+                <select
+                  value={paymentStatus}
+                  onChange={(e) => setPaymentStatus(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                >
+                  {PAYMENT_STATUSES.map((p) => (
+                    <option key={p} value={p}>{PAYMENT_STATUS_LABELS[p]}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Numéro de suivi
+                </label>
+                <input
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="ex. MA123456789"
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Livraison estimée
+                </label>
+                <input
+                  type="date"
+                  value={estimatedDelivery}
+                  onChange={(e) => setEstimatedDelivery(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={saveFulfillment}
+                disabled={savingFulfillment}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+              >
+                {savingFulfillment ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                Enregistrer
+              </button>
+            </div>
           </div>
         </div>
       </div>
