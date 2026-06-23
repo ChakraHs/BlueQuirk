@@ -7,10 +7,7 @@ export interface Product {
   stockQuantity?: number;
   status: string;
 
-  images?: {
-    id: number;
-    url: string;
-  }[];
+  images?: ProductImage[];
 
   categories?: {
     id: number;
@@ -21,6 +18,14 @@ export interface Product {
 
   translations?: ProductTranslation[];
   
+}
+
+export interface ProductImage {
+  id: number;
+  url: string;
+  fileName?: string;
+  primary?: boolean;
+  sortOrder?: number;
 }
 
 export interface ProductAttribute {

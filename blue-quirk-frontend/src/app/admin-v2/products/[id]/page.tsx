@@ -5,8 +5,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
+import ProductImageManager from "@/components/admin/ProductImageManager";
 import { ProductService } from "@/services/product.service";
-import { Product, ProductAttribute } from "@/types/product";
+import { Product, ProductAttribute, ProductImage } from "@/types/product";
 
 type FormState = {
   name: string;
@@ -26,6 +27,7 @@ export default function EditProductPage() {
   const [error, setError] = useState<string | null>(null);
   const [product, setProduct] = useState<Product | null>(null);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
+  const [images, setImages] = useState<ProductImage[]>([]);
   const [form, setForm] = useState<FormState>({
     name: "",
     price: 0,
@@ -47,6 +49,7 @@ export default function EditProductPage() {
           status: p.status ?? "PUBLISHED",
         });
         setAttributes(p.attributes ?? []);
+        setImages(p.images ?? []);
       } catch {
         setError("Produit introuvable.");
       } finally {
@@ -88,8 +91,7 @@ export default function EditProductPage() {
         price: Number(form.price),
         stockQuantity: Number(form.stockQuantity),
         attributes,
-        // Preserve existing images (the update endpoint overwrites them).
-        images: product?.images ?? [],
+        images,
       });
       sessionStorage.setItem("success", "Produit mis à jour");
       router.push("/admin-v2/products");
@@ -197,6 +199,8 @@ export default function EditProductPage() {
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
             />
           </div>
+
+          <ProductImageManager value={images} onChange={setImages} />
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

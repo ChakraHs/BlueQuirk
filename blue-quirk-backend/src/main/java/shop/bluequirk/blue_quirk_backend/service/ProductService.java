@@ -1,7 +1,9 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,6 +51,7 @@ public class ProductService {
 
     
     
+    @Transactional
     public Product updateProduct(Long productId, ProductDTO dto) {
     	Product existing = productRepository.findById(productId)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -61,7 +64,7 @@ public class ProductService {
         }
     	existing.setDescription(dto.getDescription());
         existing.setStatus(dto.getStatus());
-        existing.setImages(dto.getImages());
+        applyImages(existing, dto.getImages());
         if (dto.getTranslations() != null) {
             applyTranslations(existing, dto.getTranslations());
         }
@@ -142,7 +145,7 @@ public class ProductService {
             product.getStockQuantity(),
             resolveDescription(product, lang),
             product.getStatus(),
-            product.getImages(),
+            sortedImages(product),
             attributes
         );
     }
@@ -208,7 +211,7 @@ public class ProductService {
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
         product.setStatus(dto.getStatus());
-        product.setImages(dto.getImages());
+        applyImages(product, dto.getImages());
         applyTranslations(product, dto.getTranslations());
 
         Set<AttributeValue> selectedValues = new HashSet<>();
@@ -264,7 +267,7 @@ public class ProductService {
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
                 product.getStatus(),
-                product.getImages(),
+                sortedImages(product),
                 attributes
         );
     }
@@ -309,6 +312,73 @@ public class ProductService {
     }
     
     
+    /**
+     * Persists the product's gallery from the DTO image set, reusing the existing
+     * many-to-many relation. The Image rows already exist (uploaded via
+     * {@code /api/images}), so we never re-upload — we just (re)link them and
+     * write back their {@code primary}/{@code sortOrder} flags. The plain
+     * many-to-many would only manage the join table, so the per-image flags must
+     * be saved explicitly here. Exactly one image is normalized to primary.
+     */
+    private void applyImages(Product product, Set<Image> dtoImages) {
+        // Initialize the managed collection once so we mutate in place (avoids
+        // orphaning/breaking Hibernate's collection tracking on update).
+        if (product.getImages() == null) {
+            product.setImages(new LinkedHashSet<>());
+        }
+        Set<Image> managed = product.getImages();
+        managed.clear();
+
+        if (dtoImages == null || dtoImages.isEmpty()) {
+            return;
+        }
+
+        // Order incoming images by the client-supplied sortOrder (nulls last).
+        List<Image> incoming = new ArrayList<>(dtoImages);
+        incoming.sort(Comparator.comparing(
+                img -> img.getSortOrder() == null ? Integer.MAX_VALUE : img.getSortOrder()));
+
+        boolean primaryAssigned = false;
+        int order = 0;
+        for (Image dtoImage : incoming) {
+            // Reuse the already-stored Image row; fall back to the passed object
+            // for the (unexpected) case of an image without an id.
+            Image image = dtoImage.getId() != null
+                    ? imageRepository.findById(dtoImage.getId()).orElse(dtoImage)
+                    : dtoImage;
+
+            // Keep url/fileName fresh, then write ordering + primary flag.
+            if (dtoImage.getUrl() != null) image.setUrl(dtoImage.getUrl());
+            if (dtoImage.getFileName() != null) image.setFileName(dtoImage.getFileName());
+            image.setSortOrder(order++);
+
+            boolean wantsPrimary = dtoImage.isPrimary() && !primaryAssigned;
+            image.setPrimary(wantsPrimary);
+            if (wantsPrimary) primaryAssigned = true;
+
+            managed.add(imageRepository.save(image));
+        }
+
+        // If the client marked none as primary, promote the first image.
+        if (!primaryAssigned) {
+            managed.stream().findFirst().ifPresent(img -> {
+                img.setPrimary(true);
+                imageRepository.save(img);
+            });
+        }
+    }
+
+    /** Gallery ordered primary-first, then by sortOrder — for storefront/cards. */
+    private List<Image> sortedImages(Product product) {
+        if (product.getImages() == null) {
+            return List.of();
+        }
+        return product.getImages().stream()
+                .sorted(Comparator.comparing(Image::isPrimary, Comparator.reverseOrder())
+                        .thenComparing(img -> img.getSortOrder() == null ? Integer.MAX_VALUE : img.getSortOrder()))
+                .collect(Collectors.toList());
+    }
+
     private Set<AttributeValue> extractSelectedValues(ProductDTO dto) {
     	Set<AttributeValue> selectedValues = new HashSet<>();
 

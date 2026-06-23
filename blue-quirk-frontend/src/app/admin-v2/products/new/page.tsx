@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { ProductService } from "@/services/product.service";
 import { AttributeService } from "@/services/attribute.service";
 import { Attribute } from "@/types/attribute";
+import { ProductImage } from "@/types/product";
+import ProductImageManager from "@/components/admin/ProductImageManager";
 
 export default function NewProductPage() {
   const router = useRouter();
 
   const [loading, setLoading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [images, setImages] = useState<ProductImage[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -90,7 +93,7 @@ export default function NewProductPage() {
         price: Number(form.price),
         stockQuantity: Number(form.stockQuantity),
         attributes,
-        images: [],
+        images,
         translations: Object.entries(translations)
           .filter(([, value]) => value.name.trim() || value.description.trim())
           .map(([lang, value]) => ({
@@ -188,6 +191,11 @@ export default function NewProductPage() {
                          text-gray-900 placeholder-gray-400
                          focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             />
+          </div>
+
+          {/* Images */}
+          <div className="pt-2">
+            <ProductImageManager value={images} onChange={setImages} />
           </div>
 
           {/* Translations */}

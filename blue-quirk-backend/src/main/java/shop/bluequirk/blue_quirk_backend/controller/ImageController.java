@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
@@ -96,7 +97,14 @@ public class ImageController {
                 // Fallback: store on local disk, served by WebConfig's /uploads/** handler.
                 Path targetPath = Paths.get(uploadDir).resolve(filename);
                 Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
-                image.setUrl("/uploads/" + filename);
+                // Store an ABSOLUTE url so the frontend (served from another origin/port)
+                // can render it directly — a relative "/uploads/.." would resolve against
+                // the frontend and 404. R2 already returns absolute URLs.
+                String absoluteUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/uploads/")
+                        .path(filename)
+                        .toUriString();
+                image.setUrl(absoluteUrl);
             }
 
             Image saved = imageRepository.save(image);
