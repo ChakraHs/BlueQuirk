@@ -74,6 +74,11 @@ public class Order {
     @Column(nullable = false)
     private PaymentStatus paymentStatus = PaymentStatus.UNPAID;
 
+    // Why the order was cancelled (admin-selected reason, shown to the customer
+    // in the cancellation email). Null unless the order is/was cancelled.
+    @Column(length = 500)
+    private String cancellationReason;
+
     // Carrier tracking number, set once the order ships.
     private String trackingNumber;
 
@@ -171,6 +176,9 @@ public class Order {
 
     public PaymentStatus getPaymentStatus() { return paymentStatus; }
     public void setPaymentStatus(PaymentStatus paymentStatus) { this.paymentStatus = paymentStatus; }
+
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
 
     public String getTrackingNumber() { return trackingNumber; }
     public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }

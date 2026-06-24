@@ -142,8 +142,10 @@ public class OrderNotificationService {
             }
             case CANCELLED -> {
                 title = "Commande annulée";
-                intro = "Votre commande <strong>" + ref + "</strong> a été annulée. "
-                        + "Pour toute question, répondez simplement à cet e-mail.";
+                String reason = (order.cancellationReason() != null && !order.cancellationReason().isBlank())
+                        ? " Motif : <strong>" + esc(order.cancellationReason()) + "</strong>." : "";
+                intro = "Votre commande <strong>" + ref + "</strong> a été annulée." + reason
+                        + " Pour toute question, répondez simplement à cet e-mail.";
             }
             default -> {
                 title = "Mise à jour de commande";

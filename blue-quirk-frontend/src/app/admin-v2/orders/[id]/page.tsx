@@ -16,6 +16,7 @@ import {
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
+import CancelOrderDialog from "@/components/admin/CancelOrderDialog";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import {
   ORDER_STATUSES, ORDER_STATUS_LABELS, PAYMENT_STATUSES, PAYMENT_STATUS_LABELS,
@@ -50,6 +51,10 @@ export default function OrderDetailPage() {
   const [notice, setNotice] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  // Cancellation flow (status → CANCELLED requires a reason).
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   // Fulfillment form (payment status, tracking number, estimated delivery).
   const [paymentStatus, setPaymentStatus] = useState("UNPAID");
@@ -92,12 +97,17 @@ export default function OrderDetailPage() {
     }
   };
 
-  const changeStatus = async (status: OrderStatus) => {
+  const changeStatus = async (status: OrderStatus, reason?: string) => {
     if (!order || order.status === status) return;
+    // Cancelling requires a reason — open the dialog instead of changing now.
+    if (status === "CANCELLED" && !reason) {
+      setCancelOpen(true);
+      return;
+    }
     setSavingStatus(status);
     setNotice(null);
     try {
-      const updated = await OrderService.updateStatus(id, status);
+      const updated = await OrderService.updateStatus(id, status, reason);
       setOrder(updated);
       setNotice(
         `Statut mis à jour : ${STATUS_LABELS[status]}. Le client a été notifié par e-mail.`
@@ -106,6 +116,24 @@ export default function OrderDetailPage() {
       setError("Échec de la mise à jour du statut.");
     } finally {
       setSavingStatus(null);
+    }
+  };
+
+  const confirmCancel = async (reason: string) => {
+    if (!reason) return;
+    setCancelling(true);
+    setNotice(null);
+    try {
+      const updated = await OrderService.updateStatus(id, "CANCELLED", reason);
+      setOrder(updated);
+      setCancelOpen(false);
+      setNotice(
+        `Commande annulée (motif : ${reason}). Le client a été notifié par e-mail.`
+      );
+    } catch {
+      setError("Échec de l'annulation de la commande.");
+    } finally {
+      setCancelling(false);
     }
   };
 
@@ -181,6 +209,13 @@ export default function OrderDetailPage() {
         </div>
       )}
 
+      {order.status === "CANCELLED" && order.cancellationReason && (
+        <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
+          <span className="font-semibold">Commande annulée</span> — motif :{" "}
+          {order.cancellationReason}
+        </div>
+      )}
+
       {/* Status workflow */}
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-gray-700">
@@ -189,6 +224,7 @@ export default function OrderDetailPage() {
         <div className="flex flex-wrap gap-2">
           {ORDER_STATUSES.map((s) => {
             const active = order.status === s;
+            const isCancel = s === "CANCELLED";
             return (
               <button
                 key={s}
@@ -196,7 +232,11 @@ export default function OrderDetailPage() {
                 disabled={savingStatus !== null || active}
                 className={`inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed ${
                   active
-                    ? "bg-blue-600 text-white"
+                    ? isCancel
+                      ? "bg-rose-600 text-white"
+                      : "bg-blue-600 text-white"
+                    : isCancel
+                    ? "bg-rose-50 text-rose-700 ring-1 ring-rose-200 hover:bg-rose-100 disabled:opacity-60"
                     : "bg-gray-50 text-gray-700 ring-1 ring-gray-200 hover:bg-gray-100 disabled:opacity-60"
                 }`}
               >
@@ -369,6 +409,16 @@ export default function OrderDetailPage() {
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}
       />
+
+      {/* Cancellation dialog — pick a reason, customer is emailed */}
+      {cancelOpen && (
+        <CancelOrderDialog
+          busy={cancelling}
+          orderLabel={order.orderNumber || `#${order.id}`}
+          onConfirm={confirmCancel}
+          onClose={() => setCancelOpen(false)}
+        />
+      )}
     </div>
   );
 }

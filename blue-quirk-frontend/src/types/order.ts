@@ -33,6 +33,17 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
   REFUNDED: "Remboursé",
 };
 
+// Preset reasons shown when an admin cancels an order. "Autre" lets the admin
+// type a free-text reason. The chosen reason is emailed to the customer.
+export const CANCELLATION_REASONS = [
+  "Rupture de stock",
+  "Demande du client",
+  "Client injoignable",
+  "Adresse invalide",
+  "Commande en double",
+  "Autre",
+] as const;
+
 export interface OrderItem {
   productId: number;
   name: string;
@@ -49,6 +60,7 @@ export interface Order {
   status: OrderStatus;
   paymentStatus?: PaymentStatus;
   paymentMethod: string;
+  cancellationReason?: string;
   trackingNumber?: string;
   estimatedDelivery?: string;
   customerId?: number;

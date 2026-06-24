@@ -2,13 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag } from "lucide-react";
+import { Search, ShoppingBag, Eye, XCircle, Loader2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
+import CancelOrderDialog from "@/components/admin/CancelOrderDialog";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 import { formatPrice } from "@/lib/money";
+
+// Statuses offered in the quick inline dropdown (cancellation is a separate
+// button so it can collect a reason).
+const PROGRESS_STATUSES = ORDER_STATUSES.filter((s) => s !== "CANCELLED");
 
 const TAB_LABELS: Record<string, string> = { ALL: "Toutes", ...ORDER_STATUS_LABELS };
 
@@ -29,6 +34,10 @@ export default function OrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"ALL" | OrderStatus>("ALL");
   const [query, setQuery] = useState("");
+  const [busyId, setBusyId] = useState<number | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<OrderResponse | null>(null);
+  const [cancelling, setCancelling] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -41,6 +50,44 @@ export default function OrdersPage() {
       }
     })();
   }, []);
+
+  const patchOrder = (updated: OrderResponse) =>
+    setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)));
+
+  const changeStatus = async (order: OrderResponse, status: string) => {
+    if (order.status === status) return;
+    setBusyId(order.id);
+    setNotice(null);
+    setError(null);
+    try {
+      patchOrder(await OrderService.updateStatus(order.id, status));
+      setNotice(
+        `Commande ${order.orderNumber || `#${order.id}`} : statut « ${ORDER_STATUS_LABELS[status]} ». Client notifié par e-mail.`
+      );
+    } catch {
+      setError("Échec de la mise à jour du statut.");
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const confirmCancel = async (reason: string) => {
+    if (!cancelTarget) return;
+    setCancelling(true);
+    setNotice(null);
+    setError(null);
+    try {
+      patchOrder(await OrderService.updateStatus(cancelTarget.id, "CANCELLED", reason));
+      setNotice(
+        `Commande ${cancelTarget.orderNumber || `#${cancelTarget.id}`} annulée (motif : ${reason}). Client notifié par e-mail.`
+      );
+      setCancelTarget(null);
+    } catch {
+      setError("Échec de l'annulation de la commande.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { ALL: orders.length };
@@ -110,6 +157,11 @@ export default function OrdersPage() {
         />
       </div>
 
+      {notice && (
+        <div className="mb-4 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+          {notice}
+        </div>
+      )}
       {error && (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
           {error}
@@ -135,6 +187,7 @@ export default function OrdersPage() {
                 <th className="px-5 py-3 text-center">Articles</th>
                 <th className="px-5 py-3 text-left">Statut</th>
                 <th className="px-5 py-3 text-right">Total</th>
+                <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -167,11 +220,60 @@ export default function OrdersPage() {
                   <td className="px-5 py-3 text-right font-semibold text-gray-800">
                     {formatPrice(o.total)}
                   </td>
+                  <td className="px-5 py-3">
+                    <div className="flex items-center justify-end gap-2">
+                      <select
+                        value={o.status}
+                        disabled={busyId === o.id || o.status === "CANCELLED"}
+                        onChange={(e) => changeStatus(o, e.target.value)}
+                        title="Changer le statut"
+                        className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-500 disabled:opacity-60"
+                      >
+                        {o.status === "CANCELLED" && (
+                          <option value="CANCELLED">
+                            {ORDER_STATUS_LABELS.CANCELLED}
+                          </option>
+                        )}
+                        {PROGRESS_STATUSES.map((s) => (
+                          <option key={s} value={s}>
+                            {ORDER_STATUS_LABELS[s]}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        onClick={() => setCancelTarget(o)}
+                        disabled={busyId === o.id || o.status === "CANCELLED"}
+                        title="Annuler la commande"
+                        className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
+                      >
+                        <XCircle size={13} /> Annuler
+                      </button>
+                      <Link
+                        href={`/admin-v2/orders/${o.id}`}
+                        title="Voir les détails"
+                        className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        <Eye size={13} /> Voir
+                      </Link>
+                      {busyId === o.id && (
+                        <Loader2 size={14} className="animate-spin text-gray-400" />
+                      )}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      )}
+
+      {cancelTarget && (
+        <CancelOrderDialog
+          busy={cancelling}
+          orderLabel={cancelTarget.orderNumber || `#${cancelTarget.id}`}
+          onConfirm={confirmCancel}
+          onClose={() => setCancelTarget(null)}
+        />
       )}
     </div>
   );

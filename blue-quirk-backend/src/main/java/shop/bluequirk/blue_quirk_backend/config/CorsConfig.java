@@ -19,7 +19,7 @@ public class CorsConfig {
                             "http://localhost:3000",          // frontend on host
                             "http://host.docker.internal:3000" // frontend from host when backend in Docker
                         )
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);
             }

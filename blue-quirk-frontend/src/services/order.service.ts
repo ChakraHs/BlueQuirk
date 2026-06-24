@@ -45,6 +45,7 @@ export type OrderResponse = {
   status: string;
   paymentStatus?: string;
   paymentMethod: string;
+  cancellationReason?: string;
   trackingNumber?: string;
   estimatedDelivery?: string;
   customerId?: number;
@@ -132,9 +133,14 @@ export const OrderService = {
     return data;
   },
 
-  updateStatus: async (id: number, status: string): Promise<OrderResponse> => {
+  updateStatus: async (
+    id: number,
+    status: string,
+    reason?: string
+  ): Promise<OrderResponse> => {
     const { data } = await api.patch<OrderResponse>(`/orders/${id}/status`, {
       status,
+      reason,
     });
     return data;
   },

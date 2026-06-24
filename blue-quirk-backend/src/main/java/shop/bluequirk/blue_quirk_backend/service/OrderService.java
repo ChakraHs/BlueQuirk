@@ -202,16 +202,21 @@ public class OrderService {
 
     /**
      * Updates an order's lifecycle status (admin action) and, when the status
-     * actually changes, emails the customer a best-effort notification.
+     * actually changes, emails the customer a best-effort notification. When
+     * cancelling, an optional reason is stored and shown to the customer in the
+     * cancellation email.
      */
     @Transactional
-    public OrderResponse updateStatus(Long id, OrderStatus status) {
+    public OrderResponse updateStatus(Long id, OrderStatus status, String reason) {
         require(status != null, "A target status is required");
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
 
         OrderStatus previous = order.getStatus();
         order.setStatus(status);
+        if (status == OrderStatus.CANCELLED) {
+            order.setCancellationReason(trimToNull(reason));
+        }
         Order saved = orderRepository.save(order);
         OrderResponse response = OrderResponse.from(saved);
 

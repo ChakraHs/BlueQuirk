@@ -105,10 +105,10 @@ public class OrderController {
         } catch (IllegalArgumentException | NullPointerException e) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown order status: " + request.status());
         }
-        return ResponseEntity.ok(orderService.updateStatus(id, status));
+        return ResponseEntity.ok(orderService.updateStatus(id, status, request.reason()));
     }
 
-    public record UpdateStatusRequest(String status) {}
+    public record UpdateStatusRequest(String status, String reason) {}
 
     /** Admin: set payment status, carrier tracking number, and/or estimated delivery. */
     @PatchMapping("/{id}/fulfillment")
