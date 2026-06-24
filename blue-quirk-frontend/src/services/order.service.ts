@@ -11,6 +11,9 @@ export type OrderItemPayload = {
   name: string;
   image: string;
   variant: string;
+  // Structured variant selection (e.g. { Size: "M", Color: "Black" }) so the exact
+  // variant can be forwarded to Todify. Optional / backward-compatible.
+  variantAttributes?: Record<string, string>;
 };
 
 export type CreateOrderPayload = {
@@ -30,6 +33,7 @@ export type OrderResponseItem = {
   name: string;
   image: string;
   variant: string;
+  variantAttributes?: string;
   unitPrice: number;
   quantity: number;
   lineTotal: number;
@@ -57,6 +61,14 @@ export type OrderResponse = {
   shippingFee: number;
   total: number;
   orderDate: string;
+  // --- Todify fulfillment (null for non-Todify orders) ---
+  todifyOrderId?: string;
+  todifyReferenceCode?: string;
+  todifyStatus?: string;
+  todifySyncState?: string;
+  todifyLastSyncAt?: string;
+  todifyErrorMessage?: string;
+  todifySyncAttempts?: number;
   items: OrderResponseItem[];
 };
 
@@ -68,16 +80,23 @@ export type FulfillmentPayload = {
 
 /** Convert cart lines into the order payload, flattening variant attributes. */
 export function cartToOrderItems(items: CartItem[]): OrderItemPayload[] {
-  return items.map((i) => ({
-    productId: i.id,
-    quantity: i.quantity,
-    name: i.name,
-    image: i.image,
-    variant: Object.entries(i.attributes)
-      .filter(([, v]) => v)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join(" · "),
-  }));
+  return items.map((i) => {
+    const variantAttributes = Object.fromEntries(
+      Object.entries(i.attributes).filter(([, v]) => v)
+    );
+    return {
+      productId: i.id,
+      quantity: i.quantity,
+      name: i.name,
+      image: i.image,
+      variant: Object.entries(variantAttributes)
+        .map(([k, v]) => `${k}: ${v}`)
+        .join(" · "),
+      // Structured selection forwarded to Todify when present.
+      variantAttributes:
+        Object.keys(variantAttributes).length > 0 ? variantAttributes : undefined,
+    };
+  });
 }
 
 export const OrderService = {

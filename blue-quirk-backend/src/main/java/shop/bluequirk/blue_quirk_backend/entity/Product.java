@@ -5,13 +5,16 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "products")
+@Table(name = "products", indexes = {
+        @Index(name = "idx_products_todify_template_id", columnList = "todify_template_id")
+})
 public class Product {
 
     @Id
@@ -65,7 +68,20 @@ public class Product {
     @JsonIgnore
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProductTranslation> translations = new HashSet<>();
-    
+
+    // --- Todify integration (all nullable; existing products are unaffected) ---
+    // The linked Todify template id (UUID). Null = a normal local-only product.
+    @Column(name = "todify_template_id")
+    private String todifyTemplateId;
+
+    // True when this product was created by importing a Todify template.
+    @Column(name = "synced_from_todify", nullable = false)
+    private boolean syncedFromTodify = false;
+
+    // Last time synced fields were refreshed from Todify (import or template.updated).
+    @Column(name = "todify_last_sync_at")
+    private LocalDateTime todifyLastSyncAt;
+
     // Constructors
     public Product() {}
 
@@ -112,6 +128,13 @@ public class Product {
     public void setTranslations(Set<ProductTranslation> translations) {
         this.translations = translations;
     }
-    
-    
+
+    public String getTodifyTemplateId() { return todifyTemplateId; }
+    public void setTodifyTemplateId(String todifyTemplateId) { this.todifyTemplateId = todifyTemplateId; }
+
+    public boolean isSyncedFromTodify() { return syncedFromTodify; }
+    public void setSyncedFromTodify(boolean syncedFromTodify) { this.syncedFromTodify = syncedFromTodify; }
+
+    public LocalDateTime getTodifyLastSyncAt() { return todifyLastSyncAt; }
+    public void setTodifyLastSyncAt(LocalDateTime todifyLastSyncAt) { this.todifyLastSyncAt = todifyLastSyncAt; }
 }

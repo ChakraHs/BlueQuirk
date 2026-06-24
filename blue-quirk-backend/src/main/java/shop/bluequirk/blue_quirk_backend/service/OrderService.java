@@ -1,13 +1,17 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.domain.PaymentStatus;
+import shop.bluequirk.blue_quirk_backend.domain.TodifySyncState;
 import shop.bluequirk.blue_quirk_backend.dto.CreateOrderRequest;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Customer;
@@ -15,12 +19,15 @@ import shop.bluequirk.blue_quirk_backend.entity.Order;
 import shop.bluequirk.blue_quirk_backend.entity.OrderItem;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.User;
+import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
+import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
 import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -30,17 +37,22 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderNotificationService notificationService;
     private final CustomerService customerService;
+    private final ApplicationEventPublisher events;
     private final double shippingFee;
+
+    private final ObjectMapper mapper = new ObjectMapper();
 
     public OrderService(OrderRepository orderRepository,
                         ProductRepository productRepository,
                         OrderNotificationService notificationService,
                         CustomerService customerService,
+                        ApplicationEventPublisher events,
                         @Value("${order.shipping-fee:0}") double shippingFee) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.notificationService = notificationService;
         this.customerService = customerService;
+        this.events = events;
         this.shippingFee = shippingFee;
     }
 
@@ -95,6 +107,7 @@ public class OrderService {
         order.setOrderDate(LocalDateTime.now());
 
         double subtotal = 0;
+        boolean anyTodifyLinked = false;
         for (CreateOrderRequest.Item line : req.items()) {
             require(line.productId() != null, "Order line is missing a product");
             int qty = Math.max(1, line.quantity());
@@ -112,15 +125,23 @@ public class OrderService {
             item.setName(notBlank(line.name()) ? line.name() : product.getName());
             item.setImageUrl(line.image());
             item.setVariant(line.variant());
+            item.setVariantAttributes(serializeVariant(line.variantAttributes()));
             item.setUnitPrice(unitPrice);
             item.setQuantity(qty);
             item.setLineTotal(lineTotal);
             order.addItem(item);
+
+            if (product.getTodifyTemplateId() != null && !product.getTodifyTemplateId().isBlank()) {
+                anyTodifyLinked = true;
+            }
         }
 
         order.setSubtotal(subtotal);
         order.setShippingFee(shippingFee);
         order.setTotal(subtotal + shippingFee);
+        // Mark for Todify sync only when at least one item is linked to a template;
+        // pure-local orders never touch Todify.
+        order.setTodifySyncState(anyTodifyLinked ? TodifySyncState.PENDING : TodifySyncState.NOT_APPLICABLE);
 
         // First save to obtain the id, then derive the human-friendly order number.
         Order saved = orderRepository.save(order);
@@ -132,7 +153,23 @@ public class OrderService {
         // Best-effort, async — never blocks or fails the order.
         notificationService.sendOrderEmails(response);
 
+        // Hand off to Todify AFTER commit, off-thread — checkout is never slowed or
+        // failed by Todify. The local order is already durable at this point.
+        if (anyTodifyLinked) {
+            events.publishEvent(new OrderPlacedEvent(saved.getId()));
+        }
+
         return response;
+    }
+
+    /** Serializes the structured variant map to JSON for the order item; null when empty. */
+    private String serializeVariant(Map<String, String> attributes) {
+        if (attributes == null || attributes.isEmpty()) return null;
+        try {
+            return mapper.writeValueAsString(attributes);
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     /** "BQ-2026-000123" — year of the order plus its zero-padded id. */
@@ -197,6 +234,37 @@ public class OrderService {
         if (trackingNumber != null) order.setTrackingNumber(trimToNull(trackingNumber));
         if (estimatedDelivery != null) order.setEstimatedDelivery(estimatedDelivery);
         return OrderResponse.from(orderRepository.save(order));
+    }
+
+    /**
+     * Applies a Todify fulfillment status (from a webhook or the fallback poll) to
+     * the local order: stores the raw Todify status + tracking number, and when it
+     * maps to a different local lifecycle status, advances it and fires the same
+     * customer status email as a manual admin change. Safe/no-op for unknown orders.
+     */
+    @Transactional
+    public void applyTodifyStatus(Long orderId, String todifyStatus, String trackingNumber) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) return;
+
+        if (todifyStatus != null && !todifyStatus.isBlank()) {
+            order.setTodifyStatus(todifyStatus.trim());
+        }
+        if (trackingNumber != null && !trackingNumber.isBlank()) {
+            order.setTrackingNumber(trackingNumber.trim());
+        }
+        order.setTodifyLastSyncAt(LocalDateTime.now());
+
+        OrderStatus mapped = TodifyStatusMapper.toOrderStatus(todifyStatus);
+        boolean statusChanged = mapped != null && mapped != order.getStatus();
+        if (statusChanged) {
+            order.setStatus(mapped);
+        }
+
+        Order saved = orderRepository.save(order);
+        if (statusChanged) {
+            notificationService.sendStatusUpdate(OrderResponse.from(saved), mapped);
+        }
     }
 
     public void deleteOrder(Long id) {

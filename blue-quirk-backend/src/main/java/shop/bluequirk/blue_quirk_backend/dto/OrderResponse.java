@@ -29,6 +29,14 @@ public record OrderResponse(
         double shippingFee,
         double total,
         String orderDate,
+        // --- Todify fulfillment (null for non-Todify orders) ---
+        String todifyOrderId,
+        String todifyReferenceCode,
+        String todifyStatus,
+        String todifySyncState,
+        String todifyLastSyncAt,
+        String todifyErrorMessage,
+        int todifySyncAttempts,
         List<Item> items
 ) {
     public record Item(
@@ -36,6 +44,7 @@ public record OrderResponse(
             String name,
             String image,
             String variant,
+            String variantAttributes,
             double unitPrice,
             int quantity,
             double lineTotal
@@ -45,6 +54,7 @@ public record OrderResponse(
         List<Item> items = order.getItems().stream()
                 .map(i -> new Item(
                         i.getProductId(), i.getName(), i.getImageUrl(), i.getVariant(),
+                        i.getVariantAttributes(),
                         i.getUnitPrice(), i.getQuantity(), i.getLineTotal()))
                 .collect(Collectors.toList());
 
@@ -72,6 +82,14 @@ public record OrderResponse(
                 order.getTotal(),
                 order.getOrderDate() != null
                         ? order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,
+                order.getTodifyOrderId(),
+                order.getTodifyReferenceCode(),
+                order.getTodifyStatus(),
+                order.getTodifySyncState() != null ? order.getTodifySyncState().name() : null,
+                order.getTodifyLastSyncAt() != null
+                        ? order.getTodifyLastSyncAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,
+                order.getTodifyErrorMessage(),
+                order.getTodifySyncAttempts(),
                 items
         );
     }

@@ -47,5 +47,10 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		    )
 		""")
 		List<Product> findByCategoryIdWithRelations(@Param("categoryId") Long categoryId);
-	
+
+	// --- Todify ---
+	Optional<Product> findByTodifyTemplateId(String todifyTemplateId);
+
+	boolean existsByTodifyTemplateId(String todifyTemplateId);
+
 }

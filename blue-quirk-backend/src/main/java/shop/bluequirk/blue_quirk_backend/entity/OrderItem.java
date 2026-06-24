@@ -31,6 +31,12 @@ public class OrderItem {
     @Column(length = 512)
     private String variant;
 
+    // Structured variant selection as a JSON object, e.g. {"Size":"M","Color":"Black"}.
+    // Used to send the exact variant to Todify; the display `variant` above is kept
+    // for emails/UI. Null for items without selectable attributes.
+    @Column(name = "variant_attributes", length = 1024)
+    private String variantAttributes;
+
     @Column(nullable = false)
     private double unitPrice;
 
@@ -59,6 +65,9 @@ public class OrderItem {
 
     public String getVariant() { return variant; }
     public void setVariant(String variant) { this.variant = variant; }
+
+    public String getVariantAttributes() { return variantAttributes; }
+    public void setVariantAttributes(String variantAttributes) { this.variantAttributes = variantAttributes; }
 
     public double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }

@@ -8,9 +8,13 @@ import java.util.List;
 
 import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.domain.PaymentStatus;
+import shop.bluequirk.blue_quirk_backend.domain.TodifySyncState;
 
 @Entity
-@Table(name = "orders")
+@Table(name = "orders", indexes = {
+        @Index(name = "idx_orders_todify_order_id", columnList = "todify_order_id"),
+        @Index(name = "idx_orders_todify_sync_state", columnList = "todify_sync_state")
+})
 public class Order {
 
     @Id
@@ -81,6 +85,33 @@ public class Order {
     private double total;
 
     private LocalDateTime orderDate;
+
+    // --- Todify fulfillment sync (all nullable; local order is source of truth) ---
+    // Todify's order id and human reference, set once the order is accepted.
+    @Column(name = "todify_order_id")
+    private String todifyOrderId;
+
+    @Column(name = "todify_reference_code")
+    private String todifyReferenceCode;
+
+    // Raw Todify status string (e.g. "in_production", "shipped").
+    @Column(name = "todify_status")
+    private String todifyStatus;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "todify_sync_state")
+    private TodifySyncState todifySyncState = TodifySyncState.NOT_APPLICABLE;
+
+    @Column(name = "todify_last_sync_at")
+    private LocalDateTime todifyLastSyncAt;
+
+    // @Lob alone maps to LONGTEXT on MariaDB (column name derived as
+    // todify_error_message). Adding @Column would force length 255 → tinytext.
+    @Lob
+    private String todifyErrorMessage;
+
+    @Column(name = "todify_sync_attempts", nullable = false)
+    private int todifySyncAttempts = 0;
 
     public Order() {}
 
@@ -158,4 +189,25 @@ public class Order {
 
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
+
+    public String getTodifyOrderId() { return todifyOrderId; }
+    public void setTodifyOrderId(String todifyOrderId) { this.todifyOrderId = todifyOrderId; }
+
+    public String getTodifyReferenceCode() { return todifyReferenceCode; }
+    public void setTodifyReferenceCode(String todifyReferenceCode) { this.todifyReferenceCode = todifyReferenceCode; }
+
+    public String getTodifyStatus() { return todifyStatus; }
+    public void setTodifyStatus(String todifyStatus) { this.todifyStatus = todifyStatus; }
+
+    public TodifySyncState getTodifySyncState() { return todifySyncState; }
+    public void setTodifySyncState(TodifySyncState todifySyncState) { this.todifySyncState = todifySyncState; }
+
+    public LocalDateTime getTodifyLastSyncAt() { return todifyLastSyncAt; }
+    public void setTodifyLastSyncAt(LocalDateTime todifyLastSyncAt) { this.todifyLastSyncAt = todifyLastSyncAt; }
+
+    public String getTodifyErrorMessage() { return todifyErrorMessage; }
+    public void setTodifyErrorMessage(String todifyErrorMessage) { this.todifyErrorMessage = todifyErrorMessage; }
+
+    public int getTodifySyncAttempts() { return todifySyncAttempts; }
+    public void setTodifySyncAttempts(int todifySyncAttempts) { this.todifySyncAttempts = todifySyncAttempts; }
 }

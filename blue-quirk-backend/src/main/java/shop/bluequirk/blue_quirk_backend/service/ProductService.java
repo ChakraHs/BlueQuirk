@@ -147,7 +147,9 @@ public class ProductService {
             resolveDescription(product, lang),
             product.getStatus(),
             sortedImages(product),
-            attributes
+            attributes,
+            product.getTodifyTemplateId(),
+            product.isSyncedFromTodify()
         );
     }
 
@@ -270,7 +272,9 @@ public class ProductService {
                 resolveDescription(product, lang),
                 product.getStatus(),
                 sortedImages(product),
-                attributes
+                attributes,
+                product.getTodifyTemplateId(),
+                product.isSyncedFromTodify()
         );
     }
 

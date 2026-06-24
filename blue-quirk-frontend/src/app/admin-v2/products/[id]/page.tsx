@@ -7,6 +7,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import { ProductService } from "@/services/product.service";
+import { TodifyService } from "@/services/todify.service";
 import { Product, ProductAttribute, ProductImage } from "@/types/product";
 import { colorOptionsFromAttributes } from "@/lib/colorImages";
 
@@ -274,6 +275,101 @@ export default function EditProductPage() {
           </div>
         </form>
       </div>
+
+      <TodifyLinkPanel
+        productId={id}
+        initialTemplateId={product?.todifyTemplateId ?? null}
+        syncedFromTodify={product?.syncedFromTodify ?? false}
+      />
+    </div>
+  );
+}
+
+/** Compact panel to link/unlink this product with a Todify template. */
+function TodifyLinkPanel({
+  productId,
+  initialTemplateId,
+  syncedFromTodify,
+}: {
+  productId: number;
+  initialTemplateId: string | null;
+  syncedFromTodify: boolean;
+}) {
+  const [templateId, setTemplateId] = useState(initialTemplateId ?? "");
+  const [linked, setLinked] = useState<string | null>(initialTemplateId);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
+
+  async function link() {
+    if (!templateId.trim()) return;
+    setBusy(true);
+    setMsg(null);
+    try {
+      await TodifyService.linkProduct(productId, templateId.trim());
+      setLinked(templateId.trim());
+      setMsg("Produit lié au template Todify.");
+    } catch {
+      setMsg("Échec de la liaison.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function unlink() {
+    setBusy(true);
+    setMsg(null);
+    try {
+      await TodifyService.unlinkProduct(productId);
+      setLinked(null);
+      setTemplateId("");
+      setMsg("Produit délié de Todify.");
+    } catch {
+      setMsg("Échec de la suppression du lien.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-6 max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <h2 className="mb-1 text-sm font-semibold text-gray-800">Intégration Todify</h2>
+      <p className="mb-3 text-xs text-gray-500">
+        Liez ce produit à un template Todify pour la fabrication à la demande.
+        {syncedFromTodify && " Ce produit a été importé depuis Todify."}
+      </p>
+
+      {linked ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
+            Lié : {linked}
+          </span>
+          <button
+            disabled={busy}
+            onClick={unlink}
+            className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+          >
+            Délier
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <input
+            value={templateId}
+            onChange={(e) => setTemplateId(e.target.value)}
+            placeholder="ID du template Todify"
+            className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+          />
+          <button
+            disabled={busy || !templateId.trim()}
+            onClick={link}
+            className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          >
+            Lier
+          </button>
+        </div>
+      )}
+
+      {msg && <p className="mt-2 text-xs text-gray-500">{msg}</p>}
     </div>
   );
 }

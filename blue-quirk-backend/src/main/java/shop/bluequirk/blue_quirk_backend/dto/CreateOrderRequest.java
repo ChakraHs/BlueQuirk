@@ -1,6 +1,7 @@
 package shop.bluequirk.blue_quirk_backend.dto;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * Payload for placing a cash-on-delivery order. Prices are NOT trusted from the
@@ -26,6 +27,9 @@ public record CreateOrderRequest(
             int quantity,
             String name,
             String image,
-            String variant
+            String variant,
+            // Structured variant selection (e.g. {"Size":"M","Color":"Black"}),
+            // used to send the exact variant to Todify. Optional/back-compatible.
+            Map<String, String> variantAttributes
     ) {}
 }

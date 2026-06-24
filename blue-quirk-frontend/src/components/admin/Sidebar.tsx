@@ -9,6 +9,10 @@ import {
   Tags,
   Users,
   Store,
+  Shirt,
+  Truck,
+  Webhook,
+  ScrollText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,6 +38,15 @@ const groups: Group[] = [
   {
     heading: "Clients",
     items: [{ name: "Clients", href: "/admin-v2/users", icon: Users }],
+  },
+  {
+    heading: "Todify",
+    items: [
+      { name: "Templates", href: "/admin-v2/todify/templates", icon: Shirt },
+      { name: "Commandes Todify", href: "/admin-v2/todify/orders", icon: Truck },
+      { name: "Webhooks", href: "/admin-v2/todify/webhooks", icon: Webhook },
+      { name: "Journaux", href: "/admin-v2/todify/logs", icon: ScrollText },
+    ],
   },
 ];
 

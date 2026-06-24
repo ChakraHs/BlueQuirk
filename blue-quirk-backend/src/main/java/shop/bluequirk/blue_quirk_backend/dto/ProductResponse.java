@@ -13,5 +13,8 @@ public record ProductResponse(
 	    String description,
 	    ProductStatus status,
 	    List<Image> images,
-	    List<AttributeDto> attributes
+	    List<AttributeDto> attributes,
+	    // --- Todify link info (null/false for normal local products) ---
+	    String todifyTemplateId,
+	    boolean syncedFromTodify
 	) {}

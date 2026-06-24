@@ -17,7 +17,10 @@ export interface Product {
   attributes?: ProductAttribute[];
 
   translations?: ProductTranslation[];
-  
+
+  // --- Todify link (null/false for normal local products) ---
+  todifyTemplateId?: string | null;
+  syncedFromTodify?: boolean;
 }
 
 export interface ProductImage {
