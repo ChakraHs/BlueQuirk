@@ -3,12 +3,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, Heart, Minus, Plus, RotateCcw, ShieldCheck, ShoppingBag, Truck, Zap } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Heart, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
+import { useShippingConfig, freeShippingState } from "@/lib/shipping";
+import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
+import SizeGuideModal from "@/components/product/SizeGuideModal";
+
+/** The product's SIZE attribute, by type (preferred) or a name match. */
+function findSizeAttribute<T extends { name: string; type?: string }>(attributes: T[]): T | undefined {
+  return (
+    attributes.find((a) => (a.type || "").toUpperCase() === "SIZE") ||
+    attributes.find((a) => /taille|size|مقاس/i.test(a.name))
+  );
+}
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
@@ -52,6 +63,15 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
 
+  // Size guide + size recommendation (applied after mount to avoid SSR mismatch).
+  const sizeAttribute = useMemo(() => findSizeAttribute(productAttributes), [productAttributes]);
+  const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
+  const [recommendedSize, setRecommendedSize] = useState<string | null>(null);
+
+  // Shipping economics for the product-page banner (backend-driven; no hardcoding).
+  const shippingConfig = useShippingConfig();
+  const freeShip = freeShippingState(product.price, shippingConfig);
+
   // Color-aware gallery: when a color is selected, show that color's images
   // first then generic ones (falling back to generics when the color has none).
   const colorAttribute = useMemo(() => findColorAttribute(productAttributes), [productAttributes]);
@@ -93,6 +113,22 @@ export default function ProductDetailClient({
   const router = useRouter();
 
   const canBuy = product.status === "PUBLISHED";
+
+  // Recommend (and preselect) the customer's usual size when this product offers
+  // it. Runs after mount so the server/client initial render stays identical.
+  useEffect(() => {
+    if (!sizeAttribute) return;
+    const available = sizeAttribute.values.map((v) => v.value);
+    const rec = recommendSize({ available });
+    if (!rec) return;
+    const value = sizeAttribute.values.find((v) => v.value === rec.size);
+    if (!value) return;
+    setSelectedAttributes((current) => ({
+      ...current,
+      [String(sizeAttribute.id)]: String(value.id),
+    }));
+    setRecommendedSize(rec.size);
+  }, [sizeAttribute]);
 
   useEffect(() => {
     const sync = () => setWishlisted(isWishlisted(product.id));
@@ -137,10 +173,19 @@ export default function ProductDetailClient({
     attributes: selectedAttributeLabels,
   });
 
+  // Remember the chosen size (even if it was the preselected recommendation) so
+  // it can be suggested on the next product.
+  const rememberSize = () => {
+    if (!sizeAttribute) return;
+    const label = selectedAttributeLabels[sizeAttribute.name];
+    if (label) setPreferredSize(label);
+  };
+
   const handleAddToCart = () => {
     if (!canBuy) {
       return;
     }
+    rememberSize();
     addToCart(buildCartItem());
     setAdded(true);
     window.setTimeout(() => setAdded(false), 2200);
@@ -150,6 +195,7 @@ export default function ProductDetailClient({
     if (!canBuy) {
       return;
     }
+    rememberSize();
     addToCart(buildCartItem());
     // The checkout page gates on auth (redirects guests to sign up).
     router.push(`/${lang}/checkout`);
@@ -249,6 +295,34 @@ export default function ProductDetailClient({
           <p className="text-2xl font-semibold">
             {formatPrice(product.price)}
           </p>
+
+          {/* Shipping info banner — threshold/fee come from the backend config. */}
+          {shippingConfig.freeShippingThreshold > 0 && (
+            <div className="flex items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5">
+              <Truck className="mt-0.5 size-4 shrink-0 text-blue-600" />
+              {freeShip.qualified ? (
+                <p className="text-sm text-gray-700">
+                  {lang === "ar"
+                    ? "🚚 هذا المنتج مؤهّل للشحن المجاني."
+                    : "🚚 Cet article est éligible à la livraison gratuite."}
+                </p>
+              ) : (
+                <div className="text-sm">
+                  <p className="font-medium text-gray-800">
+                    🚚{" "}
+                    {lang === "ar"
+                      ? `شحن مجاني للطلبات بدءًا من ${Math.round(shippingConfig.freeShippingThreshold)} ${shippingConfig.currency}`
+                      : `Livraison gratuite dès ${Math.round(shippingConfig.freeShippingThreshold)} ${shippingConfig.currency}`}
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {lang === "ar"
+                      ? `وإلا، شحن عادي: ${Math.round(shippingConfig.shippingFee)} ${shippingConfig.currency}`
+                      : `Sinon, livraison standard : ${Math.round(shippingConfig.shippingFee)} ${shippingConfig.currency}`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {product.description && (
@@ -260,10 +334,32 @@ export default function ProductDetailClient({
 
         {!!productAttributes.length && (
           <div className="space-y-5">
-            {productAttributes.map((attribute) => (
+            {productAttributes.map((attribute) => {
+              const isSize = sizeAttribute?.id === attribute.id;
+              return (
               <fieldset key={attribute.id} className="space-y-3">
-                <legend className="text-sm font-semibold text-gray-800">
-                  {attribute.name}
+                <legend className="flex w-full items-center justify-between gap-3 text-sm font-semibold text-gray-800">
+                  <span className="flex flex-wrap items-center gap-2">
+                    {attribute.name}
+                    {isSize && recommendedSize && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                        <Sparkles className="size-3" />
+                        {lang === "ar"
+                          ? `مقاسك المعتاد : ${recommendedSize}`
+                          : `Votre taille : ${recommendedSize}`}
+                      </span>
+                    )}
+                  </span>
+                  {isSize && (
+                    <button
+                      type="button"
+                      onClick={() => setSizeGuideOpen(true)}
+                      className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
+                    >
+                      <Ruler className="size-3.5" />
+                      {lang === "ar" ? "دليل المقاسات" : "Guide des tailles"}
+                    </button>
+                  )}
                 </legend>
 
                 <div className="flex flex-wrap gap-2">
@@ -274,12 +370,13 @@ export default function ProductDetailClient({
                       <button
                         key={value.id}
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
                           setSelectedAttributes((current) => ({
                             ...current,
                             [String(attribute.id)]: String(value.id),
-                          }))
-                        }
+                          }));
+                          if (isSize) setPreferredSize(value.value);
+                        }}
                         className={`min-h-10 rounded-full border px-4 text-sm font-medium transition ${
                           selected
                             ? "border-blue-600 bg-blue-600 text-white"
@@ -292,7 +389,8 @@ export default function ProductDetailClient({
                   })}
                 </div>
               </fieldset>
-            ))}
+              );
+            })}
           </div>
         )}
 
@@ -378,6 +476,12 @@ export default function ProductDetailClient({
           </div>
         </div>
       </section>
+
+      <SizeGuideModal
+        open={sizeGuideOpen}
+        onClose={() => setSizeGuideOpen(false)}
+        lang={lang}
+      />
     </div>
   );
 }

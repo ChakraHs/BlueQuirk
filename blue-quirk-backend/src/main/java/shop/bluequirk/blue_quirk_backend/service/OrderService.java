@@ -39,6 +39,7 @@ public class OrderService {
     private final CustomerService customerService;
     private final ApplicationEventPublisher events;
     private final double shippingFee;
+    private final double freeShippingThreshold;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -47,13 +48,15 @@ public class OrderService {
                         OrderNotificationService notificationService,
                         CustomerService customerService,
                         ApplicationEventPublisher events,
-                        @Value("${order.shipping-fee:0}") double shippingFee) {
+                        @Value("${order.shipping-fee:0}") double shippingFee,
+                        @Value("${order.free-shipping-threshold:0}") double freeShippingThreshold) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.notificationService = notificationService;
         this.customerService = customerService;
         this.events = events;
         this.shippingFee = shippingFee;
+        this.freeShippingThreshold = freeShippingThreshold;
     }
 
     /**
@@ -136,9 +139,13 @@ public class OrderService {
             }
         }
 
+        // Free shipping kicks in automatically once the subtotal reaches the
+        // configured threshold (threshold <= 0 disables the perk).
+        double effectiveShipping =
+                (freeShippingThreshold > 0 && subtotal >= freeShippingThreshold) ? 0.0 : shippingFee;
         order.setSubtotal(subtotal);
-        order.setShippingFee(shippingFee);
-        order.setTotal(subtotal + shippingFee);
+        order.setShippingFee(effectiveShipping);
+        order.setTotal(subtotal + effectiveShipping);
         // Mark for Todify sync only when at least one item is linked to a template;
         // pure-local orders never touch Todify.
         order.setTodifySyncState(anyTodifyLinked ? TodifySyncState.PENDING : TodifySyncState.NOT_APPLICABLE);

@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
+import { useShippingConfig, computeShipping } from "@/lib/shipping";
+import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
 import LoginModal from "@/components/storefront/LoginModal";
@@ -41,6 +43,9 @@ export default function CheckoutPage({
   const { lang } = use(params);
   const items = useCart();
   const total = cartTotal(items);
+  const shippingConfig = useShippingConfig();
+  const shipping = computeShipping(total, shippingConfig);
+  const grandTotal = total + shipping;
 
   const [form, setForm] = useState<Form>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -272,6 +277,8 @@ export default function CheckoutPage({
             })}
           </ul>
 
+          <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
+
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">
               <dt>Sous-total</dt>
@@ -279,13 +286,15 @@ export default function CheckoutPage({
             </div>
             <div className="flex justify-between text-gray-600">
               <dt>Livraison</dt>
-              <dd className="font-medium text-emerald-600">Gratuite</dd>
+              <dd className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                {shipping === 0 ? "Gratuite" : formatPrice(shipping)}
+              </dd>
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
             <span className="text-base font-bold text-gray-900">Total</span>
-            <span className="text-base font-bold text-gray-900">{formatPrice(total)}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(grandTotal)}</span>
           </div>
 
           <button

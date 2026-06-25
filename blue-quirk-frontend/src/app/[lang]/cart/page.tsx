@@ -13,6 +13,8 @@ import {
   clearCart,
 } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
+import { useShippingConfig, computeShipping } from "@/lib/shipping";
+import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 
 export default function CartPage({
   params,
@@ -22,6 +24,9 @@ export default function CartPage({
   const { lang } = use(params);
   const items = useCart();
   const total = cartTotal(items);
+  const shippingConfig = useShippingConfig();
+  const shipping = computeShipping(total, shippingConfig);
+  const grandTotal = total + shipping;
 
   if (items.length === 0) {
     return (
@@ -131,6 +136,8 @@ export default function CartPage({
 
         {/* Summary */}
         <aside className="h-fit rounded-2xl border border-gray-200 p-6">
+          <FreeShippingBar subtotal={total} lang={lang} className="mb-5" />
+
           <h2 className="text-lg font-bold text-gray-900">Order summary</h2>
 
           <dl className="mt-5 space-y-3 text-sm">
@@ -140,14 +147,16 @@ export default function CartPage({
             </div>
             <div className="flex justify-between text-gray-600">
               <dt>Shipping</dt>
-              <dd className="font-medium text-emerald-600">Free</dd>
+              <dd className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                {shipping === 0 ? "Free" : formatPrice(shipping)}
+              </dd>
             </div>
           </dl>
 
           <div className="mt-5 flex justify-between border-t border-gray-200 pt-5">
             <span className="text-base font-bold text-gray-900">Total</span>
             <span className="text-base font-bold text-gray-900">
-              {formatPrice(total)}
+              {formatPrice(grandTotal)}
             </span>
           </div>
 
