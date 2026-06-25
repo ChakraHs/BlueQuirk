@@ -11,6 +11,7 @@ import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { useShippingConfig, freeShippingState } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
+import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
 
 /** The product's SIZE attribute, by type (preferred) or a name match. */
@@ -66,7 +67,8 @@ export default function ProductDetailClient({
   // Size guide + size recommendation (applied after mount to avoid SSR mismatch).
   const sizeAttribute = useMemo(() => findSizeAttribute(productAttributes), [productAttributes]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);
-  const [recommendedSize, setRecommendedSize] = useState<string | null>(null);
+  const [sizeCalcOpen, setSizeCalcOpen] = useState(false);
+  const [calculatedSize, setCalculatedSize] = useState<string | null>(null);
 
   // Shipping economics for the product-page banner (backend-driven; no hardcoding).
   const shippingConfig = useShippingConfig();
@@ -105,8 +107,22 @@ export default function ProductDetailClient({
       ...current,
       [String(sizeAttribute.id)]: String(value.id),
     }));
-    setRecommendedSize(rec.size);
   }, [sizeAttribute]);
+
+  // Apply a size proposed by the height/weight calculator (and remember it).
+  const applyCalculatedSize = (size: string) => {
+    if (!sizeAttribute) return;
+    const value = sizeAttribute.values.find(
+      (v) => v.value.toLowerCase() === size.toLowerCase()
+    );
+    if (!value) return;
+    setSelectedAttributes((current) => ({
+      ...current,
+      [String(sizeAttribute.id)]: String(value.id),
+    }));
+    setPreferredSize(value.value);
+    setCalculatedSize(value.value);
+  };
 
   useEffect(() => {
     const sync = () => setWishlisted(isWishlisted(product.id));
@@ -256,12 +272,22 @@ export default function ProductDetailClient({
                 <legend className="flex w-full items-center justify-between gap-3 text-sm font-semibold text-gray-800">
                   <span className="flex flex-wrap items-center gap-2">
                     {attribute.name}
-                    {isSize && recommendedSize && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs font-medium text-blue-600">
+                    {isSize && (
+                      <button
+                        type="button"
+                        onClick={() => setSizeCalcOpen(true)}
+                        className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
+                      >
                         <Sparkles className="size-3" />
+                        {lang === "ar" ? "احسب مقاسك" : "Calculer ma taille"}
+                      </button>
+                    )}
+                    {isSize && calculatedSize && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+                        <Check className="size-3" />
                         {lang === "ar"
-                          ? `مقاسك المعتاد : ${recommendedSize}`
-                          : `Votre taille : ${recommendedSize}`}
+                          ? `موصى به : ${calculatedSize}`
+                          : `Recommandé : ${calculatedSize}`}
                       </span>
                     )}
                   </span>
@@ -395,6 +421,14 @@ export default function ProductDetailClient({
       <SizeGuideModal
         open={sizeGuideOpen}
         onClose={() => setSizeGuideOpen(false)}
+        lang={lang}
+      />
+
+      <SizeCalculatorModal
+        open={sizeCalcOpen}
+        onClose={() => setSizeCalcOpen(false)}
+        onApply={applyCalculatedSize}
+        availableSizes={sizeAttribute ? sizeAttribute.values.map((v) => v.value) : []}
         lang={lang}
       />
     </div>

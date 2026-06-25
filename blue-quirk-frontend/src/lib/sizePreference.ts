@@ -41,14 +41,13 @@ export type SizeRecommendationContext = {
 export type SizeRecommendation = {
   size: string;
   /** Why we suggested it — drives the hint copy and lets us tune later. */
-  reason: "previous-selection";
+  reason: "previous-selection" | "body-measurements";
 };
 
 /**
  * Returns a recommended size for this product, or null if we have nothing to go
  * on. Current strategy: the customer's previously-selected size, when it is one
- * of the available options. Extend here (height/weight, history) — callers and
- * UI need no changes.
+ * of the available options. Extend here (history) — callers and UI need no changes.
  */
 export function recommendSize(ctx: SizeRecommendationContext): SizeRecommendation | null {
   const available = ctx.available.map((s) => s.trim()).filter(Boolean);
@@ -61,4 +60,64 @@ export function recommendSize(ctx: SizeRecommendationContext): SizeRecommendatio
   }
 
   return null;
+}
+
+// Canonical garment size ladder used to position a recommendation and snap it to
+// the nearest size a product actually offers.
+const SIZE_SCALE = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "4XL"];
+
+function scaleIndex(label: string): number {
+  const u = label.trim().toUpperCase();
+  const i = SIZE_SCALE.indexOf(u);
+  if (i !== -1) return i;
+  // Numeric forms like "2XL", "3XL" → XL + (n-1).
+  const m = u.match(/^(\d)XL$/);
+  if (m) return SIZE_SCALE.indexOf("XL") + (Number(m[1]) - 1);
+  return -1;
+}
+
+export type BodyMeasurements = { heightCm: number; weightKg: number };
+
+/**
+ * Estimates a t-shirt size from height + weight and snaps it to the closest size
+ * the product offers. Weight drives the base size; height nudges it up/down (a
+ * taller frame at the same weight wants a longer/larger cut). Deliberately a
+ * transparent heuristic — easy to tune, and the call site/UI stay unchanged.
+ */
+export function recommendSizeFromBody(
+  body: BodyMeasurements,
+  available: string[]
+): SizeRecommendation | null {
+  const { heightCm, weightKg } = body;
+  if (!(heightCm > 0) || !(weightKg > 0)) return null;
+
+  const avail = available.map((s) => s.trim()).filter(Boolean);
+  if (avail.length === 0) return null;
+
+  let target: number;
+  if (weightKg < 50) target = scaleIndex("XS");
+  else if (weightKg < 60) target = scaleIndex("S");
+  else if (weightKg < 70) target = scaleIndex("M");
+  else if (weightKg < 80) target = scaleIndex("L");
+  else if (weightKg < 92) target = scaleIndex("XL");
+  else if (weightKg < 105) target = scaleIndex("XXL");
+  else target = scaleIndex("XXXL");
+
+  // Height adjustment (frame length).
+  if (heightCm >= 190) target += 1;
+  else if (heightCm <= 160) target -= 1;
+
+  // Snap to the nearest size the product actually carries.
+  let best = avail[0];
+  let bestDist = Infinity;
+  for (const s of avail) {
+    const si = scaleIndex(s);
+    if (si < 0) continue;
+    const d = Math.abs(si - target);
+    if (d < bestDist) {
+      bestDist = d;
+      best = s;
+    }
+  }
+  return { size: best, reason: "body-measurements" };
 }
