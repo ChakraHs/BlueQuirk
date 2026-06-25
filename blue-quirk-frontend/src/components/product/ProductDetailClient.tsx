@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronLeft, ChevronRight, Heart, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
+import { Check, Heart, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
@@ -12,6 +11,7 @@ import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { useShippingConfig, freeShippingState } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
+import ProductGallery from "@/components/product/ProductGallery";
 
 /** The product's SIZE attribute, by type (preferred) or a name match. */
 function findSizeAttribute<T extends { name: string; type?: string }>(attributes: T[]): T | undefined {
@@ -83,31 +83,9 @@ export default function ProductDetailClient({
     [colorAttribute, allImages, selectedColorId]
   );
 
+  // The gallery owns navigation/zoom; we keep the active image url only as a
+  // mirror for the cart line + wishlist thumbnail (ProductGallery reports it).
   const [activeImage, setActiveImage] = useState(galleryImages[0]?.url ?? FALLBACK_IMAGE);
-  const touchStartX = useRef<number | null>(null);
-
-  // When the color (and thus the gallery) changes, jump to the first matching image.
-  useEffect(() => {
-    setActiveImage(galleryImages[0]?.url ?? FALLBACK_IMAGE);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedColorId]);
-
-  // Browse the (color-filtered) gallery with arrows / swipe, wrapping around.
-  const activeIndex = Math.max(0, galleryImages.findIndex((img) => img.url === activeImage));
-  const stepImage = (dir: number) => {
-    if (galleryImages.length < 2) return;
-    const next = (activeIndex + dir + galleryImages.length) % galleryImages.length;
-    setActiveImage(galleryImages[next].url);
-  };
-  const onTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.touches[0].clientX;
-  };
-  const onTouchEnd = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    if (Math.abs(dx) > 40) stepImage(dx < 0 ? 1 : -1);
-    touchStartX.current = null;
-  };
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const router = useRouter();
@@ -203,75 +181,12 @@ export default function ProductDetailClient({
 
   return (
     <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:px-12 md:py-12">
-      <section aria-label="Product images" className="space-y-4">
-        <div
-          className="group relative aspect-square overflow-hidden rounded-2xl bg-gray-100"
-          onTouchStart={onTouchStart}
-          onTouchEnd={onTouchEnd}
-        >
-          <Image
-            key={activeImage}
-            src={activeImage}
-            alt={product.name}
-            fill
-            priority
-            sizes="(max-width: 768px) 100vw, 55vw"
-            className="object-cover animate-[fadeIn_0.25s_ease]"
-          />
-
-          {galleryImages.length > 1 && (
-            <>
-              <button
-                type="button"
-                onClick={() => stepImage(-1)}
-                aria-label="Image précédente"
-                className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-white md:opacity-0 md:group-hover:opacity-100"
-              >
-                <ChevronLeft size={20} />
-              </button>
-              <button
-                type="button"
-                onClick={() => stepImage(1)}
-                aria-label="Image suivante"
-                className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-white md:opacity-0 md:group-hover:opacity-100"
-              >
-                <ChevronRight size={20} />
-              </button>
-
-              <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
-                {galleryImages.map((img, i) => (
-                  <button
-                    key={img.id ?? img.url}
-                    type="button"
-                    onClick={() => setActiveImage(img.url)}
-                    aria-label={`Image ${i + 1}`}
-                    className={`h-2 rounded-full transition-all ${
-                      i === activeIndex ? "w-5 bg-gray-900" : "w-2 bg-gray-900/40 hover:bg-gray-900/60"
-                    }`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        {galleryImages.length > 1 && (
-          <div className="grid grid-cols-5 gap-3">
-            {galleryImages.map((image) => (
-              <button
-                key={image.id ?? image.url}
-                type="button"
-                onClick={() => setActiveImage(image.url)}
-                className={`relative aspect-square overflow-hidden rounded-xl border-2 bg-gray-100 transition ${
-                  activeImage === image.url ? "border-blue-600" : "border-transparent hover:border-gray-300"
-                }`}
-                aria-label="Select product image"
-              >
-                <Image src={image.url} alt="" fill sizes="96px" className="object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
+      <section aria-label="Product images">
+        <ProductGallery
+          images={galleryImages}
+          alt={product.name}
+          onActiveChange={setActiveImage}
+        />
       </section>
 
       <section className="flex flex-col gap-7 text-gray-900">
