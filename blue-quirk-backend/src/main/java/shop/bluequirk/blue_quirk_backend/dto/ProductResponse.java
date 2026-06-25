@@ -14,6 +14,9 @@ public record ProductResponse(
 	    ProductStatus status,
 	    List<Image> images,
 	    List<AttributeDto> attributes,
+	    // Categories this product belongs to (locale-resolved names) — used by the
+	    // storefront search/filter facets.
+	    List<CategoryRef> categories,
 	    // --- Todify link info (null/false for normal local products) ---
 	    String todifyTemplateId,
 	    boolean syncedFromTodify

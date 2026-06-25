@@ -21,6 +21,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		    LEFT JOIN FETCH p.selectedValues
 		    LEFT JOIN FETCH p.images
 		    LEFT JOIN FETCH p.translations
+		    LEFT JOIN FETCH p.categories
 		""")
 	Page<Product> findAllWithRelations(Pageable pageable);
 
@@ -30,6 +31,7 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		    LEFT JOIN FETCH p.selectedValues
 		    LEFT JOIN FETCH p.images
 		    LEFT JOIN FETCH p.translations
+		    LEFT JOIN FETCH p.categories
 		    WHERE p.id = :id
 		""")
 	Optional<Product> findByIdWithRelations(@Param("id") Long id);

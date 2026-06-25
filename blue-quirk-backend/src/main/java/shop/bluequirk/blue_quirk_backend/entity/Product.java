@@ -112,6 +112,9 @@ public class Product {
     
     public Set<Image> getImages() { return images; }
     public void setImages(Set<Image> images) { this.images = images; }
+
+    public Set<Category> getCategories() { return categories; }
+    public void setCategories(Set<Category> categories) { this.categories = categories; }
     
     public ProductStatus getStatus() {
         return status;

@@ -15,12 +15,15 @@ import org.springframework.transaction.annotation.Transactional;
 
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeValueDto;
+import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
+import shop.bluequirk.blue_quirk_backend.entity.Category;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
+import shop.bluequirk.blue_quirk_backend.entity.translation.CategoryTranslation;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
 import shop.bluequirk.blue_quirk_backend.repository.AttributeRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
@@ -80,6 +83,7 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    @Transactional(readOnly = true)
     public Page<ProductResponse> getAllProducts(int page, int size, String lang) {
     	Page<Product> products = productRepository.findAllWithRelations(
     			PageRequest.of(page, size));
@@ -90,6 +94,7 @@ public class ProductService {
     }
 
     
+    @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id, String lang) {
         Product product = productRepository.findByIdWithRelations(id)
             .orElseThrow(() -> new RuntimeException("Product not found"));
@@ -148,6 +153,7 @@ public class ProductService {
             product.getStatus(),
             sortedImages(product),
             attributes,
+            toCategoryRefs(product, lang),
             product.getTodifyTemplateId(),
             product.isSyncedFromTodify()
         );
@@ -194,6 +200,7 @@ public class ProductService {
     
     
     
+    @Transactional(readOnly = true)
     public List<ProductResponse> getProductsByCategory(Long categoryId, String lang) {
         List<Product> products = productRepository.findByCategoryIdWithRelations(categoryId);
 
@@ -273,9 +280,32 @@ public class ProductService {
                 product.getStatus(),
                 sortedImages(product),
                 attributes,
+                toCategoryRefs(product, lang),
                 product.getTodifyTemplateId(),
                 product.isSyncedFromTodify()
         );
+    }
+
+    /** Locale-resolved category references for the storefront search facets. */
+    private List<CategoryRef> toCategoryRefs(Product product, String lang) {
+        if (product.getCategories() == null) {
+            return List.of();
+        }
+        return product.getCategories().stream()
+                .map(c -> new CategoryRef(c.getId(), resolveCategoryName(c, lang)))
+                .sorted(Comparator.comparing(CategoryRef::name, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
+
+    private String resolveCategoryName(Category category, String lang) {
+        if (lang == null || category.getTranslations() == null) {
+            return category.getName();
+        }
+        return category.getTranslations().stream()
+                .filter(t -> lang.equals(t.getLang()))
+                .map(CategoryTranslation::getName)
+                .findFirst()
+                .orElse(category.getName());
     }
 
     private void applyTranslations(Product product, Set<ProductTranslation> translations) {
