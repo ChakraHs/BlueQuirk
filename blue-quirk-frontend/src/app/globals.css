@@ -18,13 +18,11 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #ffffff;
-    --foreground: #ededed;
-  }
-}
-
+/* BlueQuirk uses a single light theme (white surfaces, dark text) for both the
+   storefront and the admin dashboard. We deliberately do NOT flip to light text
+   under prefers-color-scheme: dark — doing so previously made inherited text
+   (e.g. table values on white cards) near-white on white and unreadable. Keeping
+   --foreground dark guarantees legible contrast on every OS theme. */
 body {
   background: var(--background);
   color: var(--foreground);
