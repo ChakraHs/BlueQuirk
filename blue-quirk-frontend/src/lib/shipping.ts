@@ -6,6 +6,7 @@
 // from what the customer is actually charged. Defaults are a safe fallback used
 // only until the config loads (or if the request fails offline).
 import { useEffect, useState } from "react";
+import { API_BASE_URL } from "@/lib/config";
 
 export type ShippingConfig = {
   currency: string;
@@ -19,7 +20,7 @@ export const SHIPPING_DEFAULTS: ShippingConfig = {
   freeShippingThreshold: 300,
 };
 
-const CONFIG_URL = "http://127.0.0.1:9090/api/shop/config";
+const CONFIG_URL = `${API_BASE_URL}/shop/config`;
 
 // Module-level cache so every component shares one in-flight request / result.
 let cached: ShippingConfig | null = null;

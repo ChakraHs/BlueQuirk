@@ -1,4 +1,5 @@
 import simpleRestProvider from "ra-data-simple-rest";
+import { API_BASE_URL } from "@/lib/config";
 
 const fetchJsonWithAuth = async (url: string, options: any = {}) => {
   const token = localStorage.getItem("access_token");
@@ -20,6 +21,6 @@ const fetchJsonWithAuth = async (url: string, options: any = {}) => {
 };
 
 export const dataProvider = simpleRestProvider(
-  "http://localhost:8080/api",
+  API_BASE_URL,
   fetchJsonWithAuth
 );

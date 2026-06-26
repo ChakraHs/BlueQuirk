@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_BASE_URL } from "@/lib/config";
 
 const api = axios.create({
-  baseURL: "http://localhost:9090/api",
+  baseURL: API_BASE_URL,
 });
 
 // Returns the access token only if present AND not expired. Sending an expired

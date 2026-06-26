@@ -1,8 +1,9 @@
 import axios from "axios";
 import { logout } from "./auth";
+import { API_BASE_URL } from "@/lib/config";
 
 const api = axios.create({
-  baseURL: "http://localhost:8080/api", // 👈 your main backend API (products, users…)
+  baseURL: API_BASE_URL,
 });
 
 api.interceptors.request.use((config) => {

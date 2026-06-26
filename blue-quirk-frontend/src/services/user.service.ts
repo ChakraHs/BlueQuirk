@@ -1,7 +1,6 @@
 import api from "./api";
 import { User } from "@/types/user";
-
-const API_BASE_URL = "http://127.0.0.1:9090/api";
+import { API_BASE_URL } from "@/lib/config";
 
 export const UserService = {
   getAll: async (): Promise<User[]> => {
