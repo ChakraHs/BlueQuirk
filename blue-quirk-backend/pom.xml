@@ -82,6 +82,21 @@
 		    <artifactId>jakarta.mail</artifactId>
 		    <version>2.0.1</version>
 		</dependency>
+
+		<!-- Server-side image resizing + WebP encoding for product image variants
+		     (thumbnail / display). scrimage-webp bundles the cwebp/dwebp binaries;
+		     ImageVariantService falls back to JPEG if the native encoder is
+		     unavailable, so the upload pipeline never hard-fails. -->
+		<dependency>
+		    <groupId>com.sksamuel.scrimage</groupId>
+		    <artifactId>scrimage-core</artifactId>
+		    <version>4.3.0</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.sksamuel.scrimage</groupId>
+		    <artifactId>scrimage-webp</artifactId>
+		    <version>4.3.0</version>
+		</dependency>
 	</dependencies>
 	
 	<profiles>

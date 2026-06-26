@@ -62,9 +62,27 @@ public class R2StorageService {
      * @throws Exception if the upload fails (caller decides how to handle)
      */
     public String upload(byte[] content, String originalFilename, String contentType) throws Exception {
-        String safeName = sanitize(originalFilename);
-        String key = (keyPrefix.isBlank() ? "" : keyPrefix + "/") + UUID.randomUUID() + "-" + safeName;
+        String key = (keyPrefix.isBlank() ? "" : keyPrefix + "/")
+                + UUID.randomUUID() + "-" + sanitize(originalFilename);
+        return putObject(content, key, contentType);
+    }
 
+    /**
+     * Builds an object key that groups all variants of one image under a shared
+     * id, e.g. {@code products/<groupId>/display-shirt.webp}. Keeping the variants
+     * together makes them easy to spot and purge as a unit.
+     */
+    public String variantKey(String groupId, String suffix, String baseName, String ext) {
+        String safe = sanitize(baseName);
+        return (keyPrefix.isBlank() ? "" : keyPrefix + "/")
+                + groupId + "/" + suffix + "-" + safe + "." + ext;
+    }
+
+    /**
+     * Low-level PUT of arbitrary bytes under an explicit key. Returns the public
+     * URL. Shared by {@link #upload} and the variant pipeline.
+     */
+    public String putObject(byte[] content, String key, String contentType) throws Exception {
         URI uri = URI.create("https://api.cloudflare.com/client/v4/accounts/" + accountId
                 + "/r2/buckets/" + bucket + "/objects/" + encodeKey(key));
 
@@ -81,8 +99,22 @@ public class R2StorageService {
         }
 
         String url = publicBase + "/" + key;
-        LOG.info("Uploaded image to R2: {}", url);
+        LOG.info("Uploaded object to R2: {}", url);
         return url;
+    }
+
+    /**
+     * Downloads the bytes at a public URL (e.g. an existing image's url) so the
+     * backfill job can regenerate variants from already-stored originals. The
+     * public r2.dev CDN is reachable where the S3 endpoint is not.
+     */
+    public byte[] fetch(String url) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(URI.create(url)).GET().build();
+        HttpResponse<byte[]> response = http.send(request, HttpResponse.BodyHandlers.ofByteArray());
+        if (response.statusCode() / 100 != 2) {
+            throw new IllegalStateException("Fetch failed: HTTP " + response.statusCode() + " for " + url);
+        }
+        return response.body();
     }
 
     private String sanitize(String filename) {

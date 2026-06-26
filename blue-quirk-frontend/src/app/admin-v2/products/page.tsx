@@ -11,6 +11,7 @@ import { ProductService } from "@/services/product.service";
 import { Product } from "@/types/product";
 import { PageResponse } from "@/types/page";
 import { formatPrice } from "@/lib/money";
+import { thumbSrc } from "@/lib/productImage";
 
 const LOW_STOCK = 5;
 const STATUSES = ["PUBLISHED", "DRAFT", "ARCHIVED"] as const;
@@ -164,10 +165,10 @@ export default function ProductsPage() {
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      {p.images?.[0]?.url ? (
+                      {p.images?.[0] ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
-                          src={p.images[0].url}
+                          src={thumbSrc(p.images[0])}
                           alt={p.name}
                           className="h-11 w-11 shrink-0 rounded-lg border border-gray-100 object-cover"
                         />

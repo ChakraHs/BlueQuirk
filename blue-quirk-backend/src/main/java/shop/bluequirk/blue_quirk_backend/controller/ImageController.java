@@ -22,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 import jakarta.annotation.PostConstruct;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
+import shop.bluequirk.blue_quirk_backend.service.ProductImageService;
 import shop.bluequirk.blue_quirk_backend.service.R2StorageService;
 
 
@@ -33,11 +34,14 @@ public class ImageController {
 
     private final ImageRepository imageRepository;
     private final R2StorageService r2StorageService;
+    private final ProductImageService productImageService;
 
     @Autowired
-    public ImageController(ImageRepository imageRepository, R2StorageService r2StorageService) {
+    public ImageController(ImageRepository imageRepository, R2StorageService r2StorageService,
+                           ProductImageService productImageService) {
         this.imageRepository = imageRepository;
         this.r2StorageService = r2StorageService;
+        this.productImageService = productImageService;
     }
 
     @PostConstruct
@@ -69,9 +73,14 @@ public class ImageController {
     }
 
     /**
-     * Upload a product image. Images are stored ONLY in Cloudflare R2 (via the
-     * existing {@link R2StorageService}); the database keeps just the returned R2
-     * URL. There is no local-disk storage path: when R2 is not configured we fail
+     * Upload a product image. The original (full-resolution) file is stored in
+     * Cloudflare R2 and two optimized variants — thumbnail and display — are
+     * generated automatically (see {@link ProductImageService}). The saved row
+     * carries {@code thumbnailUrl}/{@code displayUrl}/{@code originalUrl}; the
+     * complete object is returned so the admin UI can link it to a product. The
+     * admin workflow is unchanged: upload, pick primary, save.
+     *
+     * <p>There is no local-disk storage path: when R2 is not configured we fail
      * loudly with 503 rather than silently writing to the backend's disk.
      */
     @PostMapping
@@ -89,12 +98,9 @@ public class ImageController {
         try {
             String filename = StringUtils.cleanPath(file.getOriginalFilename());
 
-            // Upload to Cloudflare R2 and persist only the returned public URL.
-            String url = r2StorageService.upload(file.getBytes(), filename, file.getContentType());
-
-            Image image = new Image();
-            image.setFileName(filename);
-            image.setUrl(url);
+            // Store original + auto-generate optimized variants, then persist.
+            Image image = productImageService.buildOptimizedImage(
+                    file.getBytes(), filename, file.getContentType());
 
             Image saved = imageRepository.save(image);
             return ResponseEntity.ok(saved);
@@ -102,5 +108,23 @@ public class ImageController {
             LOG.error("Image upload to R2 failed: {}", e.getMessage(), e);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Image upload to Cloudflare R2 failed.");
         }
+    }
+
+    /**
+     * One-off migration: generate thumbnail/display variants for existing images
+     * that predate the pipeline. Idempotent — already-processed images are
+     * skipped — so it is safe to call more than once. Returns how many images
+     * were upgraded in this run.
+     *
+     * @param limit max images to process this run (0 = all)
+     */
+    @PostMapping("/backfill-variants")
+    public ResponseEntity<String> backfillVariants(@RequestParam(defaultValue = "0") int limit) {
+        if (!r2StorageService.isConfigured()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Image storage (Cloudflare R2) is not configured. Set R2_API_TOKEN and retry.");
+        }
+        int upgraded = productImageService.backfillVariants(limit);
+        return ResponseEntity.ok("Backfilled variants for " + upgraded + " image(s).");
     }
 }

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/money";
+import { thumbSrc } from "@/lib/productImage";
 import WishlistButton from "./WishlistButton";
 
 const FALLBACK_IMAGE =
@@ -18,8 +19,10 @@ export default function ProductCard({
   product: Product;
   lang?: string;
 }) {
+  // Cards only ever need the lightweight thumbnail variant — never the display
+  // or original — so listings stay fast and cheap on bandwidth.
   const images =
-    product.images?.length ? product.images.map((i) => i.url) : [FALLBACK_IMAGE];
+    product.images?.length ? product.images.map(thumbSrc) : [FALLBACK_IMAGE];
   const hasMultiple = images.length > 1;
 
   const [index, setIndex] = useState(0);

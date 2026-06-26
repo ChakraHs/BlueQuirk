@@ -4,6 +4,7 @@ import { useRef, useState, useCallback } from "react";
 import { Star, Trash2, UploadCloud, Loader2, GripVertical, AlertCircle } from "lucide-react";
 import { ImageService } from "@/services/image.service";
 import type { ProductImage } from "@/types/product";
+import { thumbSrc } from "@/lib/productImage";
 
 export type ColorOption = { id: number; label: string };
 
@@ -62,7 +63,15 @@ export default function ProductImageManager({
           const uploaded = await ImageService.upload(item.file);
           current = normalize([
             ...current,
-            { id: uploaded.id, url: uploaded.url, fileName: uploaded.fileName, primary: false },
+            {
+              id: uploaded.id,
+              url: uploaded.url,
+              thumbnailUrl: uploaded.thumbnailUrl,
+              displayUrl: uploaded.displayUrl,
+              originalUrl: uploaded.originalUrl,
+              fileName: uploaded.fileName,
+              primary: false,
+            },
           ]);
           onChange(current);
         } catch {
@@ -147,7 +156,7 @@ export default function ProductImageManager({
           Glissez-déposez des images ici, ou cliquez pour parcourir
         </p>
         <p className="mt-1 text-xs text-gray-400">
-          JPG, PNG, WebP — compressées automatiquement avant l&apos;envoi
+          JPG, PNG, WebP — optimisées automatiquement par le serveur (miniature + affichage)
         </p>
         <input
           ref={inputRef}
@@ -184,7 +193,7 @@ export default function ProductImageManager({
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={img.url}
+                  src={thumbSrc(img)}
                   alt={img.fileName || "Image produit"}
                   className="h-full w-full object-cover"
                 />

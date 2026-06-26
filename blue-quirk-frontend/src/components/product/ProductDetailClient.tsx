@@ -8,6 +8,7 @@ import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
+import { thumbSrc } from "@/lib/productImage";
 import { useShippingConfig, freeShippingState } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
@@ -86,8 +87,11 @@ export default function ProductDetailClient({
   );
 
   // The gallery owns navigation/zoom; we keep the active image url only as a
-  // mirror for the cart line + wishlist thumbnail (ProductGallery reports it).
-  const [activeImage, setActiveImage] = useState(galleryImages[0]?.url ?? FALLBACK_IMAGE);
+  // mirror for the cart line + wishlist thumbnail (ProductGallery reports the
+  // thumbnail variant as the active image changes).
+  const [activeImage, setActiveImage] = useState(
+    galleryImages[0] ? thumbSrc(galleryImages[0]) : FALLBACK_IMAGE
+  );
   const [added, setAdded] = useState(false);
   const [wishlisted, setWishlisted] = useState(false);
   const router = useRouter();
@@ -141,7 +145,7 @@ export default function ProductDetailClient({
         id: product.id,
         name: product.name,
         price: product.price,
-        image: galleryImages[0]?.url ?? FALLBACK_IMAGE,
+        image: galleryImages[0] ? thumbSrc(galleryImages[0]) : FALLBACK_IMAGE,
         lang,
       })
     );

@@ -25,7 +25,16 @@ export interface Product {
 
 export interface ProductImage {
   id: number;
+  // Legacy single URL. Still sent by the backend (points at the display variant
+  // for new images) and used as the fallback for the variant fields below.
   url: string;
+  // Optimized variants generated automatically on upload. The backend always
+  // populates these (falling back to `url` for pre-migration images), so the
+  // frontend can rely on them. Use the helpers in lib/productImage.ts to pick
+  // the right one per surface and never download more than needed.
+  thumbnailUrl?: string; // ~400px — cards, listings, search, wishlist, cart
+  displayUrl?: string; // ~1200px — product page, gallery, hover zoom
+  originalUrl?: string; // full-res — fullscreen/deep zoom only, on demand
   fileName?: string;
   primary?: boolean;
   sortOrder?: number;

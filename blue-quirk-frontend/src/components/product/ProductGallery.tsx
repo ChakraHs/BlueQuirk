@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Expand } from "lucide-react";
 import type { ProductImage } from "@/types/product";
+import { displaySrc, originalSrc, thumbSrc } from "@/lib/productImage";
 import ImageLightbox from "./ImageLightbox";
 
 const SWIPE_THRESHOLD = 45; // px before a touch drag commits to the next slide
@@ -38,23 +39,33 @@ export default function ProductGallery({
   alt: string;
   onActiveChange?: (url: string) => void;
 }) {
-  const urls = useMemo(() => images.map((i) => i.url), [images]);
-  const count = urls.length;
+  // Per-surface variants so the page only loads what it needs:
+  //  - display: the main image + hover magnifier (loaded with the page; the
+  //    magnifier reuses this exact URL so hovering fires no extra request).
+  //  - thumb: the small side thumbnails + the active-image mirror reported to
+  //    the parent (used for the cart line / wishlist).
+  //  - original: full-res, handed to the lightbox and only fetched when the user
+  //    opens fullscreen zoom.
+  const displayUrls = useMemo(() => images.map(displaySrc), [images]);
+  const thumbUrls = useMemo(() => images.map(thumbSrc), [images]);
+  const originalUrls = useMemo(() => images.map(originalSrc), [images]);
+  const count = displayUrls.length;
   const [index, setIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const hoverCapable = useHoverCapable();
 
   // Reset to the first image whenever the image SET changes (e.g. colour switch).
-  const signature = urls.join("|");
+  const signature = displayUrls.join("|");
   useEffect(() => {
     setIndex(0);
   }, [signature]);
 
-  // Keep the active index in range if the set shrinks, and report it upward.
+  // Keep the active index in range if the set shrinks, and report it upward
+  // (thumbnail variant — the parent uses it for the cart line / wishlist).
   const safeIndex = Math.min(index, Math.max(0, count - 1));
   useEffect(() => {
-    if (urls[safeIndex]) onActiveChange?.(urls[safeIndex]);
-  }, [safeIndex, urls, onActiveChange]);
+    if (thumbUrls[safeIndex]) onActiveChange?.(thumbUrls[safeIndex]);
+  }, [safeIndex, thumbUrls, onActiveChange]);
 
   const go = useCallback(
     (dir: number) => setIndex((i) => (i + dir + count) % count),
@@ -130,7 +141,7 @@ export default function ProductGallery({
                 i === safeIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"
               }`}
             >
-              <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
+              <Image src={thumbUrls[i]} alt="" fill sizes="80px" className="object-cover" />
             </button>
           ))}
         </div>
@@ -152,7 +163,7 @@ export default function ProductGallery({
             {images.map((img, i) => (
               <div key={img.id ?? img.url} className="relative h-full w-full shrink-0">
                 <Image
-                  src={img.url}
+                  src={displayUrls[i]}
                   alt={i === safeIndex ? alt : ""}
                   fill
                   priority={i === 0}
@@ -165,12 +176,13 @@ export default function ProductGallery({
             ))}
           </div>
 
-          {/* hover magnifier — original hi-res, only fetched on hover */}
+          {/* hover magnifier — reuses the already-loaded DISPLAY image (same URL
+              as the main slide), so hovering fires no additional network request */}
           {hoverCapable && zoomPos && !dragging && (
             <div
               className="pointer-events-none absolute inset-0 hidden bg-no-repeat sm:block"
               style={{
-                backgroundImage: `url(${urls[safeIndex]})`,
+                backgroundImage: `url(${displayUrls[safeIndex]})`,
                 backgroundSize: "230%",
                 backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
               }}
@@ -249,7 +261,7 @@ export default function ProductGallery({
 
       {lightboxOpen && (
         <ImageLightbox
-          images={urls}
+          images={originalUrls}
           startIndex={safeIndex}
           alt={alt}
           onIndexChange={setIndex}

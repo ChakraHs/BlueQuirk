@@ -39,6 +39,7 @@ import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
 import shop.bluequirk.blue_quirk_backend.repository.TodifySyncLogRepository;
 import shop.bluequirk.blue_quirk_backend.service.OrderService;
+import shop.bluequirk.blue_quirk_backend.service.ProductImageService;
 import shop.bluequirk.blue_quirk_backend.service.R2StorageService;
 
 /**
@@ -58,6 +59,7 @@ public class TodifyService {
     private final ImageRepository imageRepository;
     private final AttributeRepository attributeRepository;
     private final R2StorageService r2StorageService;
+    private final ProductImageService productImageService;
     private final TodifySyncLogRepository logRepository;
     private final OrderService orderService;
 
@@ -73,6 +75,7 @@ public class TodifyService {
                          ImageRepository imageRepository,
                          AttributeRepository attributeRepository,
                          R2StorageService r2StorageService,
+                         ProductImageService productImageService,
                          TodifySyncLogRepository logRepository,
                          OrderService orderService,
                          @Value("${todify.default-country:MA}") String defaultCountry,
@@ -83,6 +86,7 @@ public class TodifyService {
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
         this.r2StorageService = r2StorageService;
+        this.productImageService = productImageService;
         this.logRepository = logRepository;
         this.orderService = orderService;
         this.defaultCountry = defaultCountry;
@@ -423,8 +427,9 @@ public class TodifyService {
             String contentType = resp.headers().firstValue("Content-Type").orElse("image/jpeg");
             String filename = url.substring(url.lastIndexOf('/') + 1);
             if (filename.isBlank()) filename = "todify-" + sortOrder + ".jpg";
-            String r2Url = r2StorageService.upload(resp.body(), filename, contentType);
-            Image image = new Image(filename, r2Url);
+            // Store original + auto-generate thumbnail/display variants, same as
+            // an admin upload, so imported images are optimized too.
+            Image image = productImageService.buildOptimizedImage(resp.body(), filename, contentType);
             image.setSortOrder(sortOrder);
             return image;
         } catch (Exception e) {
