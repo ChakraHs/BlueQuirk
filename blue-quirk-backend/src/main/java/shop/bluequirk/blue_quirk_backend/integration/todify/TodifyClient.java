@@ -96,10 +96,41 @@ public class TodifyClient {
         return send("GET", path, null);
     }
 
+    // Transient upstream statuses worth retrying for idempotent (GET) reads:
+    // Todify's API occasionally returns a brief 503 (or 502/504/429) for heavier
+    // endpoints like /products/templates while the service itself is healthy.
+    private static final int MAX_GET_ATTEMPTS = 3;
+
+    private static boolean isTransient(int code) {
+        return code == 429 || code == 502 || code == 503 || code == 504;
+    }
+
     private JsonNode send(String method, String path, JsonNode body) {
         if (!isConfigured()) {
             throw new TodifyApiException(0, null, "Todify is not configured (set TODIFY_API_TOKEN).");
         }
+        // Only GETs are safe to auto-retry (no side effects). POST/DELETE run once.
+        int maxAttempts = "GET".equals(method) ? MAX_GET_ATTEMPTS : 1;
+        TodifyApiException last = null;
+
+        for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+            try {
+                return doSend(method, path, body);
+            } catch (TodifyApiException e) {
+                last = e;
+                boolean canRetry = attempt < maxAttempts && isTransient(e.getStatus());
+                if (!canRetry) {
+                    throw e;
+                }
+                LOG.warn("Todify {} {} returned HTTP {} (attempt {}/{}); retrying…",
+                        method, path, e.getStatus(), attempt, maxAttempts);
+                sleepBackoff(attempt);
+            }
+        }
+        throw last; // unreachable in practice
+    }
+
+    private JsonNode doSend(String method, String path, JsonNode body) {
         URI uri = URI.create(baseUrl + path);
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
@@ -131,6 +162,14 @@ public class TodifyClient {
         } catch (Exception e) {
             LOG.warn("Todify {} {} transport error: {}", method, path, e.getMessage());
             throw new TodifyApiException("Todify " + method + " " + path + " transport error: " + e.getMessage(), e);
+        }
+    }
+
+    private void sleepBackoff(int attempt) {
+        try {
+            Thread.sleep(300L * attempt); // 300ms, 600ms, …
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         }
     }
 
