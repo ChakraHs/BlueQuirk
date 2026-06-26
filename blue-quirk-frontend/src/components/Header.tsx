@@ -13,9 +13,13 @@ import { accountHref, logout } from "@/lib/auth";
 export default function Header({
   lang,
   categories = [],
+  storeName = "BlueQuirk",
+  logoUrl = null,
 }: {
   lang: string;
   categories?: Category[];
+  storeName?: string;
+  logoUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -47,12 +51,24 @@ export default function Header({
       {/* ---- Top row ---- */}
       <div className="mx-auto max-w-7xl px-4 md:px-6">
         <div className="flex h-16 items-center gap-4">
-          {/* Logo */}
+          {/* Logo — uploaded image when set, otherwise the store name as text */}
           <Link
             href={`/${lang}`}
-            className="shrink-0 text-2xl font-extrabold tracking-tight text-gray-900"
+            aria-label={storeName}
+            className="flex shrink-0 items-center"
           >
-            Blue<span className="text-blue-600">Quirk</span>
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={logoUrl}
+                alt={storeName}
+                className="h-9 w-auto max-w-[180px] object-contain"
+              />
+            ) : (
+              <span className="text-2xl font-extrabold tracking-tight text-gray-900">
+                {storeName}
+              </span>
+            )}
           </Link>
 
           {/* Search (desktop) */}

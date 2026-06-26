@@ -4,6 +4,7 @@ import { Providers } from "../../components/Providers";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { CategoryService } from "@/services/category.service";
+import { getPublicShopConfig } from "@/lib/shopConfig";
 
 
 const geistSans = Geist({
@@ -26,7 +27,10 @@ export default async function LangLayout({
 
   const { lang } = await params;
 
-  const categories = await CategoryService.getAll(lang).catch(() => []);
+  const [categories, config] = await Promise.all([
+    CategoryService.getAll(lang).catch(() => []),
+    getPublicShopConfig(),
+  ]);
   const topCategories = categories.filter((c) => !c.parentId);
 
   return (
@@ -36,9 +40,14 @@ export default async function LangLayout({
     >
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
             {/* <ShopNavbar /> */}
-            <Header lang={lang} categories={topCategories} />
+            <Header
+              lang={lang}
+              categories={topCategories}
+              storeName={config.storeName}
+              logoUrl={config.logoUrl}
+            />
             <Providers>{children}</Providers>
-            <Footer lang={lang}/>
+            <Footer lang={lang} storeName={config.storeName} />
       </body>
     </html>
   );

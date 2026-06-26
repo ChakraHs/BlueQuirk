@@ -1,6 +1,5 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +17,7 @@ import shop.bluequirk.blue_quirk_backend.entity.Customer;
 import shop.bluequirk.blue_quirk_backend.entity.Order;
 import shop.bluequirk.blue_quirk_backend.entity.OrderItem;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
+import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
 import shop.bluequirk.blue_quirk_backend.entity.User;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
@@ -38,8 +38,7 @@ public class OrderService {
     private final OrderNotificationService notificationService;
     private final CustomerService customerService;
     private final ApplicationEventPublisher events;
-    private final double shippingFee;
-    private final double freeShippingThreshold;
+    private final StoreSettingsService storeSettingsService;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -48,15 +47,13 @@ public class OrderService {
                         OrderNotificationService notificationService,
                         CustomerService customerService,
                         ApplicationEventPublisher events,
-                        @Value("${order.shipping-fee:0}") double shippingFee,
-                        @Value("${order.free-shipping-threshold:0}") double freeShippingThreshold) {
+                        StoreSettingsService storeSettingsService) {
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.notificationService = notificationService;
         this.customerService = customerService;
         this.events = events;
-        this.shippingFee = shippingFee;
-        this.freeShippingThreshold = freeShippingThreshold;
+        this.storeSettingsService = storeSettingsService;
     }
 
     /**
@@ -140,7 +137,11 @@ public class OrderService {
         }
 
         // Free shipping kicks in automatically once the subtotal reaches the
-        // configured threshold (threshold <= 0 disables the perk).
+        // configured threshold (threshold <= 0 disables the perk). Read from the
+        // admin-editable store settings so totals always match the storefront.
+        StoreSettings settings = storeSettingsService.getOrCreate();
+        double shippingFee = settings.getShippingFee();
+        double freeShippingThreshold = settings.getFreeShippingThreshold();
         double effectiveShipping =
                 (freeShippingThreshold > 0 && subtotal >= freeShippingThreshold) ? 0.0 : shippingFee;
         order.setSubtotal(subtotal);

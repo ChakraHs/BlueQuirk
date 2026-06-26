@@ -16,7 +16,13 @@ const columns = [
   },
 ];
 
-export default function Footer({ lang }: { lang: string }) {
+export default function Footer({
+  lang,
+  storeName = "BlueQuirk",
+}: {
+  lang: string;
+  storeName?: string;
+}) {
   return (
     <footer className="border-t border-gray-200 bg-gray-50">
       <div className="mx-auto max-w-7xl px-6 py-14">
@@ -27,7 +33,7 @@ export default function Footer({ lang }: { lang: string }) {
               href={`/${lang}`}
               className="text-2xl font-extrabold tracking-tight text-gray-900"
             >
-              Blue<span className="text-blue-600">Quirk</span>
+              {storeName}
             </Link>
             <p className="mt-3 max-w-xs text-sm text-gray-500">
               Weirdly meaningful art on high-quality products, made by
@@ -72,7 +78,7 @@ export default function Footer({ lang }: { lang: string }) {
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-6 text-sm text-gray-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} BlueQuirk. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {storeName}. All rights reserved.</p>
           <div className="flex items-center gap-5">
             <a href="#" className="hover:text-gray-900">Privacy</a>
             <a href="#" className="hover:text-gray-900">Terms</a>

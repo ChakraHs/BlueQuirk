@@ -7,12 +7,14 @@ import {
   ShoppingBag,
   Package,
   Tags,
+  SlidersHorizontal,
   Users,
   Store,
   Shirt,
   Truck,
   Webhook,
   ScrollText,
+  Settings,
   type LucideIcon,
 } from "lucide-react";
 
@@ -33,6 +35,7 @@ const groups: Group[] = [
     items: [
       { name: "Produits", href: "/admin-v2/products", icon: Package },
       { name: "Catégories", href: "/admin-v2/categories", icon: Tags },
+      { name: "Attributs", href: "/admin-v2/attributes", icon: SlidersHorizontal },
     ],
   },
   {
@@ -47,6 +50,10 @@ const groups: Group[] = [
       { name: "Webhooks", href: "/admin-v2/todify/webhooks", icon: Webhook },
       { name: "Journaux", href: "/admin-v2/todify/logs", icon: ScrollText },
     ],
+  },
+  {
+    heading: "Configuration",
+    items: [{ name: "Paramètres", href: "/admin-v2/settings", icon: Settings }],
   },
 ];
 
