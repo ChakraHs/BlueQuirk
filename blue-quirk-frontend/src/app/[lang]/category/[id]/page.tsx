@@ -1,6 +1,7 @@
 import ProductsGrid from "@/components/ProductsGrid";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
+import { API_BASE_URL } from "@/lib/config";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,7 +11,7 @@ type CategoryWithProducts = Category & {
 
 async function getCategory(id: string, lang: string): Promise<CategoryWithProducts> {
   const res = await fetch(
-    `http://127.0.0.1:9090/api/categories/${id}?lang=${encodeURIComponent(lang)}`,
+    `${API_BASE_URL}/categories/${id}?lang=${encodeURIComponent(lang)}`,
     {
       cache: "no-store",
     }
@@ -20,7 +21,7 @@ async function getCategory(id: string, lang: string): Promise<CategoryWithProduc
 
   if (category.children?.length === 0) {
     const productsRes = await fetch(
-      `http://127.0.0.1:9090/api/products/category/${id}?lang=${encodeURIComponent(lang)}`,
+      `${API_BASE_URL}/products/category/${id}?lang=${encodeURIComponent(lang)}&status=PUBLISHED`,
       {
         cache: "no-store",
       }

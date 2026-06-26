@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.response.PageResponse;
@@ -48,8 +49,11 @@ public class ProductController {
     public ResponseEntity<PageResponse<ProductResponse>> getAllProducts(
     		@RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String lang) {
-    	Page<ProductResponse> result = productService.getAllProducts(page, size, lang);
+            @RequestParam(required = false) String lang,
+            // Optional status filter. The storefront passes status=PUBLISHED to
+            // show only published products; the admin omits it to see all.
+            @RequestParam(required = false) ProductStatus status) {
+    	Page<ProductResponse> result = productService.getAllProducts(page, size, lang, status);
 
         PageResponse<ProductResponse> response = new PageResponse<>(
                 result.getContent(),
@@ -80,10 +84,11 @@ public class ProductController {
     @GetMapping("/category/{categoryId}")
     public ResponseEntity<List<ProductResponse>> getByCategory(
             @PathVariable Long categoryId,
-            @RequestParam(required = false) String lang) {
+            @RequestParam(required = false) String lang,
+            @RequestParam(required = false) ProductStatus status) {
 
         return ResponseEntity.ok(
-                productService.getProductsByCategory(categoryId, lang)
+                productService.getProductsByCategory(categoryId, lang, status)
         );
     }
     

@@ -1,14 +1,16 @@
 import { PageResponse } from "@/types/page";
 import api from "./api";
 import { Product } from "@/types/product";
-
-const API_BASE_URL = "http://127.0.0.1:9090/api";
+import { API_BASE_URL } from "@/lib/config";
 
 export const ProductService = {
   getAll: async (
     page = 0,
     size = 10,
-    lang?: string
+    lang?: string,
+    // Optional status filter. The storefront passes "PUBLISHED" so only
+    // published products are shown; the admin omits it to list every status.
+    status?: string
   ): Promise<PageResponse<Product>> => {
     const params = new URLSearchParams({
       page: String(page),
@@ -17,6 +19,9 @@ export const ProductService = {
 
     if (lang) {
       params.set("lang", lang);
+    }
+    if (status) {
+      params.set("status", status);
     }
 
     const res = await fetch(`${API_BASE_URL}/products?${params.toString()}`, {

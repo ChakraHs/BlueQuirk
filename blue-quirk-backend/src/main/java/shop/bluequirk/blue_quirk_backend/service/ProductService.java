@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeValueDto;
 import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
+import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
@@ -84,10 +85,10 @@ public class ProductService {
     }
 
     @Transactional(readOnly = true)
-    public Page<ProductResponse> getAllProducts(int page, int size, String lang) {
+    public Page<ProductResponse> getAllProducts(int page, int size, String lang, ProductStatus status) {
     	Page<Product> products = productRepository.findAllWithRelations(
-    			PageRequest.of(page, size));
-    	
+    			PageRequest.of(page, size), status);
+
     	List<Attribute> attributes = attributeRepository.findAllWithValues();
 
     	return products.map(p -> toProductResponse(p, attributes, lang));
@@ -201,8 +202,8 @@ public class ProductService {
     
     
     @Transactional(readOnly = true)
-    public List<ProductResponse> getProductsByCategory(Long categoryId, String lang) {
-        List<Product> products = productRepository.findByCategoryIdWithRelations(categoryId);
+    public List<ProductResponse> getProductsByCategory(Long categoryId, String lang, ProductStatus status) {
+        List<Product> products = productRepository.findByCategoryIdWithRelations(categoryId, status);
 
         List<Attribute> attributes = attributeRepository.findAllWithValues();
 
