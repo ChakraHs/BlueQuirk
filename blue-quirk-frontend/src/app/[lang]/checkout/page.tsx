@@ -14,6 +14,7 @@ import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
 import LoginModal from "@/components/storefront/LoginModal";
+import { t } from "@/lib/i18n";
 
 type Form = {
   firstName: string;
@@ -79,16 +80,16 @@ export default function CheckoutPage({
   const validateField = (field: keyof Form, value: string): string | undefined => {
     const v = value.trim();
     switch (field) {
-      case "firstName": return v ? undefined : "Prénom requis";
-      case "lastName": return v ? undefined : "Nom requis";
+      case "firstName": return v ? undefined : t(lang, "checkout.firstNameRequired");
+      case "lastName": return v ? undefined : t(lang, "checkout.lastNameRequired");
       case "email":
-        if (!v) return "Email requis";
-        return EMAIL_RE.test(v) ? undefined : "Email invalide";
+        if (!v) return t(lang, "checkout.emailRequired");
+        return EMAIL_RE.test(v) ? undefined : t(lang, "checkout.emailInvalid");
       case "phone":
-        if (!v) return "Téléphone requis";
-        return PHONE_RE.test(v) ? undefined : "Téléphone invalide";
-      case "address": return v ? undefined : "Adresse requise";
-      case "city": return v ? undefined : "Ville requise";
+        if (!v) return t(lang, "checkout.phoneRequired");
+        return PHONE_RE.test(v) ? undefined : t(lang, "checkout.phoneInvalid");
+      case "address": return v ? undefined : t(lang, "checkout.addressRequired");
+      case "city": return v ? undefined : t(lang, "checkout.cityRequired");
       default: return undefined; // postalCode + note optional
     }
   };
@@ -151,7 +152,7 @@ export default function CheckoutPage({
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      setSubmitError(msg || "Une erreur s'est produite. Veuillez réessayer.");
+      setSubmitError(msg || t(lang, "checkout.genericError"));
     } finally {
       setLoading(false);
     }
@@ -165,12 +166,12 @@ export default function CheckoutPage({
   if (items.length === 0) {
     return (
       <main className="mx-auto max-w-2xl px-6 py-16 text-center">
-        <h1 className="text-lg font-semibold text-gray-900">Votre panier est vide</h1>
+        <h1 className="text-lg font-semibold text-gray-900">{t(lang, "checkout.emptyTitle")}</h1>
         <Link
           href={`/${lang}`}
           className="mt-6 inline-block rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
         >
-          Découvrir les produits
+          {t(lang, "wishlist.browse")}
         </Link>
       </main>
     );
@@ -180,21 +181,21 @@ export default function CheckoutPage({
   return (
     <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
       <h1 className="mb-2 text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
-        Finaliser la commande
+        {t(lang, "checkout.title")}
       </h1>
       <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1.5 text-sm font-semibold text-blue-700">
         <Truck className="size-4" />
-        Paiement à la livraison (Cash on Delivery)
+        {t(lang, "checkout.codBadge")}
       </div>
 
       <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
         {/* ---- LEFT: Customer information ---- */}
         <div>
           <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-lg font-bold text-gray-900">Vos informations</h2>
+            <h2 className="text-lg font-bold text-gray-900">{t(lang, "checkout.yourInfo")}</h2>
             {signedIn ? (
               <span className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald-600">
-                <CheckCircle2 size={16} /> Connecté
+                <CheckCircle2 size={16} /> {t(lang, "checkout.signedIn")}
               </span>
             ) : (
               <button
@@ -203,7 +204,7 @@ export default function CheckoutPage({
                 className="inline-flex items-center gap-1.5 text-sm font-medium text-blue-600 hover:text-blue-700"
               >
                 <LogIn size={16} />
-                Vous avez déjà un compte ? Se connecter
+                {t(lang, "checkout.haveAccount")}
               </button>
             )}
           </div>
@@ -217,23 +218,23 @@ export default function CheckoutPage({
 
           <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field icon={<UserIcon size={18} />} label="Prénom" required value={form.firstName} onChange={update("firstName")} onBlur={blur("firstName")} error={errors.firstName} placeholder="Jean" autoComplete="given-name" />
-              <Field label="Nom" required value={form.lastName} onChange={update("lastName")} onBlur={blur("lastName")} error={errors.lastName} placeholder="Dupont" autoComplete="family-name" />
+              <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.firstName")} required value={form.firstName} onChange={update("firstName")} onBlur={blur("firstName")} error={errors.firstName} placeholder="Jean" autoComplete="given-name" />
+              <Field label={t(lang, "checkout.lastName")} required value={form.lastName} onChange={update("lastName")} onBlur={blur("lastName")} error={errors.lastName} placeholder="Dupont" autoComplete="family-name" />
             </div>
-            <Field icon={<Mail size={18} />} label="Email" required type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
-            <Field icon={<Phone size={18} />} label="Téléphone" required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
-            <Field icon={<MapPin size={18} />} label="Adresse" required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
+            <Field icon={<Mail size={18} />} label={t(lang, "checkout.email")} required type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
+            <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
+            <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Ville" required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
-              <Field label="Code postal (optionnel)" value={form.postalCode} onChange={update("postalCode")} placeholder="20000" autoComplete="postal-code" />
+              <Field label={t(lang, "checkout.city")} required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
+              <Field label={`${t(lang, "checkout.postalCode")} (${t(lang, "common.optional")})`} value={form.postalCode} onChange={update("postalCode")} placeholder="20000" autoComplete="postal-code" />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-gray-700">Note (optionnel)</label>
+              <label className="mb-1.5 block text-sm font-medium text-gray-700">{t(lang, "checkout.note")} ({t(lang, "common.optional")})</label>
               <textarea
                 value={form.note}
                 onChange={update("note")}
                 rows={3}
-                placeholder="Instructions de livraison, point de repère…"
+                placeholder={t(lang, "checkout.notePlaceholder")}
                 className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
               />
             </div>
@@ -241,13 +242,13 @@ export default function CheckoutPage({
 
           <div className="mt-6 flex items-center gap-2 rounded-lg bg-gray-50 px-4 py-3 text-sm text-gray-600">
             <ShieldCheck className="size-4 text-gray-900" />
-            Aucun paiement en ligne — vous réglez en espèces à la réception.
+            {t(lang, "checkout.codNotice")}
           </div>
         </div>
 
         {/* ---- RIGHT: Order summary ---- */}
         <aside className="h-fit rounded-2xl border border-gray-200 p-6 lg:sticky lg:top-6">
-          <h2 className="text-lg font-bold text-gray-900">Votre commande</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t(lang, "checkout.yourOrder")}</h2>
 
           <ul className="mt-4 space-y-4">
             {items.map((item, idx) => {
@@ -281,19 +282,19 @@ export default function CheckoutPage({
 
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">
-              <dt>Sous-total</dt>
+              <dt>{t(lang, "cart.subtotal")}</dt>
               <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
             </div>
             <div className="flex justify-between text-gray-600">
-              <dt>Livraison</dt>
+              <dt>{t(lang, "cart.shipping")}</dt>
               <dd className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {shipping === 0 ? "Gratuite" : formatPrice(shipping)}
+                {shipping === 0 ? t(lang, "cart.free") : formatPrice(shipping)}
               </dd>
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
-            <span className="text-base font-bold text-gray-900">Total</span>
+            <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
             <span className="text-base font-bold text-gray-900">{formatPrice(grandTotal)}</span>
           </div>
 
@@ -303,11 +304,11 @@ export default function CheckoutPage({
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {loading && <Loader2 size={18} className="animate-spin" />}
-            {loading ? "Confirmation…" : "Confirmer la commande"}
+            {loading ? t(lang, "checkout.confirming") : t(lang, "checkout.placeOrder")}
           </button>
 
           <Link href={`/${lang}/cart`} className="mt-3 block text-center text-sm font-medium text-blue-600 hover:text-blue-700">
-            Revenir au panier
+            {t(lang, "checkout.backToCart")}
           </Link>
         </aside>
       </form>
@@ -333,11 +334,12 @@ function Confirmation({
   signedIn: boolean;
 }) {
   const ref = order.orderNumber || `#${order.id}`;
+  const dateLocale = lang === "ar" ? "ar" : lang === "en" ? "en-GB" : "fr-FR";
   const eta = order.estimatedDelivery
-    ? new Date(order.estimatedDelivery).toLocaleDateString("fr-FR", {
+    ? new Date(order.estimatedDelivery).toLocaleDateString(dateLocale, {
         weekday: "long", day: "numeric", month: "long",
       })
-    : "Sous 3 à 5 jours ouvrables";
+    : t(lang, "checkout.etaFallback");
 
   return (
     <main className="mx-auto max-w-2xl px-6 py-16">
@@ -345,22 +347,22 @@ function Confirmation({
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
           <CheckCircle2 size={34} />
         </span>
-        <h1 className="mt-5 text-2xl font-bold text-gray-900">Commande confirmée !</h1>
+        <h1 className="mt-5 text-2xl font-bold text-gray-900">{t(lang, "checkout.confirmedTitle")}</h1>
         <p className="mt-2 text-gray-600">
-          Merci {order.customerName?.split(" ")[0]}, votre commande est enregistrée.
+          {t(lang, "checkout.thanks", { name: order.customerName?.split(" ")[0] ?? "" })}
         </p>
 
         <div className="mt-5 w-full rounded-xl bg-gray-50 p-4 text-left">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-500">Numéro de commande</span>
+            <span className="text-sm text-gray-500">{t(lang, "checkout.orderNumber")}</span>
             <span className="font-mono text-sm font-bold text-gray-900">{ref}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-sm text-gray-500">Livraison estimée</span>
+            <span className="text-sm text-gray-500">{t(lang, "checkout.estDelivery")}</span>
             <span className="text-sm font-medium text-gray-900">{eta}</span>
           </div>
           <div className="mt-2 flex items-center justify-between">
-            <span className="text-sm text-gray-500">Total à payer (à la livraison)</span>
+            <span className="text-sm text-gray-500">{t(lang, "checkout.totalToPay")}</span>
             <span className="text-sm font-bold text-gray-900">{formatPrice(order.total)}</span>
           </div>
         </div>
@@ -385,8 +387,7 @@ function Confirmation({
         </ul>
 
         <p className="mt-4 text-sm text-gray-500">
-          Nous vous appellerons au <strong>{order.phone}</strong> pour confirmer la livraison.
-          Un email de confirmation vous a été envoyé.
+          {t(lang, "checkout.callNotice", { phone: order.phone ?? "" })}
         </p>
 
         <div className="mt-7 flex w-full flex-col gap-3 sm:flex-row sm:justify-center">
@@ -394,20 +395,20 @@ function Confirmation({
             href={`/order-tracking?order=${encodeURIComponent(order.orderNumber || "")}`}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
-            <Package size={16} /> Suivre ma commande
+            <Package size={16} /> {t(lang, "checkout.track")}
           </Link>
           {!signedIn && (
             <Link
               href={`/signup?redirect=/${lang}`}
               className="inline-flex items-center justify-center gap-2 rounded-full border border-gray-300 px-6 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50"
             >
-              Créer un compte (optionnel)
+              {t(lang, "checkout.createAccount")}
             </Link>
           )}
         </div>
 
         <Link href={`/${lang}`} className="mt-5 text-sm font-medium text-blue-600 hover:text-blue-700">
-          Continuer mes achats
+          {t(lang, "cart.continue")}
         </Link>
       </div>
     </main>

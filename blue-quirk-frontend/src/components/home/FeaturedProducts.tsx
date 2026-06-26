@@ -1,8 +1,9 @@
 import { ProductService } from "@/services/product.service";
 import ProductCard from "../ProductCard";
+import { t } from "@/lib/i18n";
 
 export default async function FeaturedProducts({ lang }: { lang: string }) {
-  const res = await ProductService.getAll(0, 8, lang).catch(() => null);
+  const res = await ProductService.getAll(0, 8, lang, "PUBLISHED").catch(() => null);
   const products = res?.content ?? [];
 
   if (!products.length) {
@@ -15,10 +16,10 @@ export default async function FeaturedProducts({ lang }: { lang: string }) {
 
         <div className="mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
-            Trending right now
+            {t(lang, "featured.title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Fresh designs our community is loving this week.
+            {t(lang, "featured.subtitle")}
           </p>
         </div>
 

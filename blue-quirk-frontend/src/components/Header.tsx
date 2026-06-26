@@ -9,6 +9,7 @@ import { Category } from "@/types/category";
 import { useCart, cartCount } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { accountHref, logout } from "@/lib/auth";
+import { t } from "@/lib/i18n";
 
 export default function Header({
   lang,
@@ -85,14 +86,14 @@ export default function Header({
                   className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   <UserIcon size={18} />
-                  Account
+                  {t(lang, "nav.account")}
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   <LogOut size={18} />
-                  Logout
+                  {t(lang, "nav.logout")}
                 </button>
               </>
             ) : (
@@ -101,13 +102,13 @@ export default function Header({
                   href="/login"
                   className="hidden sm:flex items-center rounded-full px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
                 >
-                  Login
+                  {t(lang, "nav.login")}
                 </Link>
                 <Link
                   href="/signup"
                   className="hidden sm:flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
-                  Sign Up
+                  {t(lang, "nav.signup")}
                 </Link>
               </>
             )}
@@ -116,7 +117,7 @@ export default function Header({
 
             <Link
               href={`/${lang}/wishlist`}
-              aria-label="Wishlist"
+              aria-label={t(lang, "nav.wishlist")}
               className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
             >
               <Heart size={20} />
@@ -128,7 +129,7 @@ export default function Header({
             </Link>
             <Link
               href={`/${lang}/cart`}
-              aria-label="Cart"
+              aria-label={t(lang, "nav.cart")}
               className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
             >
               <ShoppingCart size={20} />
@@ -141,7 +142,7 @@ export default function Header({
 
             {/* Mobile menu toggle */}
             <button
-              aria-label="Menu"
+              aria-label={t(lang, "nav.menu")}
               onClick={() => setOpen((o) => !o)}
               className="flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 md:hidden"
             >
@@ -183,22 +184,22 @@ export default function Header({
             {loggedIn ? (
               <>
                 <Link href={accountUrl} className="block rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">
-                  Account
+                  {t(lang, "nav.account")}
                 </Link>
                 <button
                   onClick={handleLogout}
                   className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-gray-100"
                 >
-                  Logout
+                  {t(lang, "nav.logout")}
                 </button>
               </>
             ) : (
               <div className="flex gap-2 pb-2">
                 <Link href="/login" className="flex-1 rounded-full border border-gray-300 px-4 py-2 text-center text-sm font-semibold text-gray-700">
-                  Login
+                  {t(lang, "nav.login")}
                 </Link>
                 <Link href="/signup" className="flex-1 rounded-full bg-blue-600 px-4 py-2 text-center text-sm font-semibold text-white">
-                  Sign Up
+                  {t(lang, "nav.signup")}
                 </Link>
               </div>
             )}

@@ -2,6 +2,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { CategoryService } from "@/services/category.service";
+import { t } from "@/lib/i18n";
 
 export default async function Categories({ lang }: { lang: string }) {
   const categories = await CategoryService.getAll(lang).catch(() => []);
@@ -15,10 +16,10 @@ export default async function Categories({ lang }: { lang: string }) {
       <div className="mx-auto max-w-7xl px-6">
         <div className="mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
-            Shop by category
+            {t(lang, "categories.title")}
           </h2>
           <p className="mt-1 text-sm text-gray-500">
-            Browse the things people love most.
+            {t(lang, "categories.subtitle")}
           </p>
         </div>
 

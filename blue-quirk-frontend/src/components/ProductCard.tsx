@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/money";
 import { thumbSrc } from "@/lib/productImage";
+import { t } from "@/lib/i18n";
 import WishlistButton from "./WishlistButton";
 
 const FALLBACK_IMAGE =
@@ -79,7 +80,7 @@ export default function ProductCard({
         {isOutOfStock && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50">
             <span className="text-sm font-semibold tracking-wider text-white">
-              OUT OF STOCK
+              {t(lang, "product.outOfStock")}
             </span>
           </div>
         )}

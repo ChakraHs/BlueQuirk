@@ -3,6 +3,7 @@
 import { Search } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { t } from "@/lib/i18n";
 
 export default function SearchBar({ lang = "fr" }: { lang?: string }) {
   const [query, setQuery] = useState("");
@@ -26,13 +27,13 @@ export default function SearchBar({ lang = "fr" }: { lang?: string }) {
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search for designs, products, artists…"
-          aria-label="Search"
+          placeholder={t(lang, "search.placeholder")}
+          aria-label={t(lang, "search.title")}
           className="h-11 w-full bg-transparent pl-5 pr-2 text-sm text-gray-800 placeholder:text-gray-400 outline-none"
         />
         <button
           type="submit"
-          aria-label="Search"
+          aria-label={t(lang, "search.title")}
           className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white transition hover:bg-blue-700"
         >
           <Search className="h-4 w-4" />

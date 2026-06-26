@@ -45,6 +45,39 @@ const DICT = {
     backHome: "Retour à l’accueil",
     reset: "Réinitialiser",
   },
+  en: {
+    home: "Home",
+    search: "Search",
+    resultsFor: "Results for",
+    allProducts: "All products",
+    product: "product",
+    products: "products",
+    found: "found",
+    foundP: "found",
+    filters: "Filters",
+    refine: "Refine your search",
+    keyword: "Keyword",
+    keywordPh: "Search for a product…",
+    categories: "Categories",
+    size: "Size",
+    color: "Color",
+    price: "Price",
+    min: "Min",
+    max: "Max",
+    availability: "Availability",
+    inStock: "In stock only",
+    clearAll: "Clear all",
+    apply: "View results",
+    sortBy: "Sort by",
+    relevance: "Relevance",
+    priceAsc: "Price: low to high",
+    priceDesc: "Price: high to low",
+    nameAsc: "Name (A-Z)",
+    noResults: "No product matches your search",
+    noResultsHint: "Try another keyword or reset the filters.",
+    backHome: "Back to home",
+    reset: "Reset",
+  },
   ar: {
     home: "الرئيسية",
     search: "بحث",
@@ -157,7 +190,7 @@ export default function SearchClient({
   lang: string;
   initialQuery: string;
 }) {
-  const l: Lang = lang === "ar" ? "ar" : "fr";
+  const l: Lang = lang === "ar" ? "ar" : lang === "en" ? "en" : "fr";
   const t = DICT[l];
   const router = useRouter();
   const pathname = usePathname();
@@ -182,7 +215,7 @@ export default function SearchClient({
     let alive = true;
     (async () => {
       try {
-        const res = await ProductService.getAll(0, 300, lang);
+        const res = await ProductService.getAll(0, 300, lang, "PUBLISHED");
         if (alive) setAll(res.content ?? []);
       } catch {
         if (alive) setError(true);

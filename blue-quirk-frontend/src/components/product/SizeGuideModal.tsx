@@ -38,6 +38,19 @@ const COPY = {
     close: "إغلاق",
     diagramAlt: "قميص يوضّح قياس A (الصدر) وقياس B (الطول)",
   },
+  en: {
+    title: "Size guide (centimeters)",
+    proTip: "Pro tip",
+    tipBody:
+      "Measure one of your t-shirts at home and compare it to this guide for a perfect fit.",
+    size: "Size",
+    chest: "Chest (A)",
+    length: "Length (B)",
+    disclaimer:
+      "This guide shows flat-lay garment measurements. Actual measurements may vary by up to 2 cm.",
+    close: "Close",
+    diagramAlt: "T-shirt showing measurement A (chest) and measurement B (length)",
+  },
 } as const;
 
 export default function SizeGuideModal({
@@ -50,7 +63,7 @@ export default function SizeGuideModal({
   lang?: string;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
-  const t = lang === "ar" ? COPY.ar : COPY.fr;
+  const t = lang === "ar" ? COPY.ar : lang === "en" ? COPY.en : COPY.fr;
 
   useEffect(() => {
     if (!open) return;

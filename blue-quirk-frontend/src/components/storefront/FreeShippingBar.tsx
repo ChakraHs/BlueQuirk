@@ -35,6 +35,20 @@ const COPY = {
       </>
     ),
   },
+  en: {
+    away: (amount: string) => (
+      <>
+        Only <strong>{amount}</strong> away from{" "}
+        <strong>FREE SHIPPING</strong>!
+      </>
+    ),
+    qualified: (
+      <>
+        🎉 Congratulations! Your order qualifies for{" "}
+        <strong>FREE SHIPPING</strong>.
+      </>
+    ),
+  },
 } as const;
 
 export default function FreeShippingBar({
@@ -48,7 +62,7 @@ export default function FreeShippingBar({
 }) {
   const config = useShippingConfig();
   const { qualified, remaining, percent, threshold } = freeShippingState(subtotal, config);
-  const t = lang === "ar" ? COPY.ar : COPY.fr;
+  const t = lang === "ar" ? COPY.ar : lang === "en" ? COPY.en : COPY.fr;
 
   // Feature disabled (no threshold configured) → render nothing.
   if (threshold <= 0) return null;

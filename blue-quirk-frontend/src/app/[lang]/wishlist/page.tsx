@@ -7,6 +7,7 @@ import { Heart, Trash2, ShoppingBag } from "lucide-react";
 import { useWishlist, removeFromWishlist } from "@/lib/wishlist";
 import { addToCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
+import { t } from "@/lib/i18n";
 
 export default function WishlistPage({
   params,
@@ -24,16 +25,16 @@ export default function WishlistPage({
             <Heart size={26} />
           </span>
           <h1 className="mt-5 text-lg font-semibold text-gray-900">
-            Your wishlist is empty
+            {t(lang, "wishlist.empty")}
           </h1>
           <p className="mt-1 max-w-sm text-sm text-gray-500">
-            Tap the heart on any product to save it here for later.
+            {t(lang, "wishlist.emptyHint")}
           </p>
           <Link
             href={`/${lang}`}
             className="mt-6 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
-            Discover products
+            {t(lang, "wishlist.browse")}
           </Link>
         </div>
       </main>
@@ -43,10 +44,10 @@ export default function WishlistPage({
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <h1 className="mb-1 text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
-        Your wishlist
+        {t(lang, "wishlist.title")}
       </h1>
       <p className="mb-8 text-sm text-gray-500">
-        {items.length} {items.length === 1 ? "item" : "items"} saved
+        {t(lang, "wishlist.saved", { n: items.length })}
       </p>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-4">
@@ -87,12 +88,12 @@ export default function WishlistPage({
                 className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-blue-600 px-3 py-2 text-xs font-semibold text-white transition hover:bg-blue-700"
               >
                 <ShoppingBag className="size-3.5" />
-                Add to cart
+                {t(lang, "wishlist.addToCart")}
               </button>
               <button
                 type="button"
                 onClick={() => removeFromWishlist(item.id)}
-                aria-label="Remove from wishlist"
+                aria-label={t(lang, "product.removeFromWishlist")}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-gray-300 text-gray-500 transition hover:border-red-300 hover:text-red-600"
               >
                 <Trash2 className="size-4" />

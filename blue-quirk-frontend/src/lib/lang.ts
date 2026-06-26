@@ -4,10 +4,11 @@
 // user's choice in a long-lived `lang` cookie (best practice for guests) and, for
 // signed-in users, in the backend (see services/preference.service.ts).
 
-export type LangCode = "fr" | "ar";
+export type LangCode = "fr" | "ar" | "en";
 
 export const LANGS: { code: LangCode; label: string; native: string; dir: "ltr" | "rtl" }[] = [
   { code: "fr", label: "French", native: "Français", dir: "ltr" },
+  { code: "en", label: "English", native: "English", dir: "ltr" },
   { code: "ar", label: "Arabic", native: "العربية", dir: "rtl" },
 ];
 
@@ -16,7 +17,12 @@ export const LANG_COOKIE = "lang";
 const ONE_YEAR = 60 * 60 * 24 * 365;
 
 export function isLang(value: string | undefined | null): value is LangCode {
-  return value === "fr" || value === "ar";
+  return value === "fr" || value === "ar" || value === "en";
+}
+
+/** Text direction for a language (Arabic is RTL, the rest LTR). */
+export function dirOf(lang: string): "ltr" | "rtl" {
+  return lang === "ar" ? "rtl" : "ltr";
 }
 
 export function getLangCookie(): LangCode | null {

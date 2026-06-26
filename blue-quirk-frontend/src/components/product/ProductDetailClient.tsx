@@ -11,6 +11,7 @@ import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
 import { useShippingConfig, freeShippingState } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
+import { t } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -218,7 +219,7 @@ export default function ProductDetailClient({
             {canBuy && (
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                 <Check className="size-3" />
-                In stock
+                {t(lang, "product.inStock")}
               </span>
             )}
           </div>
@@ -237,22 +238,21 @@ export default function ProductDetailClient({
               <Truck className="mt-0.5 size-4 shrink-0 text-blue-600" />
               {freeShip.qualified ? (
                 <p className="text-sm text-gray-700">
-                  {lang === "ar"
-                    ? "🚚 هذا المنتج مؤهّل للشحن المجاني."
-                    : "🚚 Cet article est éligible à la livraison gratuite."}
+                  {t(lang, "product.shipQualified")}
                 </p>
               ) : (
                 <div className="text-sm">
                   <p className="font-medium text-gray-800">
-                    🚚{" "}
-                    {lang === "ar"
-                      ? `شحن مجاني للطلبات بدءًا من ${Math.round(shippingConfig.freeShippingThreshold)} ${shippingConfig.currency}`
-                      : `Livraison gratuite dès ${Math.round(shippingConfig.freeShippingThreshold)} ${shippingConfig.currency}`}
+                    {t(lang, "product.shipFreeFrom", {
+                      amount: Math.round(shippingConfig.freeShippingThreshold),
+                      currency: shippingConfig.currency,
+                    })}
                   </p>
                   <p className="text-xs text-gray-500">
-                    {lang === "ar"
-                      ? `وإلا، شحن عادي: ${Math.round(shippingConfig.shippingFee)} ${shippingConfig.currency}`
-                      : `Sinon, livraison standard : ${Math.round(shippingConfig.shippingFee)} ${shippingConfig.currency}`}
+                    {t(lang, "product.shipOtherwise", {
+                      amount: Math.round(shippingConfig.shippingFee),
+                      currency: shippingConfig.currency,
+                    })}
                   </p>
                 </div>
               )}
@@ -283,15 +283,13 @@ export default function ProductDetailClient({
                         className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-600 transition hover:bg-blue-100"
                       >
                         <Sparkles className="size-3" />
-                        {lang === "ar" ? "احسب مقاسك" : "Calculer ma taille"}
+                        {t(lang, "product.calcSize")}
                       </button>
                     )}
                     {isSize && calculatedSize && (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
                         <Check className="size-3" />
-                        {lang === "ar"
-                          ? `موصى به : ${calculatedSize}`
-                          : `Recommandé : ${calculatedSize}`}
+                        {t(lang, "product.recommended", { size: calculatedSize })}
                       </span>
                     )}
                   </span>
@@ -302,7 +300,7 @@ export default function ProductDetailClient({
                       className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-700"
                     >
                       <Ruler className="size-3.5" />
-                      {lang === "ar" ? "دليل المقاسات" : "Guide des tailles"}
+                      {t(lang, "product.sizeGuide")}
                     </button>
                   )}
                 </legend>
@@ -346,7 +344,7 @@ export default function ProductDetailClient({
                 type="button"
                 onClick={() => setQuantity((value) => Math.max(1, value - 1))}
                 className="flex items-center justify-center hover:bg-gray-50"
-                aria-label="Decrease quantity"
+                aria-label={t(lang, "product.decreaseQty")}
               >
                 <Minus className="size-4" />
               </button>
@@ -357,7 +355,7 @@ export default function ProductDetailClient({
                 type="button"
                 onClick={() => setQuantity((value) => value + 1)}
                 className="flex items-center justify-center hover:bg-gray-50"
-                aria-label="Increase quantity"
+                aria-label={t(lang, "product.increaseQty")}
               >
                 <Plus className="size-4" />
               </button>
@@ -370,13 +368,13 @@ export default function ProductDetailClient({
               className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-white px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
             >
               <ShoppingBag className="size-4" />
-              {canBuy ? "Add to cart" : "Unavailable"}
+              {canBuy ? t(lang, "product.addToCart") : t(lang, "product.unavailable")}
             </button>
 
             <button
               type="button"
               onClick={toggleWishlistItem}
-              aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              aria-label={wishlisted ? t(lang, "product.removeFromWishlist") : t(lang, "product.addToWishlist")}
               aria-pressed={wishlisted}
               className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
                 wishlisted
@@ -396,28 +394,28 @@ export default function ProductDetailClient({
             className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <Zap className="size-4" />
-            {canBuy ? "Acheter maintenant" : "Indisponible"}
+            {canBuy ? t(lang, "product.buyNow") : t(lang, "product.unavailable")}
           </button>
         </div>
 
         {added && (
           <p className="rounded-sm bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-            Added to cart.
+            {t(lang, "product.added")}
           </p>
         )}
 
         <div className="grid gap-3 border-t border-gray-200 pt-6 text-sm text-gray-600 sm:grid-cols-3">
           <div className="flex items-start gap-2">
             <Truck className="mt-0.5 size-4 text-gray-900" />
-            <span>Morocco-wide delivery</span>
+            <span>{t(lang, "product.delivery")}</span>
           </div>
           <div className="flex items-start gap-2">
             <ShieldCheck className="mt-0.5 size-4 text-gray-900" />
-            <span>Secure checkout</span>
+            <span>{t(lang, "product.secure")}</span>
           </div>
           <div className="flex items-start gap-2">
             <RotateCcw className="mt-0.5 size-4 text-gray-900" />
-            <span>Easy returns</span>
+            <span>{t(lang, "product.returns")}</span>
           </div>
         </div>
       </section>

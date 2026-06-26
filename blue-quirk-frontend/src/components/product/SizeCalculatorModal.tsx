@@ -39,6 +39,21 @@ const COPY = {
     note: "تقدير إرشادي حسب بنية جسمك. بين مقاسين، اختر الأكبر لمزيد من الراحة.",
     close: "إغلاق",
   },
+  en: {
+    title: "Calculate my size",
+    subtitle: "Enter your height and weight for a personalized recommendation.",
+    height: "Height (cm)",
+    weight: "Weight (kg)",
+    heightPh: "e.g. 175",
+    weightPh: "e.g. 70",
+    calc: "Show my size",
+    recalc: "Recalculate",
+    invalid: "Enter a valid height (140–220 cm) and weight (30–200 kg).",
+    resultLead: "Your recommended size",
+    apply: (s: string) => `Choose size ${s}`,
+    note: "Indicative estimate based on your body type. Between two sizes, pick the larger one for more comfort.",
+    close: "Close",
+  },
 } as const;
 
 export default function SizeCalculatorModal({
@@ -54,7 +69,7 @@ export default function SizeCalculatorModal({
   availableSizes: string[];
   lang?: string;
 }) {
-  const t = lang === "ar" ? COPY.ar : COPY.fr;
+  const t = lang === "ar" ? COPY.ar : lang === "en" ? COPY.en : COPY.fr;
   const firstRef = useRef<HTMLInputElement>(null);
 
   const [height, setHeight] = useState("");

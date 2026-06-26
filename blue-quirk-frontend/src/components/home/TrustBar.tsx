@@ -1,23 +1,13 @@
-const items = [
-  {
-    title: "All Morocco Shipping",
-    desc: "We deliver anywhere in Morocco with reliable partners.",
-  },
-  {
-    title: "Fast Delivery",
-    desc: "Choose standard or express shipping at checkout.",
-  },
-  {
-    title: "Secure Payments",
-    desc: "Safe checkout with trusted payment methods.",
-  },
-  {
-    title: "24/7 Local Support",
-    desc: "Our team is always available to help you.",
-  },
-];
+import { t } from "@/lib/i18n";
 
-export default function TrustBar() {
+export default function TrustBar({ lang = "fr" }: { lang?: string }) {
+  const items = [
+    { title: t(lang, "trust.shipping.title"), desc: t(lang, "trust.shipping.desc") },
+    { title: t(lang, "trust.delivery.title"), desc: t(lang, "trust.delivery.desc") },
+    { title: t(lang, "trust.payments.title"), desc: t(lang, "trust.payments.desc") },
+    { title: t(lang, "trust.support.title"), desc: t(lang, "trust.support.desc") },
+  ];
+
   return (
     <section className="border-t border-gray-200 py-14">
       <div className="mx-auto max-w-7xl px-6">

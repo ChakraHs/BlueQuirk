@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { API_BASE_URL } from "@/lib/config";
 
 // Only handles the bare root path: send visitors to their preferred locale.
 // Priority: the visitor's `lang` cookie, else the store's admin-configured
@@ -6,20 +7,22 @@ import { NextRequest, NextResponse } from "next/server";
 // else "fr". Scoped to "/" via the matcher below so it can never interfere with
 // the other top-level routes (/admin-v2, /login, /account, /fr, /ar, ...).
 
-const CONFIG_URL = "http://127.0.0.1:9090/api/shop/config";
+const CONFIG_URL = `${API_BASE_URL}/shop/config`;
 const TTL_MS = 60_000;
 
+const SUPPORTED = ["fr", "ar", "en"];
+
 // Module-scoped cache so we don't fetch the config on every redirect.
-let cachedLang: "fr" | "ar" = "fr";
+let cachedLang = "fr";
 let cachedAt = 0;
 
-async function defaultLang(): Promise<"fr" | "ar"> {
+async function defaultLang(): Promise<string> {
   if (Date.now() - cachedAt < TTL_MS) return cachedLang;
   try {
     const res = await fetch(CONFIG_URL, { cache: "no-store" });
     if (res.ok) {
       const data = (await res.json()) as { defaultLang?: string };
-      cachedLang = data.defaultLang === "ar" ? "ar" : "fr";
+      cachedLang = data.defaultLang && SUPPORTED.includes(data.defaultLang) ? data.defaultLang : "fr";
       cachedAt = Date.now();
     }
   } catch {
@@ -30,7 +33,7 @@ async function defaultLang(): Promise<"fr" | "ar"> {
 
 export async function middleware(req: NextRequest) {
   const cookie = req.cookies.get("lang")?.value;
-  const lang = cookie === "ar" || cookie === "fr" ? cookie : await defaultLang();
+  const lang = cookie && SUPPORTED.includes(cookie) ? cookie : await defaultLang();
 
   const url = req.nextUrl.clone();
   url.pathname = `/${lang}`;

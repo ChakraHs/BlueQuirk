@@ -1,20 +1,6 @@
 import Link from "next/link";
 import { Facebook, Instagram, Twitter, Youtube } from "lucide-react";
-
-const columns = [
-  {
-    title: "Shop",
-    links: ["T-Shirts", "Hoodies", "Stickers", "Phone Cases", "New Arrivals"],
-  },
-  {
-    title: "Help",
-    links: ["Shipping", "Returns", "Order Status", "Size Guide", "Contact us"],
-  },
-  {
-    title: "Company",
-    links: ["About BlueQuirk", "Sell your art", "Careers", "Blog", "Press"],
-  },
-];
+import { t } from "@/lib/i18n";
 
 export default function Footer({
   lang,
@@ -23,6 +9,39 @@ export default function Footer({
   lang: string;
   storeName?: string;
 }) {
+  const columns = [
+    {
+      title: t(lang, "footer.shop"),
+      links: [
+        t(lang, "footer.tshirts"),
+        t(lang, "footer.hoodies"),
+        t(lang, "footer.stickers"),
+        t(lang, "footer.phoneCases"),
+        t(lang, "footer.newArrivals"),
+      ],
+    },
+    {
+      title: t(lang, "footer.help"),
+      links: [
+        t(lang, "footer.shipping"),
+        t(lang, "footer.returns"),
+        t(lang, "footer.orderStatus"),
+        t(lang, "footer.sizeGuide"),
+        t(lang, "footer.contact"),
+      ],
+    },
+    {
+      title: t(lang, "footer.company"),
+      links: [
+        t(lang, "footer.about"),
+        t(lang, "footer.sellArt"),
+        t(lang, "footer.careers"),
+        t(lang, "footer.blog"),
+        t(lang, "footer.press"),
+      ],
+    },
+  ];
+
   return (
     <footer className="border-t border-gray-200 bg-gray-50">
       <div className="mx-auto max-w-7xl px-6 py-14">
@@ -36,8 +55,7 @@ export default function Footer({
               {storeName}
             </Link>
             <p className="mt-3 max-w-xs text-sm text-gray-500">
-              Weirdly meaningful art on high-quality products, made by
-              independent artists.
+              {t(lang, "footer.tagline")}
             </p>
 
             <div className="mt-5 flex items-center gap-3">
@@ -78,11 +96,11 @@ export default function Footer({
 
         {/* Bottom bar */}
         <div className="mt-12 flex flex-col items-center justify-between gap-4 border-t border-gray-200 pt-6 text-sm text-gray-500 sm:flex-row">
-          <p>© {new Date().getFullYear()} {storeName}. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} {storeName}. {t(lang, "footer.rights")}</p>
           <div className="flex items-center gap-5">
-            <a href="#" className="hover:text-gray-900">Privacy</a>
-            <a href="#" className="hover:text-gray-900">Terms</a>
-            <a href="#" className="hover:text-gray-900">Cookies</a>
+            <a href="#" className="hover:text-gray-900">{t(lang, "footer.privacy")}</a>
+            <a href="#" className="hover:text-gray-900">{t(lang, "footer.terms")}</a>
+            <a href="#" className="hover:text-gray-900">{t(lang, "footer.cookies")}</a>
           </div>
         </div>
       </div>

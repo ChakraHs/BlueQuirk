@@ -15,6 +15,7 @@ import {
 import { formatPrice } from "@/lib/money";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
+import { t } from "@/lib/i18n";
 
 export default function CartPage({
   params,
@@ -36,16 +37,16 @@ export default function CartPage({
             <ShoppingBag size={26} />
           </span>
           <h1 className="mt-5 text-lg font-semibold text-gray-900">
-            Your cart is empty
+            {t(lang, "cart.empty")}
           </h1>
           <p className="mt-1 max-w-sm text-sm text-gray-500">
-            Looks like you haven&apos;t added anything yet.
+            {t(lang, "cart.emptyHint")}
           </p>
           <Link
             href={`/${lang}`}
             className="mt-6 rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
-            Start shopping
+            {t(lang, "cart.startShopping")}
           </Link>
         </div>
       </main>
@@ -55,7 +56,7 @@ export default function CartPage({
   return (
     <main className="mx-auto max-w-7xl px-6 py-10">
       <h1 className="mb-8 text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
-        Shopping cart
+        {t(lang, "cart.title")}
       </h1>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_360px]">
@@ -102,7 +103,7 @@ export default function CartPage({
                         type="button"
                         onClick={() => setQuantity(key, item.quantity - 1)}
                         className="flex h-full w-9 items-center justify-center hover:bg-gray-50"
-                        aria-label="Decrease quantity"
+                        aria-label={t(lang, "product.decreaseQty")}
                       >
                         <Minus className="size-4" />
                       </button>
@@ -113,7 +114,7 @@ export default function CartPage({
                         type="button"
                         onClick={() => setQuantity(key, item.quantity + 1)}
                         className="flex h-full w-9 items-center justify-center hover:bg-gray-50"
-                        aria-label="Increase quantity"
+                        aria-label={t(lang, "product.increaseQty")}
                       >
                         <Plus className="size-4" />
                       </button>
@@ -125,7 +126,7 @@ export default function CartPage({
                       className="flex items-center gap-1.5 text-sm font-medium text-gray-500 transition hover:text-red-600"
                     >
                       <Trash2 className="size-4" />
-                      Remove
+                      {t(lang, "cart.remove")}
                     </button>
                   </div>
                 </div>
@@ -138,23 +139,23 @@ export default function CartPage({
         <aside className="h-fit rounded-2xl border border-gray-200 p-6">
           <FreeShippingBar subtotal={total} lang={lang} className="mb-5" />
 
-          <h2 className="text-lg font-bold text-gray-900">Order summary</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t(lang, "checkout.orderSummary")}</h2>
 
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between text-gray-600">
-              <dt>Subtotal</dt>
+              <dt>{t(lang, "cart.subtotal")}</dt>
               <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
             </div>
             <div className="flex justify-between text-gray-600">
-              <dt>Shipping</dt>
+              <dt>{t(lang, "cart.shipping")}</dt>
               <dd className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {shipping === 0 ? "Free" : formatPrice(shipping)}
+                {shipping === 0 ? t(lang, "cart.free") : formatPrice(shipping)}
               </dd>
             </div>
           </dl>
 
           <div className="mt-5 flex justify-between border-t border-gray-200 pt-5">
-            <span className="text-base font-bold text-gray-900">Total</span>
+            <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
             <span className="text-base font-bold text-gray-900">
               {formatPrice(grandTotal)}
             </span>
@@ -165,7 +166,7 @@ export default function CartPage({
             className="mt-6 flex w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
           >
             <Truck className="size-4" />
-            Order · Cash on delivery
+            {t(lang, "cart.orderCod")}
           </Link>
 
           <div className="mt-4 flex items-center justify-between text-sm">
@@ -173,14 +174,14 @@ export default function CartPage({
               href={`/${lang}`}
               className="font-medium text-blue-600 hover:text-blue-700"
             >
-              Continue shopping
+              {t(lang, "cart.continue")}
             </Link>
             <button
               type="button"
               onClick={clearCart}
               className="font-medium text-gray-400 hover:text-red-600"
             >
-              Clear cart
+              {t(lang, "cart.clear")}
             </button>
           </div>
         </aside>
