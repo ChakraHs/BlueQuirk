@@ -36,13 +36,18 @@ public class ProductController {
 //    }
 
     @PostMapping
-    public ResponseEntity<Product> createProduct(@RequestBody ProductDTO dto) {
-        return ResponseEntity.ok(productService.createProduct(dto));
+    public ResponseEntity<ProductResponse> createProduct(@RequestBody ProductDTO dto) {
+        Product saved = productService.createProduct(dto);
+        // Return the fully-resolved DTO (built inside a transaction) rather than
+        // the raw entity, whose lazy collections fail to serialize after the
+        // session closes (open-in-view is off).
+        return ResponseEntity.ok(productService.getProductById(saved.getId(), null));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Product> updateProduct(@PathVariable Long id, @RequestBody ProductDTO dto) {
-        return ResponseEntity.ok(productService.updateProduct(id, dto));
+    public ResponseEntity<ProductResponse> updateProduct(@PathVariable Long id, @RequestBody ProductDTO dto) {
+        productService.updateProduct(id, dto);
+        return ResponseEntity.ok(productService.getProductById(id, null));
     }
     
     @GetMapping
