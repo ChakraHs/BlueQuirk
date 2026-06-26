@@ -1,11 +1,12 @@
 // Server-safe fetch of the public storefront config (branding + shipping +
 // default language) from the backend. Used by server components (the [lang]
 // layout) and the middleware. Mirrors CategoryService's server-side fetch
-// pattern (plain fetch to 127.0.0.1:9090). Falls back to sensible defaults so
+// pattern (plain fetch to API_BASE_URL). Falls back to sensible defaults so
 // the storefront still renders if the backend is unreachable.
 import type { PublicShopConfig } from "@/types/settings";
+import { API_BASE_URL } from "@/lib/config";
 
-const CONFIG_URL = "http://127.0.0.1:9090/api/shop/config";
+const CONFIG_URL = `${API_BASE_URL}/shop/config`;
 
 export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   currency: "DH",
@@ -14,6 +15,11 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   storeName: "BlueQuirk",
   logoUrl: null,
   defaultLang: "fr",
+  heroTitle: null,
+  heroSubtitle: null,
+  heroBgColor: null,
+  heroImageUrl: null,
+  heroImageMobileUrl: null,
 };
 
 export async function getPublicShopConfig(): Promise<PublicShopConfig> {
@@ -31,7 +37,14 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
           : SHOP_CONFIG_DEFAULTS.freeShippingThreshold,
       storeName: data.storeName?.trim() || SHOP_CONFIG_DEFAULTS.storeName,
       logoUrl: data.logoUrl ?? null,
-      defaultLang: data.defaultLang === "ar" ? "ar" : "fr",
+      defaultLang: ["fr", "ar", "en"].includes(data.defaultLang ?? "")
+        ? (data.defaultLang as string)
+        : "fr",
+      heroTitle: data.heroTitle ?? null,
+      heroSubtitle: data.heroSubtitle ?? null,
+      heroBgColor: data.heroBgColor ?? null,
+      heroImageUrl: data.heroImageUrl ?? null,
+      heroImageMobileUrl: data.heroImageMobileUrl ?? null,
     };
   } catch {
     return SHOP_CONFIG_DEFAULTS;

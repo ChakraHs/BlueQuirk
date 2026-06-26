@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
 import { StoreSettings } from "@/types/settings";
 
 const LANGS = [
   { value: "fr", label: "Français" },
+  { value: "en", label: "English" },
   { value: "ar", label: "العربية (Arabe)" },
 ];
 
@@ -18,6 +19,11 @@ type FormState = {
   freeShippingThreshold: string;
   currency: string;
   defaultLang: string;
+  heroTitle: string;
+  heroSubtitle: string;
+  heroBgColor: string;
+  heroImageUrl: string | null;
+  heroImageMobileUrl: string | null;
 };
 
 function toForm(s: StoreSettings): FormState {
@@ -28,6 +34,11 @@ function toForm(s: StoreSettings): FormState {
     freeShippingThreshold: String(s.freeShippingThreshold ?? 0),
     currency: s.currency ?? "DH",
     defaultLang: s.defaultLang ?? "fr",
+    heroTitle: s.heroTitle ?? "",
+    heroSubtitle: s.heroSubtitle ?? "",
+    heroBgColor: s.heroBgColor ?? "",
+    heroImageUrl: s.heroImageUrl ?? null,
+    heroImageMobileUrl: s.heroImageMobileUrl ?? null,
   };
 }
 
@@ -38,7 +49,10 @@ export default function SettingsPage() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [heroUploading, setHeroUploading] = useState<"desktop" | "mobile" | null>(null);
   const logoInput = useRef<HTMLInputElement>(null);
+  const heroDesktopInput = useRef<HTMLInputElement>(null);
+  const heroMobileInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     SettingsService.get()
@@ -63,6 +77,19 @@ export default function SettingsPage() {
     }
   };
 
+  const handleHeroImage = async (file: File, slot: "desktop" | "mobile") => {
+    setHeroUploading(slot);
+    setError(null);
+    try {
+      const url = await SettingsService.uploadImage(file);
+      update(slot === "desktop" ? { heroImageUrl: url } : { heroImageMobileUrl: url });
+    } catch {
+      setError("Échec du téléversement de l'image.");
+    } finally {
+      setHeroUploading(null);
+    }
+  };
+
   const handleSave = async () => {
     if (!form) return;
     if (!form.storeName.trim()) {
@@ -73,13 +100,21 @@ export default function SettingsPage() {
     setError(null);
     setSaved(false);
     try {
+      // Send "" (not null) for cleared fields: the backend treats an empty
+      // string as "clear this" and null as "leave unchanged", so removing an
+      // image/value must send an empty string for it to actually be deleted.
       const updated = await SettingsService.update({
         storeName: form.storeName.trim(),
-        logoUrl: form.logoUrl,
+        logoUrl: form.logoUrl ?? "",
         shippingFee: Math.max(0, Number(form.shippingFee) || 0),
         freeShippingThreshold: Math.max(0, Number(form.freeShippingThreshold) || 0),
         currency: form.currency.trim() || "DH",
         defaultLang: form.defaultLang,
+        heroTitle: form.heroTitle.trim(),
+        heroSubtitle: form.heroSubtitle.trim(),
+        heroBgColor: form.heroBgColor.trim(),
+        heroImageUrl: form.heroImageUrl ?? "",
+        heroImageMobileUrl: form.heroImageMobileUrl ?? "",
       });
       setForm(toForm(updated));
       setSaved(true);
@@ -171,6 +206,124 @@ export default function SettingsPage() {
             </div>
             <p className="mt-2 text-xs text-gray-400">
               PNG transparent recommandé. Retirer le logo affiche le nom en texte.
+            </p>
+          </section>
+
+          {/* Hero (home page) */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <LayoutTemplate size={18} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">
+                Section d&apos;accueil (Hero)
+              </h2>
+            </div>
+
+            <label className="mb-1 block text-sm font-medium text-gray-700">Titre</label>
+            <input
+              value={form.heroTitle}
+              onChange={(e) => update({ heroTitle: e.target.value })}
+              placeholder="Laisser vide pour le texte par défaut"
+              className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+
+            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
+            <textarea
+              value={form.heroSubtitle}
+              onChange={(e) => update({ heroSubtitle: e.target.value })}
+              rows={2}
+              placeholder="Laisser vide pour le texte par défaut"
+              className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Couleur de fond
+            </label>
+            <div className="mb-1 flex items-center gap-2">
+              <input
+                type="color"
+                value={form.heroBgColor || "#1e3a8a"}
+                onChange={(e) => update({ heroBgColor: e.target.value })}
+                className="h-9 w-12 cursor-pointer rounded border border-gray-300"
+              />
+              <input
+                value={form.heroBgColor}
+                onChange={(e) => update({ heroBgColor: e.target.value })}
+                placeholder="#1e3a8a"
+                className="w-32 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+              />
+              {form.heroBgColor && (
+                <button
+                  type="button"
+                  onClick={() => update({ heroBgColor: "" })}
+                  className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
+                  aria-label="Retirer la couleur"
+                >
+                  <Trash2 size={15} />
+                </button>
+              )}
+            </div>
+            <p className="mb-4 text-xs text-gray-400">
+              Utilisée s&apos;il n&apos;y a pas d&apos;image de fond.
+            </p>
+
+            {/* Background images: desktop + mobile */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              {([
+                ["desktop", "Image de fond (ordinateur)", form.heroImageUrl, heroDesktopInput] as const,
+                ["mobile", "Image de fond (téléphone)", form.heroImageMobileUrl, heroMobileInput] as const,
+              ]).map(([slot, label, url, ref]) => (
+                <div key={slot}>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
+                  <div className="relative flex h-28 items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-50">
+                    {url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={url} alt={label} className="h-full w-full object-cover" />
+                    ) : (
+                      <ImageIcon size={24} className="text-gray-300" />
+                    )}
+                  </div>
+                  <div className="mt-2 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => ref.current?.click()}
+                      disabled={heroUploading === slot}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      {heroUploading === slot ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <UploadCloud size={14} />
+                      )}
+                      {url ? "Changer" : "Téléverser"}
+                    </button>
+                    {url && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          update(slot === "desktop" ? { heroImageUrl: null } : { heroImageMobileUrl: null })
+                        }
+                        className="rounded-md p-1.5 text-rose-600 transition hover:bg-rose-50"
+                        aria-label="Retirer l'image"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
+                    <input
+                      ref={ref}
+                      type="file"
+                      accept="image/*"
+                      hidden
+                      onChange={(e) => {
+                        if (e.target.files?.[0]) handleHeroImage(e.target.files[0], slot);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-gray-400">
+              Si une seule image est définie, elle sert pour les deux formats. Sans image, la couleur de fond est utilisée.
             </p>
           </section>
 

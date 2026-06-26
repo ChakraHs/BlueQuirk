@@ -19,7 +19,7 @@ import shop.bluequirk.blue_quirk_backend.repository.StoreSettingsRepository;
 @Service
 public class StoreSettingsService {
 
-    private static final Set<String> SUPPORTED_LANGS = Set.of("fr", "ar");
+    private static final Set<String> SUPPORTED_LANGS = Set.of("fr", "ar", "en");
 
     private final StoreSettingsRepository repository;
 
@@ -84,7 +84,28 @@ public class StoreSettingsService {
         if (req.defaultLang() != null) {
             s.setDefaultLang(normalizeLang(req.defaultLang()));
         }
+        // Hero fields: an empty string clears the value (back to defaults), a
+        // value sets it, null leaves it unchanged.
+        if (req.heroTitle() != null) {
+            s.setHeroTitle(blankToNull(req.heroTitle()));
+        }
+        if (req.heroSubtitle() != null) {
+            s.setHeroSubtitle(blankToNull(req.heroSubtitle()));
+        }
+        if (req.heroBgColor() != null) {
+            s.setHeroBgColor(blankToNull(req.heroBgColor()));
+        }
+        if (req.heroImageUrl() != null) {
+            s.setHeroImageUrl(blankToNull(req.heroImageUrl()));
+        }
+        if (req.heroImageMobileUrl() != null) {
+            s.setHeroImageMobileUrl(blankToNull(req.heroImageMobileUrl()));
+        }
         return repository.save(s);
+    }
+
+    private String blankToNull(String v) {
+        return v == null || v.isBlank() ? null : v.trim();
     }
 
     /** Sets just the logo URL (used by the logo upload endpoint). */

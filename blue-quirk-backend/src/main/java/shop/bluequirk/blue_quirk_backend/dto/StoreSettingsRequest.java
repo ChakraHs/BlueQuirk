@@ -10,5 +10,11 @@ public record StoreSettingsRequest(
         Double shippingFee,
         Double freeShippingThreshold,
         String currency,
-        String defaultLang
+        String defaultLang,
+        // Home hero section (all optional).
+        String heroTitle,
+        String heroSubtitle,
+        String heroBgColor,
+        String heroImageUrl,
+        String heroImageMobileUrl
 ) {}

@@ -71,4 +71,30 @@ public class SettingsController {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Logo upload to Cloudflare R2 failed.");
         }
     }
+
+    /**
+     * Generic settings image upload (e.g. hero backgrounds). Stores the file as-is
+     * in R2 and returns just the public URL — the admin assigns it to a field and
+     * saves via PUT. Kept separate from the product-image pipeline (no variants).
+     */
+    @PostMapping("/upload")
+    public ResponseEntity<UploadResult> upload(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (!r2StorageService.isConfigured()) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Image storage (Cloudflare R2) is not configured. Set R2_API_TOKEN and retry.");
+        }
+        try {
+            String filename = "settings-" + StringUtils.cleanPath(file.getOriginalFilename());
+            String url = r2StorageService.upload(file.getBytes(), filename, file.getContentType());
+            return ResponseEntity.ok(new UploadResult(url));
+        } catch (Exception e) {
+            LOG.error("Settings image upload to R2 failed: {}", e.getMessage(), e);
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Image upload to Cloudflare R2 failed.");
+        }
+    }
+
+    public record UploadResult(String url) {}
 }

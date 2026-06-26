@@ -37,10 +37,30 @@ public class StoreSettings {
     @Column(nullable = false)
     private String currency;
 
-    // Default storefront language ("fr" or "ar") used when a visitor has no
+    // Default storefront language ("fr", "ar" or "en") used when a visitor has no
     // explicit preference yet.
     @Column(nullable = false)
     private String defaultLang;
+
+    // --- Home hero section (all nullable; blank falls back to the built-in
+    // translated defaults / a default background). ---
+    @Column(name = "hero_title")
+    private String heroTitle;
+
+    @Column(name = "hero_subtitle", length = 1000)
+    private String heroSubtitle;
+
+    // Background color (hex, e.g. #1e3a8a). Used when no hero image is set.
+    @Column(name = "hero_bg_color")
+    private String heroBgColor;
+
+    // Background image for desktop / wide screens.
+    @Column(name = "hero_image_url")
+    private String heroImageUrl;
+
+    // Background image for phones (portrait). Falls back to the desktop image.
+    @Column(name = "hero_image_mobile_url")
+    private String heroImageMobileUrl;
 
     public StoreSettings() {}
 
@@ -66,4 +86,19 @@ public class StoreSettings {
 
     public String getDefaultLang() { return defaultLang; }
     public void setDefaultLang(String defaultLang) { this.defaultLang = defaultLang; }
+
+    public String getHeroTitle() { return heroTitle; }
+    public void setHeroTitle(String heroTitle) { this.heroTitle = heroTitle; }
+
+    public String getHeroSubtitle() { return heroSubtitle; }
+    public void setHeroSubtitle(String heroSubtitle) { this.heroSubtitle = heroSubtitle; }
+
+    public String getHeroBgColor() { return heroBgColor; }
+    public void setHeroBgColor(String heroBgColor) { this.heroBgColor = heroBgColor; }
+
+    public String getHeroImageUrl() { return heroImageUrl; }
+    public void setHeroImageUrl(String heroImageUrl) { this.heroImageUrl = heroImageUrl; }
+
+    public String getHeroImageMobileUrl() { return heroImageMobileUrl; }
+    public void setHeroImageMobileUrl(String heroImageMobileUrl) { this.heroImageMobileUrl = heroImageMobileUrl; }
 }

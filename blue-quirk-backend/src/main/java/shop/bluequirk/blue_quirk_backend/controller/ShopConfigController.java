@@ -34,7 +34,12 @@ public class ShopConfigController {
                 s.getFreeShippingThreshold(),
                 s.getStoreName(),
                 s.getLogoUrl(),
-                s.getDefaultLang());
+                s.getDefaultLang(),
+                s.getHeroTitle(),
+                s.getHeroSubtitle(),
+                s.getHeroBgColor(),
+                s.getHeroImageUrl(),
+                s.getHeroImageMobileUrl());
     }
 
     public record ShopConfig(
@@ -43,5 +48,10 @@ public class ShopConfigController {
             double freeShippingThreshold,
             String storeName,
             String logoUrl,
-            String defaultLang) {}
+            String defaultLang,
+            String heroTitle,
+            String heroSubtitle,
+            String heroBgColor,
+            String heroImageUrl,
+            String heroImageMobileUrl) {}
 }

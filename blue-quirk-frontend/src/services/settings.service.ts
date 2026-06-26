@@ -8,6 +8,11 @@ export type StoreSettingsPayload = {
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string;
+  heroTitle: string | null;
+  heroSubtitle: string | null;
+  heroBgColor: string | null;
+  heroImageUrl: string | null;
+  heroImageMobileUrl: string | null;
 };
 
 export const SettingsService = {
@@ -30,5 +35,16 @@ export const SettingsService = {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return res.data;
+  },
+
+  // Generic image upload (e.g. hero backgrounds). Returns the public URL only;
+  // the caller assigns it to a field and saves via update().
+  uploadImage: async (file: File): Promise<string> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await api.post<{ url: string }>("/settings/upload", form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return res.data.url;
   },
 };
