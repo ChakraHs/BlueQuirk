@@ -393,14 +393,21 @@ public class TodifyService {
     private Set<Image> importImages(JsonNode detail) {
         Set<Image> images = new LinkedHashSet<>();
         List<String> urls = new ArrayList<>();
-        String thumb = text(detail, "thumbnail");
-        if (thumb != null && !thumb.isBlank()) urls.add(thumb);
+        // Prefer the full-resolution images[]. Todify also returns a `thumbnail`
+        // (a low-res conversion of the SAME design), so adding both would import
+        // every single-image template as two duplicate gallery images. Use the
+        // thumbnail only as a fallback when there are no full images. Our own
+        // pipeline generates optimized thumbnail/display variants from the original.
         JsonNode imgs = detail.path("images");
         if (imgs.isArray()) {
             for (JsonNode n : imgs) {
                 String u = n.isTextual() ? n.asText() : text(n, "url");
                 if (u != null && !u.isBlank() && !urls.contains(u)) urls.add(u);
             }
+        }
+        if (urls.isEmpty()) {
+            String thumb = text(detail, "thumbnail");
+            if (thumb != null && !thumb.isBlank()) urls.add(thumb);
         }
         if (!r2StorageService.isConfigured()) {
             LOG.warn("R2 not configured — skipping Todify template image import.");
