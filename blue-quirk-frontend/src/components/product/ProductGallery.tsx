@@ -34,10 +34,13 @@ export default function ProductGallery({
   images,
   alt,
   onActiveChange,
+  bgColor,
 }: {
   images: ProductImage[];
   alt: string;
   onActiveChange?: (url: string) => void;
+  /** Background tint behind the (often transparent) product image. */
+  bgColor?: string;
 }) {
   // Per-surface variants so the page only loads what it needs:
   //  - display: the main image + hover magnifier (loaded with the page; the
@@ -137,9 +140,10 @@ export default function ProductGallery({
               onClick={() => setIndex(i)}
               aria-label={`Voir l'image ${i + 1}`}
               aria-current={i === safeIndex}
-              className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 bg-gray-100 transition ${
-                i === safeIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"
-              }`}
+              style={bgColor ? { backgroundColor: bgColor } : undefined}
+              className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 transition ${
+                bgColor ? "" : "bg-gray-100"
+              } ${i === safeIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"}`}
             >
               <Image src={thumbUrls[i]} alt="" fill sizes="80px" className="object-cover" />
             </button>
@@ -150,7 +154,10 @@ export default function ProductGallery({
       {/* main image */}
       <div className="min-w-0 flex-1">
         <div
-          className="group relative aspect-square cursor-zoom-in overflow-hidden rounded-2xl bg-gray-100"
+          style={bgColor ? { backgroundColor: bgColor } : undefined}
+          className={`group relative aspect-square cursor-zoom-in overflow-hidden rounded-2xl ${
+            bgColor ? "" : "bg-gray-100"
+          }`}
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEnd}
@@ -182,6 +189,7 @@ export default function ProductGallery({
             <div
               className="pointer-events-none absolute inset-0 hidden bg-no-repeat sm:block"
               style={{
+                backgroundColor: bgColor,
                 backgroundImage: `url(${displayUrls[safeIndex]})`,
                 backgroundSize: "230%",
                 backgroundPosition: `${zoomPos.x}% ${zoomPos.y}%`,
@@ -264,6 +272,7 @@ export default function ProductGallery({
           images={originalUrls}
           startIndex={safeIndex}
           alt={alt}
+          bgColor={bgColor}
           onIndexChange={setIndex}
           onClose={() => setLightboxOpen(false)}
         />

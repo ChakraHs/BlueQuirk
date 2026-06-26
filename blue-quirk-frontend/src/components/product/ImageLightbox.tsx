@@ -19,12 +19,15 @@ export default function ImageLightbox({
   images,
   startIndex,
   alt,
+  bgColor,
   onIndexChange,
   onClose,
 }: {
   images: string[];
   startIndex: number;
   alt: string;
+  /** Tint behind the (often transparent) image, e.g. the selected colour. */
+  bgColor?: string;
   onIndexChange?: (index: number) => void;
   onClose: () => void;
 }) {
@@ -269,15 +272,16 @@ export default function ImageLightbox({
                 loading={i === index ? "eager" : "lazy"}
                 onDoubleClick={(e) => e.preventDefault()}
                 className="max-h-full max-w-full object-contain"
-                style={
-                  i === index
+                style={{
+                  backgroundColor: bgColor,
+                  ...(i === index
                     ? {
                         transform: `translate(${tx}px, ${ty}px) scale(${scale})`,
                         transition: animating ? "transform 200ms ease-out" : "none",
                         cursor: zoomed ? "grab" : "zoom-in",
                       }
-                    : undefined
-                }
+                    : {}),
+                }}
               />
             </div>
           ))}
@@ -332,7 +336,14 @@ export default function ImageLightbox({
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" draggable={false} loading="lazy" className="size-full object-cover" />
+              <img
+                src={url}
+                alt=""
+                draggable={false}
+                loading="lazy"
+                style={bgColor ? { backgroundColor: bgColor } : undefined}
+                className="size-full object-cover"
+              />
             </button>
           ))}
         </div>

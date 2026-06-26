@@ -8,6 +8,7 @@ import ProductCard from "@/components/ProductCard";
 import { ProductService } from "@/services/product.service";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/money";
+import { colorSwatch } from "@/lib/colors";
 
 /* ----------------------------- i18n labels ------------------------------ */
 
@@ -122,37 +123,6 @@ type SortKey = "relevance" | "price-asc" | "price-desc" | "name-asc";
 // Canonical ordering for clothing sizes; unknown values sort after, alphabetically.
 const SIZE_ORDER = ["XXS", "XS", "S", "M", "L", "XL", "XXL", "XXXL", "2XL", "3XL", "4XL"];
 
-// A small map of common colour names (fr/en) → swatch hex. Falls back to a dot
-// derived from the label so unknown colours still render a neutral chip.
-const COLOR_HEX: Record<string, string> = {
-  noir: "#111827", black: "#111827",
-  blanc: "#f9fafb", white: "#f9fafb",
-  gris: "#9ca3af", gray: "#9ca3af", grey: "#9ca3af",
-  "heather grey": "#b0b3b8", "heather gray": "#b0b3b8",
-  rouge: "#ef4444", red: "#ef4444",
-  bleu: "#3b82f6", blue: "#3b82f6",
-  "royal blue": "#1d4ed8",
-  marine: "#1e3a8a", navy: "#1e3a8a",
-  vert: "#22c55e", green: "#22c55e",
-  "forest green": "#166534",
-  jaune: "#eab308", yellow: "#eab308",
-  mustard: "#d4a017",
-  orange: "#f97316",
-  rose: "#ec4899", pink: "#ec4899",
-  violet: "#8b5cf6", purple: "#8b5cf6",
-  marron: "#92400e", brown: "#92400e",
-  maroon: "#7f1d1d",
-  beige: "#e7d8c1",
-};
-
-// Resolve a colour label to a swatch hex: explicit map, a raw "#rrggbb" value,
-// or a neutral fallback dot.
-function colorSwatch(value: string): string {
-  const key = value.trim().toLowerCase();
-  if (COLOR_HEX[key]) return COLOR_HEX[key];
-  if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(key)) return key;
-  return "#d1d5db";
-}
 
 function stripHtml(html?: string): string {
   return html ? html.replace(/<[^>]*>/g, " ") : "";

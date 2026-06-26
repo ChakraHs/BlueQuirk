@@ -8,6 +8,7 @@ import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/money";
 import { thumbSrc } from "@/lib/productImage";
 import { t } from "@/lib/i18n";
+import { colorSwatch } from "@/lib/colors";
 import WishlistButton from "./WishlistButton";
 
 const FALLBACK_IMAGE =
@@ -32,6 +33,15 @@ export default function ProductCard({
   const isOutOfStock = product.status === "ARCHIVED";
   const category = product.categories?.[0]?.name;
 
+  // Tint the card with the product's first selected colour (its default) so the
+  // transparent product PNG shows on a matching background. Scan all COLOR
+  // attributes for the first value actually assigned to this product.
+  const firstColorVal = (product.attributes ?? [])
+    .filter((a) => (a.type || "").toUpperCase() === "COLOR")
+    .flatMap((a) => a.values)
+    .find((v) => v.selected)?.value;
+  const cardBg = firstColorVal ? colorSwatch(firstColorVal) : undefined;
+
   // Arrows/dots live inside the card's <Link>, so stop them from navigating.
   const go = (dir: number) => (e: React.MouseEvent) => {
     e.preventDefault();
@@ -55,7 +65,8 @@ export default function ProductCard({
     <Link href={`/${lang}/product/${product.id}`} className="group block">
       {/* IMAGE / carousel */}
       <div
-        className="relative aspect-square overflow-hidden rounded-xl bg-gray-100"
+        style={cardBg ? { backgroundColor: cardBg } : undefined}
+        className={`relative aspect-square overflow-hidden rounded-xl ${cardBg ? "" : "bg-gray-100"}`}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >

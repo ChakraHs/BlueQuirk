@@ -9,6 +9,7 @@ import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
+import { colorSwatch, isLightColor } from "@/lib/colors";
 import { useShippingConfig, freeShippingState } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import { t } from "@/lib/i18n";
@@ -86,6 +87,11 @@ export default function ProductDetailClient({
     () => (colorAttribute ? imagesForColor(allImages, selectedColorId) : allImages),
     [colorAttribute, allImages, selectedColorId]
   );
+
+  // Tint the image background with the selected colour (product images are often
+  // transparent PNGs, so the colour shows through behind the design).
+  const selectedColor = colorAttribute?.values.find((v) => v.id === selectedColorId);
+  const galleryBg = selectedColor ? colorSwatch(selectedColor.value) : undefined;
 
   // The gallery owns navigation/zoom; we keep the active image url only as a
   // mirror for the cart line + wishlist thumbnail (ProductGallery reports the
@@ -207,6 +213,7 @@ export default function ProductDetailClient({
           images={galleryImages}
           alt={product.name}
           onActiveChange={setActiveImage}
+          bgColor={galleryBg}
         />
       </section>
 
@@ -271,6 +278,7 @@ export default function ProductDetailClient({
           <div className="space-y-5">
             {productAttributes.map((attribute) => {
               const isSize = sizeAttribute?.id === attribute.id;
+              const isColor = colorAttribute?.id === attribute.id;
               return (
               <fieldset key={attribute.id} className="space-y-3">
                 <legend className="flex w-full items-center justify-between gap-3 text-sm font-semibold text-gray-800">
@@ -305,21 +313,53 @@ export default function ProductDetailClient({
                   )}
                 </legend>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {attribute.values.map((value) => {
                     const selected = selectedAttributes[String(attribute.id)] === String(value.id);
+                    const select = () => {
+                      setSelectedAttributes((current) => ({
+                        ...current,
+                        [String(attribute.id)]: String(value.id),
+                      }));
+                      if (isSize) setPreferredSize(value.value);
+                    };
+
+                    // Colour values render as round colour bubbles.
+                    if (isColor) {
+                      const hex = colorSwatch(value.value);
+                      const needsBorder = isLightColor(hex);
+                      return (
+                        <button
+                          key={value.id}
+                          type="button"
+                          onClick={select}
+                          title={value.value}
+                          aria-label={value.value}
+                          aria-pressed={selected}
+                          className={`relative flex size-9 items-center justify-center rounded-full transition ${
+                            selected
+                              ? "ring-2 ring-gray-900 ring-offset-2"
+                              : "hover:ring-2 hover:ring-gray-300 hover:ring-offset-2"
+                          }`}
+                        >
+                          <span
+                            className={`size-7 rounded-full ${needsBorder ? "border border-gray-300" : ""}`}
+                            style={{ backgroundColor: hex }}
+                          />
+                          {selected && (
+                            <Check
+                              className={`absolute size-4 ${needsBorder ? "text-gray-800" : "text-white"}`}
+                            />
+                          )}
+                        </button>
+                      );
+                    }
 
                     return (
                       <button
                         key={value.id}
                         type="button"
-                        onClick={() => {
-                          setSelectedAttributes((current) => ({
-                            ...current,
-                            [String(attribute.id)]: String(value.id),
-                          }));
-                          if (isSize) setPreferredSize(value.value);
-                        }}
+                        onClick={select}
                         className={`min-h-10 rounded-full border px-4 text-sm font-medium transition ${
                           selected
                             ? "border-blue-600 bg-blue-600 text-white"
@@ -330,6 +370,9 @@ export default function ProductDetailClient({
                       </button>
                     );
                   })}
+                  {isColor && selectedColor && (
+                    <span className="ml-1 text-sm text-gray-600">{selectedColor.value}</span>
+                  )}
                 </div>
               </fieldset>
               );
