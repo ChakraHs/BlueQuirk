@@ -1,13 +1,43 @@
+import type { Metadata } from "next";
 import ProductsGrid from "@/components/ProductsGrid";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
 import { API_BASE_URL } from "@/lib/config";
+import { t } from "@/lib/i18n";
+import { buildAlternates } from "@/lib/seo";
 import Image from "next/image";
 import Link from "next/link";
 
 type CategoryWithProducts = Category & {
   products?: Product[];
 };
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ lang: string; id: string }>;
+}): Promise<Metadata> {
+  const { lang, id } = await params;
+  const category = await getCategory(id, lang).catch(() => null);
+  if (!category?.name) {
+    return { title: t(lang, "categories.title") };
+  }
+  const description =
+    category.description?.replace(/<[^>]*>/g, "").slice(0, 160) ||
+    t(lang, "seo.categoryDesc", { category: category.name });
+  const cover = category.imageUrl || undefined;
+  return {
+    title: category.name,
+    description,
+    alternates: buildAlternates(lang, `/category/${id}`),
+    openGraph: {
+      type: "website",
+      title: category.name,
+      description,
+      images: cover ? [{ url: cover }] : undefined,
+    },
+  };
+}
 
 async function getCategory(id: string, lang: string): Promise<CategoryWithProducts> {
   const res = await fetch(

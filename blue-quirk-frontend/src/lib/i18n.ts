@@ -184,6 +184,9 @@ const fr: Dict = {
   // common
   "common.loading": "Chargement…",
   "common.back": "Retour",
+  // seo
+  "seo.homeTagline": "Mode & créations originales",
+  "seo.categoryDesc": "Découvrez notre sélection {category} — qualité premium, livraison partout au Maroc.",
 };
 
 const en: Dict = {
@@ -336,6 +339,8 @@ const en: Dict = {
   "footer.phoneCases": "Phone Cases",
   "common.loading": "Loading…",
   "common.back": "Back",
+  "seo.homeTagline": "Original designs & apparel",
+  "seo.categoryDesc": "Discover our {category} selection — premium quality, delivery across Morocco.",
 };
 
 const ar: Dict = {
@@ -487,6 +492,8 @@ const ar: Dict = {
   "footer.phoneCases": "أغلفة الهواتف",
   "common.loading": "جارٍ التحميل…",
   "common.back": "رجوع",
+  "seo.homeTagline": "أزياء وتصاميم أصلية",
+  "seo.categoryDesc": "اكتشف تشكيلة {category} — جودة عالية، توصيل في جميع أنحاء المغرب.",
 };
 
 const messages: Record<string, Dict> = { fr, en, ar };

@@ -1,14 +1,22 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailClient from "@/components/product/ProductDetailClient";
 import { ProductService } from "@/services/product.service";
+import { getPublicShopConfig } from "@/lib/shopConfig";
+import { displaySrc } from "@/lib/productImage";
+import { buildAlternates, absoluteUrl } from "@/lib/seo";
 import { t } from "@/lib/i18n";
 
 type ProductPageParams = {
   lang: string;
   id: string;
 };
+
+function plainText(html?: string, max = 160): string {
+  return (html ?? "").replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
 
 async function getProduct(id: string, lang: string) {
   const productId = Number(id);
@@ -24,19 +32,34 @@ export async function generateMetadata({
   params,
 }: {
   params: Promise<ProductPageParams>;
-}) {
+}): Promise<Metadata> {
   const { lang, id } = await params;
   const product = await getProduct(id, lang);
 
   if (!product) {
-    return {
-      title: "Product not found | BlueQuirk",
-    };
+    return { title: t(lang, "breadcrumb.product") };
   }
 
+  const description = plainText(product.description);
+  const image = product.images?.[0] ? displaySrc(product.images[0]) : undefined;
+
   return {
-    title: `${product.name} | BlueQuirk`,
-    description: product.description?.replace(/<[^>]*>/g, "").slice(0, 155),
+    // The lang layout adds the "| StoreName" suffix via its title template.
+    title: product.name,
+    description,
+    alternates: buildAlternates(lang, `/product/${id}`),
+    openGraph: {
+      type: "website",
+      title: product.name,
+      description,
+      images: image ? [{ url: image }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: product.name,
+      description,
+      images: image ? [image] : undefined,
+    },
   };
 }
 
@@ -54,14 +77,42 @@ export default async function ProductPage({
     notFound();
   }
 
-  const relatedResponse = await ProductService.getAll(0, 8, lang, "PUBLISHED").catch(() => null);
+  const [relatedResponse, config] = await Promise.all([
+    ProductService.getAll(0, 8, lang, "PUBLISHED").catch(() => null),
+    getPublicShopConfig(),
+  ]);
   const relatedProducts =
     relatedResponse?.content
       .filter((relatedProduct) => relatedProduct.id !== product.id)
       .slice(0, 4) ?? [];
 
+  // JSON-LD Product structured data for rich results (price, availability, brand).
+  const images = (product.images ?? [])
+    .map((img) => displaySrc(img))
+    .filter((u): u is string => !!u);
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: plainText(product.description, 5000) || undefined,
+    image: images.length ? images : undefined,
+    sku: String(product.id),
+    brand: { "@type": "Brand", name: config.storeName },
+    offers: {
+      "@type": "Offer",
+      price: product.price,
+      priceCurrency: config.currency === "DH" ? "MAD" : config.currency,
+      availability: "https://schema.org/InStock",
+      url: absoluteUrl(`/${lang}/product/${product.id}`),
+    },
+  };
+
   return (
     <main className="bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <nav className="mx-auto flex max-w-7xl items-center gap-2 px-6 pt-6 text-sm text-gray-500 md:px-12">
         <Link href={`/${lang}`} className="hover:text-gray-900">
           {t(lang, "breadcrumb.home")}

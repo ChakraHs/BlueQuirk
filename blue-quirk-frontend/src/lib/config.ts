@@ -7,3 +7,9 @@
 export const API_BASE_URL = (
   process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:9090/api"
 ).replace(/\/+$/, "");
+
+// Public site origin, used to build absolute URLs for SEO (metadataBase,
+// canonical, Open Graph, sitemap, robots). Override with NEXT_PUBLIC_SITE_URL.
+export const SITE_URL = (
+  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
+).replace(/\/+$/, "");
