@@ -207,7 +207,7 @@ export default function ProductDetailClient({
   };
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-10 px-6 py-8 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:px-12 md:py-12">
+    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:gap-10 md:px-12 md:py-12">
       <section aria-label="Product images">
         <ProductGallery
           images={galleryImages}
@@ -404,29 +404,34 @@ export default function ProductDetailClient({
               </button>
             </div>
 
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={!canBuy}
-              className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-white px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
-            >
-              <ShoppingBag className="size-4" />
-              {canBuy ? t(lang, "product.addToCart") : t(lang, "product.unavailable")}
-            </button>
+            {/* Cart + wishlist always sit side by side (even on mobile), so the
+                Add-to-cart `flex-1` governs width — not height — and the button
+                keeps its full h-12 height instead of collapsing in a column. */}
+            <div className="flex flex-1 gap-3">
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={!canBuy}
+                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-white px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
+              >
+                <ShoppingBag className="size-4" />
+                {canBuy ? t(lang, "product.addToCart") : t(lang, "product.unavailable")}
+              </button>
 
-            <button
-              type="button"
-              onClick={toggleWishlistItem}
-              aria-label={wishlisted ? t(lang, "product.removeFromWishlist") : t(lang, "product.addToWishlist")}
-              aria-pressed={wishlisted}
-              className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
-                wishlisted
-                  ? "border-blue-600 bg-blue-50 text-blue-600"
-                  : "border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
-              }`}
-            >
-              <Heart className={`size-5 ${wishlisted ? "fill-blue-600" : ""}`} />
-            </button>
+              <button
+                type="button"
+                onClick={toggleWishlistItem}
+                aria-label={wishlisted ? t(lang, "product.removeFromWishlist") : t(lang, "product.addToWishlist")}
+                aria-pressed={wishlisted}
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
+                  wishlisted
+                    ? "border-blue-600 bg-blue-50 text-blue-600"
+                    : "border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
+                }`}
+              >
+                <Heart className={`size-5 ${wishlisted ? "fill-blue-600" : ""}`} />
+              </button>
+            </div>
           </div>
 
           {/* Buy Now — adds to cart and jumps straight to the COD checkout. */}
