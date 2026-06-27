@@ -370,9 +370,6 @@ export default function ProductDetailClient({
                       </button>
                     );
                   })}
-                  {isColor && selectedColor && (
-                    <span className="ml-1 text-sm text-gray-600">{selectedColor.value}</span>
-                  )}
                 </div>
               </fieldset>
               );
