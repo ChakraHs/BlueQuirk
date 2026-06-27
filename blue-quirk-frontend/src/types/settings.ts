@@ -1,6 +1,14 @@
 export interface HeroSettings {
-  heroTitle: string | null;
-  heroSubtitle: string | null;
+  // Title + subtitle are localized per language (fr / en / ar).
+  heroTitleFr: string | null;
+  heroTitleEn: string | null;
+  heroTitleAr: string | null;
+  heroSubtitleFr: string | null;
+  heroSubtitleEn: string | null;
+  heroSubtitleAr: string | null;
+  // Primary ("shop all") button colours.
+  heroBtnTextColor: string | null;
+  heroBtnBgColor: string | null;
   heroBgColor: string | null;
   heroImageUrl: string | null;
   heroImageMobileUrl: string | null;

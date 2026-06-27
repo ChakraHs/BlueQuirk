@@ -17,8 +17,14 @@ export default async function HomePage({
     <main>
       <Hero
         lang={lang}
-        heroTitle={config.heroTitle}
-        heroSubtitle={config.heroSubtitle}
+        heroTitleFr={config.heroTitleFr}
+        heroTitleEn={config.heroTitleEn}
+        heroTitleAr={config.heroTitleAr}
+        heroSubtitleFr={config.heroSubtitleFr}
+        heroSubtitleEn={config.heroSubtitleEn}
+        heroSubtitleAr={config.heroSubtitleAr}
+        heroBtnTextColor={config.heroBtnTextColor}
+        heroBtnBgColor={config.heroBtnBgColor}
         heroBgColor={config.heroBgColor}
         heroImageUrl={config.heroImageUrl}
         heroImageMobileUrl={config.heroImageMobileUrl}

@@ -44,11 +44,33 @@ public class StoreSettings {
 
     // --- Home hero section (all nullable; blank falls back to the built-in
     // translated defaults / a default background). ---
-    @Column(name = "hero_title")
-    private String heroTitle;
+    // Title + subtitle are stored per language (fr / en / ar) so the admin can
+    // localize the hero copy; the storefront picks the column for the active lang.
+    @Column(name = "hero_title_fr")
+    private String heroTitleFr;
 
-    @Column(name = "hero_subtitle", length = 1000)
-    private String heroSubtitle;
+    @Column(name = "hero_title_en")
+    private String heroTitleEn;
+
+    @Column(name = "hero_title_ar")
+    private String heroTitleAr;
+
+    @Column(name = "hero_subtitle_fr", length = 1000)
+    private String heroSubtitleFr;
+
+    @Column(name = "hero_subtitle_en", length = 1000)
+    private String heroSubtitleEn;
+
+    @Column(name = "hero_subtitle_ar", length = 1000)
+    private String heroSubtitleAr;
+
+    // Primary ("shop all") button styling — text + background colour (hex). Null
+    // falls back to the built-in white-on-blue style.
+    @Column(name = "hero_btn_text_color")
+    private String heroBtnTextColor;
+
+    @Column(name = "hero_btn_bg_color")
+    private String heroBtnBgColor;
 
     // Background color (hex, e.g. #1e3a8a). Used when no hero image is set.
     @Column(name = "hero_bg_color")
@@ -87,11 +109,29 @@ public class StoreSettings {
     public String getDefaultLang() { return defaultLang; }
     public void setDefaultLang(String defaultLang) { this.defaultLang = defaultLang; }
 
-    public String getHeroTitle() { return heroTitle; }
-    public void setHeroTitle(String heroTitle) { this.heroTitle = heroTitle; }
+    public String getHeroTitleFr() { return heroTitleFr; }
+    public void setHeroTitleFr(String heroTitleFr) { this.heroTitleFr = heroTitleFr; }
 
-    public String getHeroSubtitle() { return heroSubtitle; }
-    public void setHeroSubtitle(String heroSubtitle) { this.heroSubtitle = heroSubtitle; }
+    public String getHeroTitleEn() { return heroTitleEn; }
+    public void setHeroTitleEn(String heroTitleEn) { this.heroTitleEn = heroTitleEn; }
+
+    public String getHeroTitleAr() { return heroTitleAr; }
+    public void setHeroTitleAr(String heroTitleAr) { this.heroTitleAr = heroTitleAr; }
+
+    public String getHeroSubtitleFr() { return heroSubtitleFr; }
+    public void setHeroSubtitleFr(String heroSubtitleFr) { this.heroSubtitleFr = heroSubtitleFr; }
+
+    public String getHeroSubtitleEn() { return heroSubtitleEn; }
+    public void setHeroSubtitleEn(String heroSubtitleEn) { this.heroSubtitleEn = heroSubtitleEn; }
+
+    public String getHeroSubtitleAr() { return heroSubtitleAr; }
+    public void setHeroSubtitleAr(String heroSubtitleAr) { this.heroSubtitleAr = heroSubtitleAr; }
+
+    public String getHeroBtnTextColor() { return heroBtnTextColor; }
+    public void setHeroBtnTextColor(String heroBtnTextColor) { this.heroBtnTextColor = heroBtnTextColor; }
+
+    public String getHeroBtnBgColor() { return heroBtnBgColor; }
+    public void setHeroBtnBgColor(String heroBtnBgColor) { this.heroBtnBgColor = heroBtnBgColor; }
 
     public String getHeroBgColor() { return heroBgColor; }
     public void setHeroBgColor(String heroBgColor) { this.heroBgColor = heroBgColor; }

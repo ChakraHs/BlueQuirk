@@ -8,8 +8,14 @@ export type StoreSettingsPayload = {
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string;
-  heroTitle: string | null;
-  heroSubtitle: string | null;
+  heroTitleFr: string | null;
+  heroTitleEn: string | null;
+  heroTitleAr: string | null;
+  heroSubtitleFr: string | null;
+  heroSubtitleEn: string | null;
+  heroSubtitleAr: string | null;
+  heroBtnTextColor: string | null;
+  heroBtnBgColor: string | null;
   heroBgColor: string | null;
   heroImageUrl: string | null;
   heroImageMobileUrl: string | null;

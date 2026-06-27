@@ -1,24 +1,53 @@
+import type { CSSProperties } from "react";
 import Link from "next/link";
 import { t } from "@/lib/i18n";
 
 export default function Hero({
   lang = "fr",
-  heroTitle,
-  heroSubtitle,
+  heroTitleFr,
+  heroTitleEn,
+  heroTitleAr,
+  heroSubtitleFr,
+  heroSubtitleEn,
+  heroSubtitleAr,
+  heroBtnTextColor,
+  heroBtnBgColor,
   heroBgColor,
   heroImageUrl,
   heroImageMobileUrl,
 }: {
   lang?: string;
-  heroTitle?: string | null;
-  heroSubtitle?: string | null;
+  heroTitleFr?: string | null;
+  heroTitleEn?: string | null;
+  heroTitleAr?: string | null;
+  heroSubtitleFr?: string | null;
+  heroSubtitleEn?: string | null;
+  heroSubtitleAr?: string | null;
+  heroBtnTextColor?: string | null;
+  heroBtnBgColor?: string | null;
   heroBgColor?: string | null;
   heroImageUrl?: string | null;
   heroImageMobileUrl?: string | null;
 }) {
-  // Admin overrides fall back to the built-in translated copy.
-  const title = heroTitle?.trim() || t(lang, "hero.title");
-  const subtitle = heroSubtitle?.trim() || t(lang, "hero.subtitle");
+  // Pick the admin-provided copy for the active language; fall back to the
+  // built-in translated copy when that language has no override.
+  const titleByLang: Record<string, string | null | undefined> = {
+    fr: heroTitleFr,
+    en: heroTitleEn,
+    ar: heroTitleAr,
+  };
+  const subtitleByLang: Record<string, string | null | undefined> = {
+    fr: heroSubtitleFr,
+    en: heroSubtitleEn,
+    ar: heroSubtitleAr,
+  };
+  const title = titleByLang[lang]?.trim() || t(lang, "hero.title");
+  const subtitle = subtitleByLang[lang]?.trim() || t(lang, "hero.subtitle");
+
+  // Primary button styling overrides (text + background colour).
+  const primaryBtnStyle: CSSProperties = {};
+  if (heroBtnBgColor?.trim()) primaryBtnStyle.backgroundColor = heroBtnBgColor.trim();
+  if (heroBtnTextColor?.trim()) primaryBtnStyle.color = heroBtnTextColor.trim();
 
   // Resolve responsive backgrounds: if only one image is set it serves both.
   const desktopBg = heroImageUrl || heroImageMobileUrl;
@@ -70,7 +99,10 @@ export default function Hero({
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href={`/${lang}/search?q=`}
-              className="rounded-full bg-white px-7 py-3 text-base font-semibold text-blue-700 transition hover:bg-blue-50"
+              style={primaryBtnStyle}
+              className={`rounded-full px-7 py-3 text-base font-semibold shadow-sm transition hover:opacity-90 ${
+                heroBtnBgColor?.trim() ? "" : "bg-white"
+              } ${heroBtnTextColor?.trim() ? "" : "text-blue-700"}`}
             >
               {t(lang, "hero.shopAll")}
             </Link>

@@ -11,9 +11,15 @@ public record StoreSettingsRequest(
         Double freeShippingThreshold,
         String currency,
         String defaultLang,
-        // Home hero section (all optional).
-        String heroTitle,
-        String heroSubtitle,
+        // Home hero section (all optional). Title + subtitle are per-language.
+        String heroTitleFr,
+        String heroTitleEn,
+        String heroTitleAr,
+        String heroSubtitleFr,
+        String heroSubtitleEn,
+        String heroSubtitleAr,
+        String heroBtnTextColor,
+        String heroBtnBgColor,
         String heroBgColor,
         String heroImageUrl,
         String heroImageMobileUrl

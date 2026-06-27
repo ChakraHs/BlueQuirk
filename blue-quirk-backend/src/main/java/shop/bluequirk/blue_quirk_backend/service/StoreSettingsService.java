@@ -86,11 +86,29 @@ public class StoreSettingsService {
         }
         // Hero fields: an empty string clears the value (back to defaults), a
         // value sets it, null leaves it unchanged.
-        if (req.heroTitle() != null) {
-            s.setHeroTitle(blankToNull(req.heroTitle()));
+        if (req.heroTitleFr() != null) {
+            s.setHeroTitleFr(blankToNull(req.heroTitleFr()));
         }
-        if (req.heroSubtitle() != null) {
-            s.setHeroSubtitle(blankToNull(req.heroSubtitle()));
+        if (req.heroTitleEn() != null) {
+            s.setHeroTitleEn(blankToNull(req.heroTitleEn()));
+        }
+        if (req.heroTitleAr() != null) {
+            s.setHeroTitleAr(blankToNull(req.heroTitleAr()));
+        }
+        if (req.heroSubtitleFr() != null) {
+            s.setHeroSubtitleFr(blankToNull(req.heroSubtitleFr()));
+        }
+        if (req.heroSubtitleEn() != null) {
+            s.setHeroSubtitleEn(blankToNull(req.heroSubtitleEn()));
+        }
+        if (req.heroSubtitleAr() != null) {
+            s.setHeroSubtitleAr(blankToNull(req.heroSubtitleAr()));
+        }
+        if (req.heroBtnTextColor() != null) {
+            s.setHeroBtnTextColor(blankToNull(req.heroBtnTextColor()));
+        }
+        if (req.heroBtnBgColor() != null) {
+            s.setHeroBtnBgColor(blankToNull(req.heroBtnBgColor()));
         }
         if (req.heroBgColor() != null) {
             s.setHeroBgColor(blankToNull(req.heroBgColor()));

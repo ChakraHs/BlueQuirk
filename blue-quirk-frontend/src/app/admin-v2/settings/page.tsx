@@ -19,8 +19,14 @@ type FormState = {
   freeShippingThreshold: string;
   currency: string;
   defaultLang: string;
-  heroTitle: string;
-  heroSubtitle: string;
+  heroTitleFr: string;
+  heroTitleEn: string;
+  heroTitleAr: string;
+  heroSubtitleFr: string;
+  heroSubtitleEn: string;
+  heroSubtitleAr: string;
+  heroBtnTextColor: string;
+  heroBtnBgColor: string;
   heroBgColor: string;
   heroImageUrl: string | null;
   heroImageMobileUrl: string | null;
@@ -34,13 +40,26 @@ function toForm(s: StoreSettings): FormState {
     freeShippingThreshold: String(s.freeShippingThreshold ?? 0),
     currency: s.currency ?? "DH",
     defaultLang: s.defaultLang ?? "fr",
-    heroTitle: s.heroTitle ?? "",
-    heroSubtitle: s.heroSubtitle ?? "",
+    heroTitleFr: s.heroTitleFr ?? "",
+    heroTitleEn: s.heroTitleEn ?? "",
+    heroTitleAr: s.heroTitleAr ?? "",
+    heroSubtitleFr: s.heroSubtitleFr ?? "",
+    heroSubtitleEn: s.heroSubtitleEn ?? "",
+    heroSubtitleAr: s.heroSubtitleAr ?? "",
+    heroBtnTextColor: s.heroBtnTextColor ?? "",
+    heroBtnBgColor: s.heroBtnBgColor ?? "",
     heroBgColor: s.heroBgColor ?? "",
     heroImageUrl: s.heroImageUrl ?? null,
     heroImageMobileUrl: s.heroImageMobileUrl ?? null,
   };
 }
+
+// Hero text languages, in admin display order.
+const HERO_LANGS = [
+  { code: "fr", label: "Français", dir: "ltr" as const },
+  { code: "en", label: "English", dir: "ltr" as const },
+  { code: "ar", label: "العربية", dir: "rtl" as const },
+];
 
 export default function SettingsPage() {
   const [form, setForm] = useState<FormState | null>(null);
@@ -50,6 +69,7 @@ export default function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [heroUploading, setHeroUploading] = useState<"desktop" | "mobile" | null>(null);
+  const [heroLang, setHeroLang] = useState("fr");
   const logoInput = useRef<HTMLInputElement>(null);
   const heroDesktopInput = useRef<HTMLInputElement>(null);
   const heroMobileInput = useRef<HTMLInputElement>(null);
@@ -110,8 +130,14 @@ export default function SettingsPage() {
         freeShippingThreshold: Math.max(0, Number(form.freeShippingThreshold) || 0),
         currency: form.currency.trim() || "DH",
         defaultLang: form.defaultLang,
-        heroTitle: form.heroTitle.trim(),
-        heroSubtitle: form.heroSubtitle.trim(),
+        heroTitleFr: form.heroTitleFr.trim(),
+        heroTitleEn: form.heroTitleEn.trim(),
+        heroTitleAr: form.heroTitleAr.trim(),
+        heroSubtitleFr: form.heroSubtitleFr.trim(),
+        heroSubtitleEn: form.heroSubtitleEn.trim(),
+        heroSubtitleAr: form.heroSubtitleAr.trim(),
+        heroBtnTextColor: form.heroBtnTextColor.trim(),
+        heroBtnBgColor: form.heroBtnBgColor.trim(),
         heroBgColor: form.heroBgColor.trim(),
         heroImageUrl: form.heroImageUrl ?? "",
         heroImageMobileUrl: form.heroImageMobileUrl ?? "",
@@ -218,22 +244,120 @@ export default function SettingsPage() {
               </h2>
             </div>
 
-            <label className="mb-1 block text-sm font-medium text-gray-700">Titre</label>
-            <input
-              value={form.heroTitle}
-              onChange={(e) => update({ heroTitle: e.target.value })}
-              placeholder="Laisser vide pour le texte par défaut"
-              className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
+            {/* Localized title + description: a tab per language so the admin
+                can enter the hero copy in FR, EN and AR. */}
+            <div className="mb-3 flex gap-1 rounded-lg bg-gray-100 p-1">
+              {HERO_LANGS.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => setHeroLang(l.code)}
+                  className={`flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    heroLang === l.code
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  {l.label}
+                </button>
+              ))}
+            </div>
 
-            <label className="mb-1 block text-sm font-medium text-gray-700">Description</label>
-            <textarea
-              value={form.heroSubtitle}
-              onChange={(e) => update({ heroSubtitle: e.target.value })}
-              rows={2}
-              placeholder="Laisser vide pour le texte par défaut"
-              className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
+            {HERO_LANGS.map((l) => {
+              const cap = l.code.charAt(0).toUpperCase() + l.code.slice(1);
+              const titleKey = `heroTitle${cap}` as keyof FormState;
+              const subtitleKey = `heroSubtitle${cap}` as keyof FormState;
+              return (
+                <div key={l.code} className={heroLang === l.code ? "" : "hidden"}>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Titre ({l.label})
+                  </label>
+                  <input
+                    dir={l.dir}
+                    value={(form[titleKey] as string) ?? ""}
+                    onChange={(e) => update({ [titleKey]: e.target.value } as Partial<FormState>)}
+                    placeholder="Laisser vide pour le texte par défaut"
+                    className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Description ({l.label})
+                  </label>
+                  <textarea
+                    dir={l.dir}
+                    value={(form[subtitleKey] as string) ?? ""}
+                    onChange={(e) => update({ [subtitleKey]: e.target.value } as Partial<FormState>)}
+                    rows={2}
+                    placeholder="Laisser vide pour le texte par défaut"
+                    className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                </div>
+              );
+            })}
+
+            {/* Primary button colours */}
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Bouton principal (couleurs)
+            </label>
+            <div className="mb-4 grid gap-4 sm:grid-cols-2">
+              <div>
+                <span className="mb-1 block text-xs text-gray-500">Fond du bouton</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form.heroBtnBgColor || "#ffffff"}
+                    onChange={(e) => update({ heroBtnBgColor: e.target.value })}
+                    className="h-9 w-12 cursor-pointer rounded border border-gray-300"
+                  />
+                  <input
+                    value={form.heroBtnBgColor}
+                    onChange={(e) => update({ heroBtnBgColor: e.target.value })}
+                    placeholder="#ffffff"
+                    className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
+                  {form.heroBtnBgColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ heroBtnBgColor: "" })}
+                      className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
+                      aria-label="Réinitialiser le fond"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div>
+                <span className="mb-1 block text-xs text-gray-500">Couleur du texte</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={form.heroBtnTextColor || "#1d4ed8"}
+                    onChange={(e) => update({ heroBtnTextColor: e.target.value })}
+                    className="h-9 w-12 cursor-pointer rounded border border-gray-300"
+                  />
+                  <input
+                    value={form.heroBtnTextColor}
+                    onChange={(e) => update({ heroBtnTextColor: e.target.value })}
+                    placeholder="#1d4ed8"
+                    className="w-28 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
+                  />
+                  {form.heroBtnTextColor && (
+                    <button
+                      type="button"
+                      onClick={() => update({ heroBtnTextColor: "" })}
+                      className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
+                      aria-label="Réinitialiser le texte"
+                    >
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="mb-4 text-xs text-gray-400">
+              S&apos;applique au premier bouton du hero. Laisser vide pour le style par défaut.
+            </p>
 
             <label className="mb-1 block text-sm font-medium text-gray-700">
               Couleur de fond
