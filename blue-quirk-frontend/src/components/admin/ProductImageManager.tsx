@@ -75,7 +75,7 @@ export default function ProductImageManager({
           ]);
           onChange(current);
         } catch {
-          setError("Échec du téléversement d'une image. Réessayez.");
+          setError("Failed to upload an image. Please try again.");
         } finally {
           URL.revokeObjectURL(item.preview);
           setUploads((u) => u.filter((x) => x.id !== item.id));
@@ -125,11 +125,11 @@ export default function ProductImageManager({
     <div>
       <div className="mb-2 flex items-center justify-between">
         <label className="block text-sm font-medium text-gray-700">
-          Images du produit
+          Product images
         </label>
         {value.length > 0 && (
           <span className="text-xs text-gray-400">
-            {value.length} image{value.length > 1 ? "s" : ""} · cliquez sur ★ pour l&apos;image principale
+            {value.length} image{value.length > 1 ? "s" : ""} · click ★ to set the primary image
           </span>
         )}
       </div>
@@ -153,10 +153,10 @@ export default function ProductImageManager({
       >
         <UploadCloud className="mb-2 text-gray-400" size={28} />
         <p className="text-sm font-medium text-gray-600">
-          Glissez-déposez des images ici, ou cliquez pour parcourir
+          Drag & drop images here, or click to browse
         </p>
         <p className="mt-1 text-xs text-gray-400">
-          JPG, PNG, WebP — optimisées automatiquement par le serveur (miniature + affichage)
+          JPG, PNG, WebP — automatically optimized by the server (thumbnail + display)
         </p>
         <input
           ref={inputRef}
@@ -194,7 +194,7 @@ export default function ProductImageManager({
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={thumbSrc(img)}
-                  alt={img.fileName || "Image produit"}
+                  alt={img.fileName || "Product image"}
                   className="h-full w-full object-cover"
                 />
 
@@ -207,7 +207,7 @@ export default function ProductImageManager({
                 <button
                   type="button"
                   onClick={() => setPrimary(img.id)}
-                  title={img.primary ? "Image principale" : "Définir comme principale"}
+                  title={img.primary ? "Primary image" : "Set as primary"}
                   className={`absolute right-1 top-1 rounded-full p-1 transition ${
                     img.primary
                       ? "bg-blue-600 text-white"
@@ -221,7 +221,7 @@ export default function ProductImageManager({
                 <button
                   type="button"
                   onClick={() => remove(img.id)}
-                  title="Retirer l'image"
+                  title="Remove image"
                   className="absolute bottom-1 right-1 rounded-full bg-black/40 p-1 text-white opacity-0 transition hover:bg-rose-600 group-hover:opacity-100"
                 >
                   <Trash2 size={13} />
@@ -229,7 +229,7 @@ export default function ProductImageManager({
 
                 {img.primary && (
                   <span className="absolute bottom-1 left-1 rounded bg-blue-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                    Principale
+                    Primary
                   </span>
                 )}
               </div>
@@ -241,10 +241,10 @@ export default function ProductImageManager({
                   onChange={(e) =>
                     setColor(img.id, e.target.value ? Number(e.target.value) : null)
                   }
-                  title="Couleur associée"
+                  title="Linked color"
                   className="w-full rounded-md border border-gray-300 bg-white px-1.5 py-1 text-[11px] text-gray-700 outline-none focus:border-blue-500"
                 >
-                  <option value="">Toutes les couleurs</option>
+                  <option value="">All colors</option>
                   {colorOptions.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.label}

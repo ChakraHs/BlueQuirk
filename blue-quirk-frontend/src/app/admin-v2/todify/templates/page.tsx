@@ -32,7 +32,7 @@ export default function TodifyTemplatesPage() {
       setTemplates(res.data ?? []);
       setLastPage(res.meta?.last_page ?? 1);
     } catch (e) {
-      setError(messageOf(e, "Impossible de charger les templates Todify."));
+      setError(messageOf(e, "Unable to load Todify templates."));
     } finally {
       setLoading(false);
     }
@@ -55,7 +55,7 @@ export default function TodifyTemplatesPage() {
       const res = await TodifyService.templateDetail(id);
       setDetail(res.data);
     } catch (e) {
-      setNotice(messageOf(e, "Échec du chargement des détails."));
+      setNotice(messageOf(e, "Failed to load details."));
     } finally {
       setDetailLoading(false);
     }
@@ -66,11 +66,11 @@ export default function TodifyTemplatesPage() {
     setNotice(null);
     try {
       await TodifyService.importTemplate(id);
-      setNotice("Template importé comme produit brouillon (DRAFT).");
+      setNotice("Template imported as a draft product (DRAFT).");
       const r = await ProductService.getAll(0, 200);
       setProducts(r.content ?? []);
     } catch (e) {
-      setNotice(messageOf(e, "Échec de l'import."));
+      setNotice(messageOf(e, "Import failed."));
     } finally {
       setBusy(null);
     }
@@ -81,9 +81,9 @@ export default function TodifyTemplatesPage() {
     setBusy(templateId);
     try {
       await TodifyService.linkProduct(productId, templateId);
-      setNotice("Template lié au produit.");
+      setNotice("Template linked to the product.");
     } catch (e) {
-      setNotice(messageOf(e, "Échec de la liaison."));
+      setNotice(messageOf(e, "Failed to link."));
     } finally {
       setBusy(null);
     }
@@ -92,8 +92,8 @@ export default function TodifyTemplatesPage() {
   return (
     <div>
       <PageHeader
-        title="Templates Todify"
-        subtitle="Importez les templates print-on-demand et liez-les à vos produits."
+        title="Todify Templates"
+        subtitle="Import print-on-demand templates and link them to your products."
       />
 
       <div className="mb-4 flex items-center gap-2">
@@ -101,7 +101,7 @@ export default function TodifyTemplatesPage() {
           onClick={() => load(page)}
           className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <RefreshCw size={15} /> Actualiser
+          <RefreshCw size={15} /> Refresh
         </button>
       </div>
 
@@ -121,7 +121,7 @@ export default function TodifyTemplatesPage() {
       ) : templates.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Shirt className="mx-auto mb-3 text-gray-300" size={40} />
-          <p className="text-sm text-gray-500">Aucun template trouvé.</p>
+          <p className="text-sm text-gray-500">No templates found.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -152,7 +152,7 @@ export default function TodifyTemplatesPage() {
                     <p className="truncate text-xs text-gray-400">{t.sku || t.id}</p>
                     {linkedProduct && (
                       <span className="mt-1 inline-block rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-medium text-green-700">
-                        Lié à #{linkedProduct.id}
+                        Linked to #{linkedProduct.id}
                       </span>
                     )}
                   </div>
@@ -163,14 +163,14 @@ export default function TodifyTemplatesPage() {
                     onClick={() => preview(t.id)}
                     className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                   >
-                    <Eye size={14} /> Aperçu
+                    <Eye size={14} /> Preview
                   </button>
                   <button
                     disabled={busy === t.id}
                     onClick={() => importTemplate(t.id)}
                     className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                   >
-                    <Download size={14} /> Importer
+                    <Download size={14} /> Import
                   </button>
                 </div>
 
@@ -182,7 +182,7 @@ export default function TodifyTemplatesPage() {
                     onChange={(e) => linkToProduct(t.id, Number(e.target.value))}
                     className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-600 outline-none focus:border-blue-500"
                   >
-                    <option value="">Lier à un produit existant…</option>
+                    <option value="">Link to an existing product…</option>
                     {products.map((p) => (
                       <option key={p.id} value={p.id}>
                         #{p.id} — {p.name}
@@ -204,7 +204,7 @@ export default function TodifyTemplatesPage() {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
           >
-            Précédent
+            Previous
           </button>
           <span className="text-sm text-gray-500">
             Page {page} / {lastPage}
@@ -214,7 +214,7 @@ export default function TodifyTemplatesPage() {
             onClick={() => setPage((p) => Math.min(lastPage, p + 1))}
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
           >
-            Suivant
+            Next
           </button>
         </div>
       )}
@@ -231,7 +231,7 @@ export default function TodifyTemplatesPage() {
           >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-800">
-                {detailLoading ? "Chargement…" : detail?.name}
+                {detailLoading ? "Loading…" : detail?.name}
               </h3>
               <button onClick={() => setDetail(null)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
@@ -241,7 +241,7 @@ export default function TodifyTemplatesPage() {
               <div className="space-y-4 text-sm">
                 {detail.attributes && (
                   <div>
-                    <p className="mb-1 font-medium text-gray-700">Attributs</p>
+                    <p className="mb-1 font-medium text-gray-700">Attributes</p>
                     {Object.entries(detail.attributes).map(([name, values]) => (
                       <div key={name} className="mb-1">
                         <span className="text-gray-500">{name}: </span>
@@ -255,7 +255,7 @@ export default function TodifyTemplatesPage() {
                 {detail.variants && detail.variants.length > 0 && (
                   <div>
                     <p className="mb-1 font-medium text-gray-700">
-                      Variantes ({detail.variants.length})
+                      Variants ({detail.variants.length})
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {detail.variants.slice(0, 30).map((v, i) => (

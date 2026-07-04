@@ -9,7 +9,7 @@ import { StoreSettings } from "@/types/settings";
 const LANGS = [
   { value: "fr", label: "Français" },
   { value: "en", label: "English" },
-  { value: "ar", label: "العربية (Arabe)" },
+  { value: "ar", label: "العربية (Arabic)" },
 ];
 
 type FormState = {
@@ -77,7 +77,7 @@ export default function SettingsPage() {
   useEffect(() => {
     SettingsService.get()
       .then((s) => setForm(toForm(s)))
-      .catch(() => setError("Échec du chargement des paramètres."))
+      .catch(() => setError("Failed to load settings."))
       .finally(() => setLoading(false));
   }, []);
 
@@ -91,7 +91,7 @@ export default function SettingsPage() {
       const updated = await SettingsService.uploadLogo(file);
       update({ logoUrl: updated.logoUrl });
     } catch {
-      setError("Échec du téléversement du logo.");
+      setError("Failed to upload the logo.");
     } finally {
       setUploading(false);
     }
@@ -104,7 +104,7 @@ export default function SettingsPage() {
       const url = await SettingsService.uploadImage(file);
       update(slot === "desktop" ? { heroImageUrl: url } : { heroImageMobileUrl: url });
     } catch {
-      setError("Échec du téléversement de l'image.");
+      setError("Failed to upload the image.");
     } finally {
       setHeroUploading(null);
     }
@@ -113,7 +113,7 @@ export default function SettingsPage() {
   const handleSave = async () => {
     if (!form) return;
     if (!form.storeName.trim()) {
-      setError("Le nom de la boutique est requis.");
+      setError("The store name is required.");
       return;
     }
     setSaving(true);
@@ -146,7 +146,7 @@ export default function SettingsPage() {
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch {
-      setError("Échec de l'enregistrement des paramètres.");
+      setError("Failed to save settings.");
     } finally {
       setSaving(false);
     }
@@ -155,13 +155,13 @@ export default function SettingsPage() {
   return (
     <div>
       <PageHeader
-        title="Paramètres"
-        subtitle="Personnalisez votre boutique : marque, livraison, devise et langue par défaut."
+        title="Settings"
+        subtitle="Customize your store: branding, shipping, currency and default language."
       />
 
       {loading || !form ? (
         <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-400">
-          Chargement…
+          Loading…
         </div>
       ) : (
         <div className="max-w-3xl space-y-6">
@@ -169,16 +169,16 @@ export default function SettingsPage() {
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="mb-4 flex items-center gap-2">
               <Store size={18} className="text-gray-500" />
-              <h2 className="text-sm font-semibold text-gray-800">Marque</h2>
+              <h2 className="text-sm font-semibold text-gray-800">Branding</h2>
             </div>
 
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Nom de la boutique *
+              Store name *
             </label>
             <input
               value={form.storeName}
               onChange={(e) => update({ storeName: e.target.value })}
-              placeholder="ex. BlueQuirk"
+              placeholder="e.g. BlueQuirk"
               className="mb-4 w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
 
@@ -206,14 +206,14 @@ export default function SettingsPage() {
                   ) : (
                     <UploadCloud size={15} />
                   )}
-                  {form.logoUrl ? "Changer le logo" : "Téléverser un logo"}
+                  {form.logoUrl ? "Change logo" : "Upload a logo"}
                 </button>
                 {form.logoUrl && (
                   <button
                     type="button"
                     onClick={() => update({ logoUrl: null })}
                     className="inline-flex items-center gap-1.5 rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
-                    aria-label="Retirer le logo"
+                    aria-label="Remove logo"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -231,7 +231,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <p className="mt-2 text-xs text-gray-400">
-              PNG transparent recommandé. Retirer le logo affiche le nom en texte.
+              Transparent PNG recommended. Removing the logo shows the name as text.
             </p>
           </section>
 
@@ -240,7 +240,7 @@ export default function SettingsPage() {
             <div className="mb-4 flex items-center gap-2">
               <LayoutTemplate size={18} className="text-gray-500" />
               <h2 className="text-sm font-semibold text-gray-800">
-                Section d&apos;accueil (Hero)
+                Home hero section
               </h2>
             </div>
 
@@ -270,13 +270,13 @@ export default function SettingsPage() {
               return (
                 <div key={l.code} className={heroLang === l.code ? "" : "hidden"}>
                   <label className="mb-1 block text-sm font-medium text-gray-700">
-                    Titre ({l.label})
+                    Title ({l.label})
                   </label>
                   <input
                     dir={l.dir}
                     value={(form[titleKey] as string) ?? ""}
                     onChange={(e) => update({ [titleKey]: e.target.value } as Partial<FormState>)}
-                    placeholder="Laisser vide pour le texte par défaut"
+                    placeholder="Leave empty for the default text"
                     className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
 
@@ -288,7 +288,7 @@ export default function SettingsPage() {
                     value={(form[subtitleKey] as string) ?? ""}
                     onChange={(e) => update({ [subtitleKey]: e.target.value } as Partial<FormState>)}
                     rows={2}
-                    placeholder="Laisser vide pour le texte par défaut"
+                    placeholder="Leave empty for the default text"
                     className="mb-4 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                 </div>
@@ -297,11 +297,11 @@ export default function SettingsPage() {
 
             {/* Primary button colours */}
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Bouton principal (couleurs)
+              Primary button (colors)
             </label>
             <div className="mb-4 grid gap-4 sm:grid-cols-2">
               <div>
-                <span className="mb-1 block text-xs text-gray-500">Fond du bouton</span>
+                <span className="mb-1 block text-xs text-gray-500">Button background</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -320,7 +320,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => update({ heroBtnBgColor: "" })}
                       className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
-                      aria-label="Réinitialiser le fond"
+                      aria-label="Reset background"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -328,7 +328,7 @@ export default function SettingsPage() {
                 </div>
               </div>
               <div>
-                <span className="mb-1 block text-xs text-gray-500">Couleur du texte</span>
+                <span className="mb-1 block text-xs text-gray-500">Text color</span>
                 <div className="flex items-center gap-2">
                   <input
                     type="color"
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => update({ heroBtnTextColor: "" })}
                       className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
-                      aria-label="Réinitialiser le texte"
+                      aria-label="Reset text"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -356,11 +356,11 @@ export default function SettingsPage() {
               </div>
             </div>
             <p className="mb-4 text-xs text-gray-400">
-              S&apos;applique au premier bouton du hero. Laisser vide pour le style par défaut.
+              Applies to the hero&apos;s first button. Leave empty for the default style.
             </p>
 
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Couleur de fond
+              Background color
             </label>
             <div className="mb-1 flex items-center gap-2">
               <input
@@ -380,21 +380,21 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => update({ heroBgColor: "" })}
                   className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
-                  aria-label="Retirer la couleur"
+                  aria-label="Remove color"
                 >
                   <Trash2 size={15} />
                 </button>
               )}
             </div>
             <p className="mb-4 text-xs text-gray-400">
-              Utilisée s&apos;il n&apos;y a pas d&apos;image de fond.
+              Used when there is no background image.
             </p>
 
             {/* Background images: desktop + mobile */}
             <div className="grid gap-4 sm:grid-cols-2">
               {([
-                ["desktop", "Image de fond (ordinateur)", form.heroImageUrl, heroDesktopInput] as const,
-                ["mobile", "Image de fond (téléphone)", form.heroImageMobileUrl, heroMobileInput] as const,
+                ["desktop", "Background image (desktop)", form.heroImageUrl, heroDesktopInput] as const,
+                ["mobile", "Background image (mobile)", form.heroImageMobileUrl, heroMobileInput] as const,
               ]).map(([slot, label, url, ref]) => (
                 <div key={slot}>
                   <label className="mb-1 block text-sm font-medium text-gray-700">{label}</label>
@@ -418,7 +418,7 @@ export default function SettingsPage() {
                       ) : (
                         <UploadCloud size={14} />
                       )}
-                      {url ? "Changer" : "Téléverser"}
+                      {url ? "Change" : "Upload"}
                     </button>
                     {url && (
                       <button
@@ -427,7 +427,7 @@ export default function SettingsPage() {
                           update(slot === "desktop" ? { heroImageUrl: null } : { heroImageMobileUrl: null })
                         }
                         className="rounded-md p-1.5 text-rose-600 transition hover:bg-rose-50"
-                        aria-label="Retirer l'image"
+                        aria-label="Remove image"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -447,19 +447,19 @@ export default function SettingsPage() {
               ))}
             </div>
             <p className="mt-2 text-xs text-gray-400">
-              Si une seule image est définie, elle sert pour les deux formats. Sans image, la couleur de fond est utilisée.
+              If only one image is set, it is used for both formats. Without an image, the background color is used.
             </p>
           </section>
 
           {/* Shipping */}
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-gray-800">
-              Livraison & devise
+              Shipping & currency
             </h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Frais de livraison
+                  Shipping fee
                 </label>
                 <input
                   type="number"
@@ -472,7 +472,7 @@ export default function SettingsPage() {
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Seuil livraison gratuite
+                  Free shipping threshold
                 </label>
                 <input
                   type="number"
@@ -482,11 +482,11 @@ export default function SettingsPage() {
                   onChange={(e) => update({ freeShippingThreshold: e.target.value })}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
-                <p className="mt-1 text-xs text-gray-400">0 = désactivé</p>
+                <p className="mt-1 text-xs text-gray-400">0 = disabled</p>
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Devise
+                  Currency
                 </label>
                 <input
                   value={form.currency}
@@ -500,9 +500,9 @@ export default function SettingsPage() {
 
           {/* Locale */}
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-gray-800">Langue</h2>
+            <h2 className="mb-4 text-sm font-semibold text-gray-800">Language</h2>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Langue par défaut
+              Default language
             </label>
             <select
               value={form.defaultLang}
@@ -516,7 +516,7 @@ export default function SettingsPage() {
               ))}
             </select>
             <p className="mt-2 text-xs text-gray-400">
-              Langue affichée aux nouveaux visiteurs (sans préférence enregistrée).
+              Language shown to new visitors (with no saved preference).
             </p>
           </section>
 
@@ -529,11 +529,11 @@ export default function SettingsPage() {
               className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
             >
               {saving && <Loader2 size={15} className="animate-spin" />}
-              Enregistrer les modifications
+              Save changes
             </button>
             {saved && (
               <span className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600">
-                <Check size={15} /> Enregistré
+                <Check size={15} /> Saved
               </span>
             )}
           </div>

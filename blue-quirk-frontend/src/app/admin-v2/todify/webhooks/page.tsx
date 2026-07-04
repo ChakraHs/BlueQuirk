@@ -23,7 +23,7 @@ export default function TodifyWebhooksPage() {
       setWebhooks(res.data ?? []);
       setError(null);
     } catch (e) {
-      setError(messageOf(e, "Impossible de charger les webhooks."));
+      setError(messageOf(e, "Unable to load webhooks."));
     } finally {
       setLoading(false);
     }
@@ -43,7 +43,7 @@ export default function TodifyWebhooksPage() {
       setUrl("");
       await load();
     } catch (e) {
-      setError(messageOf(e, "Échec de l'enregistrement du webhook."));
+      setError(messageOf(e, "Failed to register the webhook."));
     } finally {
       setBusy(false);
     }
@@ -55,7 +55,7 @@ export default function TodifyWebhooksPage() {
       await TodifyService.deleteWebhook(id);
       await load();
     } catch (e) {
-      setError(messageOf(e, "Échec de la suppression."));
+      setError(messageOf(e, "Failed to delete."));
     } finally {
       setBusy(false);
     }
@@ -64,18 +64,18 @@ export default function TodifyWebhooksPage() {
   return (
     <div>
       <PageHeader
-        title="Webhooks Todify"
-        subtitle="Recevez les événements Todify en temps réel (templates et statuts de commande)."
+        title="Todify Webhooks"
+        subtitle="Receive Todify events in real time (templates and order statuses)."
       />
 
       {/* Register form */}
       <div className="mb-5 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-        <p className="mb-3 text-sm font-medium text-gray-700">Enregistrer un webhook</p>
+        <p className="mb-3 text-sm font-medium text-gray-700">Register a webhook</p>
         <div className="flex flex-col gap-2 sm:flex-row">
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://votre-domaine.com/api/todify/webhook"
+            placeholder="https://your-domain.com/api/todify/webhook"
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <select
@@ -94,19 +94,19 @@ export default function TodifyWebhooksPage() {
             onClick={register}
             className="inline-flex items-center justify-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            <Plus size={15} /> Ajouter
+            <Plus size={15} /> Add
           </button>
         </div>
         <p className="mt-2 text-xs text-gray-400">
-          L&apos;URL doit être en HTTPS et publiquement accessible (localhost et IP
-          privées sont rejetés par Todify).
+          The URL must be HTTPS and publicly accessible (localhost and private
+          IPs are rejected by Todify).
         </p>
       </div>
 
       {newSecret && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
           <p className="font-medium">
-            Secret du webhook — affiché une seule fois, copiez-le maintenant :
+            Webhook secret — shown only once, copy it now:
           </p>
           <div className="mt-2 flex items-center gap-2">
             <code className="flex-1 break-all rounded bg-white px-2 py-1 font-mono text-xs">
@@ -116,12 +116,12 @@ export default function TodifyWebhooksPage() {
               onClick={() => navigator.clipboard?.writeText(newSecret)}
               className="inline-flex items-center gap-1 rounded-md border border-amber-300 px-2 py-1 text-xs hover:bg-amber-100"
             >
-              <Copy size={13} /> Copier
+              <Copy size={13} /> Copy
             </button>
           </div>
           <p className="mt-2 text-xs">
-            Ajoutez-le au backend via <code>TODIFY_WEBHOOK_SECRET</code> (dans{" "}
-            <code>.env</code>) pour valider les signatures.
+            Add it to the backend via <code>TODIFY_WEBHOOK_SECRET</code> (in{" "}
+            <code>.env</code>) to validate signatures.
           </p>
         </div>
       )}
@@ -131,7 +131,7 @@ export default function TodifyWebhooksPage() {
           onClick={load}
           className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <RefreshCw size={15} /> Actualiser
+          <RefreshCw size={15} /> Refresh
         </button>
       </div>
 
@@ -146,16 +146,16 @@ export default function TodifyWebhooksPage() {
       ) : webhooks.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Webhook className="mx-auto mb-3 text-gray-300" size={40} />
-          <p className="text-sm text-gray-500">Aucun webhook enregistré.</p>
+          <p className="text-sm text-gray-500">No webhooks registered.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-4 py-3 text-left">Événement</th>
+                <th className="px-4 py-3 text-left">Event</th>
                 <th className="px-4 py-3 text-left">URL</th>
-                <th className="px-4 py-3 text-center">Actif</th>
+                <th className="px-4 py-3 text-center">Active</th>
                 <th className="px-4 py-3 text-right">Action</th>
               </tr>
             </thead>
@@ -173,7 +173,7 @@ export default function TodifyWebhooksPage() {
                       onClick={() => remove(w.id)}
                       className="inline-flex items-center gap-1 rounded-md border border-red-200 px-2.5 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
-                      <Trash2 size={13} /> Supprimer
+                      <Trash2 size={13} /> Delete
                     </button>
                   </td>
                 </tr>

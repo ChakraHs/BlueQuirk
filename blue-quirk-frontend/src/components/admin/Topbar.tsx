@@ -31,7 +31,7 @@ export default function Topbar() {
         className="hidden items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-gray-500 transition hover:bg-gray-50 hover:text-gray-800 sm:inline-flex"
       >
         <ExternalLink size={15} />
-        Voir la boutique
+        View store
       </Link>
 
       <div className="flex items-center gap-2">
@@ -48,7 +48,7 @@ export default function Topbar() {
         className="inline-flex items-center gap-2 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
       >
         <LogOut size={16} />
-        <span className="hidden sm:inline">Déconnexion</span>
+        <span className="hidden sm:inline">Logout</span>
       </button>
     </header>
   );

@@ -142,38 +142,38 @@ export default function AdminDashboard() {
     <div>
       <div className="mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">
-          Tableau de bord
+          Dashboard
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Vue d&apos;ensemble de votre boutique BlueQuirk.
+          Overview of your BlueQuirk store.
         </p>
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Chiffre d'affaires"
+          label="Revenue"
           value={formatPrice(stats.revenue)}
           icon={DollarSign}
           accent="green"
-          hint="Commandes non annulées"
+          hint="Non-cancelled orders"
         />
         <StatCard
-          label="Commandes"
+          label="Orders"
           value={orders.length}
           icon={ShoppingBag}
           accent="blue"
-          hint={`Panier moyen ${formatPrice(stats.avg)}`}
+          hint={`Average order ${formatPrice(stats.avg)}`}
         />
         <StatCard
-          label="Produits"
+          label="Products"
           value={productTotal}
           icon={Package}
           accent="violet"
-          hint={`${stats.lowStock.length} en stock faible`}
+          hint={`${stats.lowStock.length} low in stock`}
         />
         <StatCard
-          label="Clients"
+          label="Customers"
           value={customerCount}
           icon={Users}
           accent="amber"
@@ -186,7 +186,7 @@ export default function AdminDashboard() {
           <div className="mb-4 flex items-center gap-2">
             <TrendingUp size={18} className="text-blue-600" />
             <h2 className="text-sm font-semibold text-gray-700">
-              Chiffre d&apos;affaires (14 derniers jours)
+              Revenue (last 14 days)
             </h2>
           </div>
           {loading ? (
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-gray-700">
-            Commandes par statut
+            Orders by status
           </h2>
           {loading ? (
             <div className="h-[180px] animate-pulse rounded bg-gray-100" />
@@ -213,13 +213,13 @@ export default function AdminDashboard() {
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm lg:col-span-2">
           <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-700">
-              Commandes récentes
+              Recent orders
             </h2>
             <Link
               href="/admin-v2/orders"
               className="text-sm font-medium text-blue-600 hover:text-blue-800"
             >
-              Tout voir
+              View all
             </Link>
           </div>
           {loading ? (
@@ -228,7 +228,7 @@ export default function AdminDashboard() {
             </div>
           ) : stats.recent.length === 0 ? (
             <p className="p-8 text-center text-sm text-gray-400">
-              Aucune commande pour le moment.
+              No orders yet.
             </p>
           ) : (
             <table className="w-full text-sm">
@@ -260,7 +260,7 @@ export default function AdminDashboard() {
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-100 px-5 py-4">
             <h2 className="text-sm font-semibold text-gray-700">
-              Meilleures ventes
+              Best sellers
             </h2>
           </div>
           {loading ? (
@@ -271,7 +271,7 @@ export default function AdminDashboard() {
             </div>
           ) : stats.topProducts.length === 0 ? (
             <p className="p-8 text-center text-sm text-gray-400">
-              Pas encore de ventes.
+              No sales yet.
             </p>
           ) : (
             <ul className="divide-y divide-gray-100">
@@ -287,7 +287,7 @@ export default function AdminDashboard() {
                     {p.name}
                   </span>
                   <span className="text-xs font-semibold text-gray-500">
-                    {p.qty} vendus
+                    {p.qty} sold
                   </span>
                 </li>
               ))}
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
           <div className="mb-3 flex items-center gap-2">
             <AlertTriangle size={18} className="text-amber-600" />
             <h2 className="text-sm font-semibold text-amber-800">
-              Stock faible
+              Low stock
             </h2>
           </div>
           <div className="flex flex-wrap gap-2">

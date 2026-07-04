@@ -28,7 +28,7 @@ export default function MiniLineChart({
         className="flex items-center justify-center text-sm text-gray-400"
         style={{ height }}
       >
-        Pas encore de données
+        No data yet
       </div>
     );
   }

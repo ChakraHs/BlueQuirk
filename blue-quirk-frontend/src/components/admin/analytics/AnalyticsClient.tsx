@@ -42,13 +42,13 @@ import {
 } from "@/services/analytics.service";
 
 const RANGES: { key: RangeKey; label: string }[] = [
-  { key: "today", label: "Aujourd'hui" },
-  { key: "yesterday", label: "Hier" },
-  { key: "7d", label: "7 jours" },
-  { key: "30d", label: "30 jours" },
-  { key: "90d", label: "90 jours" },
-  { key: "year", label: "Cette année" },
-  { key: "custom", label: "Personnalisé" },
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "7d", label: "7 days" },
+  { key: "30d", label: "30 days" },
+  { key: "90d", label: "90 days" },
+  { key: "year", label: "This year" },
+  { key: "custom", label: "Custom" },
 ];
 
 const COLORS = ["#2563eb", "#7c3aed", "#0ea5e9", "#f59e0b", "#10b981", "#ef4444", "#ec4899", "#64748b"];
@@ -102,7 +102,7 @@ export default function AnalyticsClient() {
     <div>
       <PageHeader
         title="Analytics"
-        subtitle="Trafic, audience et conversions — auto-hébergé, sans service tiers."
+        subtitle="Traffic, audience and conversions — self-hosted, no third-party service."
       >
         {ov && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700">
@@ -110,7 +110,7 @@ export default function AnalyticsClient() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
             </span>
-            {ov.onlineVisitors} en ligne
+            {ov.onlineVisitors} online
           </span>
         )}
       </PageHeader>
@@ -152,13 +152,13 @@ export default function AnalyticsClient() {
 
       {error && (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-          Échec du chargement des statistiques. Le backend est-il démarré ?
+          Failed to load analytics. Is the backend running?
         </div>
       )}
 
       {!data ? (
         <div className="flex h-64 items-center justify-center text-gray-400">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Chargement…
+          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
         </div>
       ) : (
         <div className={loading ? "opacity-60 transition-opacity" : "transition-opacity"}>
@@ -168,8 +168,8 @@ export default function AnalyticsClient() {
           <SalesVsVisits ov={ov!} />
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <DonutCard title="Sources de trafic" data={data.traffic.referrers} />
-            <DonutCard title="Appareils" data={data.devices.devices} />
+            <DonutCard title="Traffic sources" data={data.traffic.referrers} />
+            <DonutCard title="Devices" data={data.devices.devices} />
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
@@ -178,13 +178,13 @@ export default function AnalyticsClient() {
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <BreakdownCard title="Navigateurs" data={data.devices.browsers} />
-            <BreakdownCard title="Systèmes" data={data.devices.os} />
+            <BreakdownCard title="Browsers" data={data.devices.browsers} />
+            <BreakdownCard title="Operating systems" data={data.devices.os} />
           </div>
 
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
-            <BreakdownCard title="Pays" data={data.countries.countries} empty="Aucune donnée géo (base GeoLite2 non installée)." />
-            <BreakdownCard title="Résolutions d'écran" data={data.devices.screens} />
+            <BreakdownCard title="Countries" data={data.countries.countries} empty="No geo data (GeoLite2 database not installed)." />
+            <BreakdownCard title="Screen resolutions" data={data.devices.screens} />
           </div>
 
           <TopProducts products={data.products} />
@@ -198,12 +198,12 @@ export default function AnalyticsClient() {
 
 function KpiRow({ ov }: { ov: OverviewResponse }) {
   const cards = [
-    { label: "Visites totales", value: ov.totalVisits.toLocaleString(), growth: ov.visitsGrowthPct, icon: TrendingUp },
-    { label: "Visiteurs uniques", value: ov.uniqueVisitors.toLocaleString(), icon: Users },
-    { label: "Visiteurs récurrents", value: ov.returningVisitors.toLocaleString(), icon: Repeat },
-    { label: "Durée moy. session", value: formatDuration(ov.avgSessionSeconds), icon: Timer },
-    { label: "Taux de rebond", value: `${ov.bounceRate.toFixed(1)}%`, icon: MousePointerClick },
-    { label: "Taux de conversion", value: `${ov.conversionRate.toFixed(1)}%`, icon: Activity },
+    { label: "Total visits", value: ov.totalVisits.toLocaleString(), growth: ov.visitsGrowthPct, icon: TrendingUp },
+    { label: "Unique visitors", value: ov.uniqueVisitors.toLocaleString(), icon: Users },
+    { label: "Returning visitors", value: ov.returningVisitors.toLocaleString(), icon: Repeat },
+    { label: "Avg. session duration", value: formatDuration(ov.avgSessionSeconds), icon: Timer },
+    { label: "Bounce rate", value: `${ov.bounceRate.toFixed(1)}%`, icon: MousePointerClick },
+    { label: "Conversion rate", value: `${ov.conversionRate.toFixed(1)}%`, icon: Activity },
   ];
   return (
     <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
@@ -226,7 +226,7 @@ function Growth({ pct }: { pct: number }) {
   return (
     <div className={`mt-1 inline-flex items-center gap-0.5 text-xs font-medium ${up ? "text-emerald-600" : "text-rose-600"}`}>
       {up ? <ArrowUpRight size={13} /> : <ArrowDownRight size={13} />}
-      {Math.abs(pct).toFixed(1)}% vs période préc.
+      {Math.abs(pct).toFixed(1)}% vs prev. period
     </div>
   );
 }
@@ -234,11 +234,11 @@ function Growth({ pct }: { pct: number }) {
 function TrafficOverview({ ov }: { ov: OverviewResponse }) {
   const t = ov.traffic;
   const items = [
-    { label: "Aujourd'hui", value: t.today },
-    { label: "Hier", value: t.yesterday },
-    { label: "Cette semaine", value: t.thisWeek },
-    { label: "Ce mois", value: t.thisMonth },
-    { label: "Mois dernier", value: t.lastMonth },
+    { label: "Today", value: t.today },
+    { label: "Yesterday", value: t.yesterday },
+    { label: "This week", value: t.thisWeek },
+    { label: "This month", value: t.thisMonth },
+    { label: "Last month", value: t.lastMonth },
   ];
   return (
     <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -269,7 +269,7 @@ function Card({ title, children, right }: { title: string; children: React.React
 function VisitsChart({ ov }: { ov: OverviewResponse }) {
   return (
     <div className="mt-6">
-      <Card title="Visites & visiteurs uniques">
+      <Card title="Visits & unique visitors">
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={ov.series} margin={{ left: -20, right: 8, top: 8 }}>
             <defs>
@@ -287,8 +287,8 @@ function VisitsChart({ ov }: { ov: OverviewResponse }) {
             <YAxis tick={{ fontSize: 11, fill: "#94a3b8" }} allowDecimals={false} width={44} />
             <Tooltip contentStyle={TOOLTIP} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Area type="monotone" dataKey="visits" name="Visites" stroke="#2563eb" fill="url(#gVisits)" strokeWidth={2} />
-            <Area type="monotone" dataKey="uniques" name="Uniques" stroke="#7c3aed" fill="url(#gUniq)" strokeWidth={2} />
+            <Area type="monotone" dataKey="visits" name="Visits" stroke="#2563eb" fill="url(#gVisits)" strokeWidth={2} />
+            <Area type="monotone" dataKey="uniques" name="Unique" stroke="#7c3aed" fill="url(#gUniq)" strokeWidth={2} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -299,7 +299,7 @@ function VisitsChart({ ov }: { ov: OverviewResponse }) {
 function SalesVsVisits({ ov }: { ov: OverviewResponse }) {
   return (
     <div className="mt-6">
-      <Card title="Ventes vs visites">
+      <Card title="Sales vs visits">
         <ResponsiveContainer width="100%" height={280}>
           <ComposedChart data={ov.series} margin={{ left: -20, right: 8, top: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
@@ -308,8 +308,8 @@ function SalesVsVisits({ ov }: { ov: OverviewResponse }) {
             <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11, fill: "#94a3b8" }} width={44} />
             <Tooltip contentStyle={TOOLTIP} />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar yAxisId="r" dataKey="revenue" name="Revenu" fill="#10b981" radius={[4, 4, 0, 0]} barSize={14} />
-            <Line yAxisId="l" type="monotone" dataKey="visits" name="Visites" stroke="#2563eb" strokeWidth={2} dot={false} />
+            <Bar yAxisId="r" dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} barSize={14} />
+            <Line yAxisId="l" type="monotone" dataKey="visits" name="Visits" stroke="#2563eb" strokeWidth={2} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </Card>
@@ -366,7 +366,7 @@ function BreakdownCard({ title, data, empty }: { title: string; data: { label: s
 
 function TopPages({ pages }: { pages: PageStat[] }) {
   return (
-    <Card title="Pages les plus vues">
+    <Card title="Most viewed pages">
       {pages.length === 0 ? (
         <Empty />
       ) : (
@@ -375,10 +375,10 @@ function TopPages({ pages }: { pages: PageStat[] }) {
             <thead>
               <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
                 <th className="pb-2 font-medium">Page</th>
-                <th className="pb-2 text-right font-medium">Vues</th>
-                <th className="pb-2 text-right font-medium">Uniques</th>
-                <th className="pb-2 text-right font-medium">Rebond</th>
-                <th className="pb-2 text-right font-medium">Sortie</th>
+                <th className="pb-2 text-right font-medium">Views</th>
+                <th className="pb-2 text-right font-medium">Unique</th>
+                <th className="pb-2 text-right font-medium">Bounce</th>
+                <th className="pb-2 text-right font-medium">Exit</th>
               </tr>
             </thead>
             <tbody>
@@ -402,7 +402,7 @@ function TopPages({ pages }: { pages: PageStat[] }) {
 function Journeys({ paths }: { paths: { path: string; count: number }[] }) {
   const max = Math.max(1, ...paths.map((p) => p.count));
   return (
-    <Card title="Parcours les plus fréquents">
+    <Card title="Most frequent journeys">
       {paths.length === 0 ? (
         <Empty />
       ) : (
@@ -427,7 +427,7 @@ function Journeys({ paths }: { paths: { path: string; count: number }[] }) {
 function TopProducts({ products }: { products: ProductStat[] }) {
   return (
     <div className="mt-6">
-      <Card title="Performance produits">
+      <Card title="Product performance">
         {products.length === 0 ? (
           <Empty />
         ) : (
@@ -435,12 +435,12 @@ function TopProducts({ products }: { products: ProductStat[] }) {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 text-left text-xs uppercase tracking-wide text-gray-400">
-                  <th className="pb-2 font-medium">Produit</th>
-                  <th className="pb-2 text-right font-medium">Vues</th>
-                  <th className="pb-2 text-right font-medium">Panier</th>
+                  <th className="pb-2 font-medium">Product</th>
+                  <th className="pb-2 text-right font-medium">Views</th>
+                  <th className="pb-2 text-right font-medium">Cart</th>
                   <th className="pb-2 text-right font-medium">Buy Now</th>
                   <th className="pb-2 text-right font-medium">Wishlist</th>
-                  <th className="pb-2 text-right font-medium">Achats</th>
+                  <th className="pb-2 text-right font-medium">Purchases</th>
                   <th className="pb-2 text-right font-medium">Conv.</th>
                 </tr>
               </thead>
@@ -487,7 +487,7 @@ const TOOLTIP = {
 function Empty({ text }: { text?: string }) {
   return (
     <div className="flex h-40 items-center justify-center text-center text-sm text-gray-400">
-      {text || "Aucune donnée sur cette période."}
+      {text || "No data for this period."}
     </div>
   );
 }

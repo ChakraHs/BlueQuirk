@@ -23,7 +23,7 @@ export default function CancelOrderDialog({
   const [preset, setPreset] = useState<string>(CANCELLATION_REASONS[0]);
   const [custom, setCustom] = useState("");
 
-  const reason = preset === "Autre" ? custom.trim() : preset;
+  const reason = preset === "Other" ? custom.trim() : preset;
 
   return (
     <div
@@ -35,10 +35,10 @@ export default function CancelOrderDialog({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="text-lg font-semibold text-gray-800">
-          Annuler la commande{orderLabel ? ` ${orderLabel}` : ""}
+          Cancel order{orderLabel ? ` ${orderLabel}` : ""}
         </h3>
         <p className="mt-1 text-sm text-gray-500">
-          Sélectionnez un motif. Le client en sera informé par e-mail.
+          Select a reason. The customer will be notified by email.
         </p>
 
         <div className="mt-4 space-y-2">
@@ -57,12 +57,12 @@ export default function CancelOrderDialog({
               {r}
             </label>
           ))}
-          {preset === "Autre" && (
+          {preset === "Other" && (
             <input
               autoFocus
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
-              placeholder="Précisez le motif…"
+              placeholder="Specify the reason…"
               maxLength={500}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
@@ -75,7 +75,7 @@ export default function CancelOrderDialog({
             disabled={busy}
             className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
           >
-            Retour
+            Back
           </button>
           <button
             onClick={() => reason && onConfirm(reason)}
@@ -83,7 +83,7 @@ export default function CancelOrderDialog({
             className="inline-flex items-center gap-2 rounded-md bg-rose-600 px-4 py-2 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50"
           >
             {busy && <Loader2 size={15} className="animate-spin" />}
-            Confirmer l&apos;annulation
+            Confirm cancellation
           </button>
         </div>
       </div>

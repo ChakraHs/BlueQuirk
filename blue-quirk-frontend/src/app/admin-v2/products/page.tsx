@@ -22,18 +22,18 @@ function StockBadge({ qty }: { qty?: number }) {
   if (qty <= 0)
     return (
       <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-medium text-rose-700">
-        Rupture
+        Out of stock
       </span>
     );
   if (qty <= LOW_STOCK)
     return (
       <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">
-        {qty} en stock
+        {qty} in stock
       </span>
     );
   return (
     <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
-      {qty} en stock
+      {qty} in stock
     </span>
   );
 }
@@ -55,7 +55,7 @@ export default function ProductsPage() {
       const res: PageResponse<Product> = await ProductService.getAll(0, 500);
       setProducts(res.content);
     } catch {
-      setError("Échec du chargement des produits.");
+      setError("Failed to load products.");
     } finally {
       setLoading(false);
     }
@@ -85,7 +85,7 @@ export default function ProductsPage() {
       setProducts((prev) => prev.filter((p) => p.id !== toDelete.id));
       setToDelete(null);
     } catch {
-      setError("Échec de la suppression du produit.");
+      setError("Failed to delete product.");
     } finally {
       setDeleting(false);
     }
@@ -93,12 +93,12 @@ export default function ProductsPage() {
 
   return (
     <div>
-      <PageHeader title="Produits" subtitle="Gérez votre catalogue.">
+      <PageHeader title="Products" subtitle="Manage your catalog.">
         <Link
           href="/admin-v2/products/new"
           className="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-black"
         >
-          <Plus size={16} /> Ajouter un produit
+          <Plus size={16} /> Add product
         </Link>
       </PageHeader>
 
@@ -123,7 +123,7 @@ export default function ProductsPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Rechercher un produit…"
+            placeholder="Search products…"
             className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
@@ -132,7 +132,7 @@ export default function ProductsPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
         >
-          <option value="ALL">Tous les statuts</option>
+          <option value="ALL">All statuses</option>
           {STATUSES.map((s) => (
             <option key={s} value={s}>
               {s}
@@ -146,17 +146,17 @@ export default function ProductsPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Package className="mx-auto mb-3 text-gray-300" size={40} />
-          <p className="text-sm text-gray-500">Aucun produit trouvé.</p>
+          <p className="text-sm text-gray-500">No products found.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-5 py-3 text-left">Produit</th>
-                <th className="px-5 py-3 text-left">Prix</th>
+                <th className="px-5 py-3 text-left">Product</th>
+                <th className="px-5 py-3 text-left">Price</th>
                 <th className="px-5 py-3 text-left">Stock</th>
-                <th className="px-5 py-3 text-left">Statut</th>
+                <th className="px-5 py-3 text-left">Status</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -195,13 +195,13 @@ export default function ProductsPage() {
                         href={`/admin-v2/products/${p.id}`}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50"
                       >
-                        <Pencil size={14} /> Modifier
+                        <Pencil size={14} /> Edit
                       </Link>
                       <button
                         onClick={() => setToDelete(p)}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-rose-600 hover:bg-rose-50"
                       >
-                        <Trash2 size={14} /> Supprimer
+                        <Trash2 size={14} /> Delete
                       </button>
                     </div>
                   </td>
@@ -214,9 +214,9 @@ export default function ProductsPage() {
 
       <ConfirmDialog
         open={toDelete !== null}
-        title="Supprimer le produit"
-        message={`Supprimer « ${toDelete?.name} » ? Cette action est irréversible.`}
-        confirmLabel="Supprimer"
+        title="Delete product"
+        message={`Delete "${toDelete?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}
