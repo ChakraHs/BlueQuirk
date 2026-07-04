@@ -97,6 +97,15 @@
 		    <artifactId>scrimage-webp</artifactId>
 		    <version>4.3.0</version>
 		</dependency>
+
+		<!-- Self-hosted IP geolocation (offline MaxMind GeoLite2 .mmdb). Used by
+		     analytics GeoLocationService; degrades gracefully when the DB file is
+		     absent, so this dep is safe to ship without the data file present. -->
+		<dependency>
+		    <groupId>com.maxmind.geoip2</groupId>
+		    <artifactId>geoip2</artifactId>
+		    <version>4.2.0</version>
+		</dependency>
 	</dependencies>
 	
 	<profiles>

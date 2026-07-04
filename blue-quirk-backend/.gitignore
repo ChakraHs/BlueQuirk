@@ -31,3 +31,7 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# Self-hosted analytics: offline MaxMind GeoLite2 DB + runtime log (not committed)
+geoip/
+backend-run.log
