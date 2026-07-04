@@ -40,3 +40,12 @@ blue-quirk-backend/docker/uploads/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local dev helpers & artifacts (not part of the project)
+.agents/
+db-backup-*.sql
+probe.ps1
+**/run-backend.cmd
+
+# GeoIP database (downloaded separately, see analytics docs)
+**/geoip/
