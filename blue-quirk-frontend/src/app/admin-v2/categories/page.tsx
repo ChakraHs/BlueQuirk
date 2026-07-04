@@ -8,11 +8,15 @@ import {
   Pencil,
   CornerDownRight,
   X,
+  UploadCloud,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { CategoryService } from "@/services/category.service";
+import { ImageService } from "@/services/image.service";
 import { Category } from "@/types/category";
 
 type Translation = { name: string; description: string };
@@ -53,6 +57,33 @@ export default function CategoriesPage() {
   const [formError, setFormError] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
+  // Category image upload (single image, same backend flow as products:
+  // uploads the original to the shop API which stores it on Cloudflare R2 and
+  // returns the optimized URLs — see image.service.ts / ImageController).
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageFile = async (file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setImageError("Le fichier doit être une image.");
+      return;
+    }
+    setImageError(null);
+    setUploadingImage(true);
+    try {
+      const uploaded = await ImageService.upload(file);
+      // Store the optimized display variant (falls back to the original URL),
+      // which is what the storefront renders for category covers/cards.
+      setForm((f) => ({ ...f, imageUrl: uploaded.displayUrl || uploaded.url }));
+    } catch {
+      setImageError("Échec du téléversement de l'image. Réessayez.");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const load = async () => {
     try {
       setLoading(true);
@@ -84,6 +115,7 @@ export default function CategoriesPage() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError(null);
+    setImageError(null);
     setShowForm(true);
   };
 
@@ -98,6 +130,7 @@ export default function CategoriesPage() {
       ar: translationFor(c, "ar"),
     });
     setFormError(null);
+    setImageError(null);
     setShowForm(true);
     setTimeout(
       () => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }),
@@ -110,6 +143,7 @@ export default function CategoriesPage() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setFormError(null);
+    setImageError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -275,14 +309,89 @@ export default function CategoriesPage() {
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                URL de l&apos;image
+                Image de la catégorie
               </label>
+
+              {form.imageUrl ? (
+                <div className="flex items-center gap-3">
+                  <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={form.imageUrl}
+                      alt="Aperçu de la catégorie"
+                      className="h-full w-full object-cover"
+                    />
+                    {uploadingImage && (
+                      <span className="absolute inset-0 flex items-center justify-center bg-black/30">
+                        <Loader2 className="animate-spin text-white" size={20} />
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="inline-flex w-fit items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      <UploadCloud size={15} /> Remplacer
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setForm({ ...form, imageUrl: "" })}
+                      disabled={uploadingImage}
+                      className="inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
+                    >
+                      <Trash2 size={15} /> Retirer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  onClick={() => !uploadingImage && imageInputRef.current?.click()}
+                  role="button"
+                  tabIndex={0}
+                  className={`flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed px-6 py-6 text-center transition ${
+                    uploadingImage
+                      ? "border-gray-300 bg-gray-50"
+                      : "border-gray-300 bg-gray-50 hover:border-gray-400"
+                  }`}
+                >
+                  {uploadingImage ? (
+                    <>
+                      <Loader2 className="mb-2 animate-spin text-gray-400" size={26} />
+                      <p className="text-sm font-medium text-gray-600">Téléversement…</p>
+                    </>
+                  ) : (
+                    <>
+                      <UploadCloud className="mb-2 text-gray-400" size={26} />
+                      <p className="text-sm font-medium text-gray-600">
+                        Cliquez pour téléverser une image
+                      </p>
+                      <p className="mt-1 text-xs text-gray-400">
+                        JPG, PNG, WebP — optimisée automatiquement par le serveur
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+
               <input
-                value={form.imageUrl}
-                onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                placeholder="Optionnel — https://…"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                ref={imageInputRef}
+                type="file"
+                accept="image/*"
+                hidden
+                onChange={(e) => {
+                  handleImageFile(e.target.files?.[0]);
+                  e.target.value = "";
+                }}
               />
+
+              {imageError && (
+                <p className="mt-2 flex items-center gap-1 text-xs text-red-600">
+                  <AlertCircle size={12} /> {imageError}
+                </p>
+              )}
             </div>
           </div>
 
