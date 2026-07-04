@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Heart, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
+import { track } from "@/lib/analytics/tracker";
 import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
@@ -202,6 +203,8 @@ export default function ProductDetailClient({
     }
     rememberSize();
     addToCart(buildCartItem());
+    // Buy-now is a product-attributed checkout start (feeds the product funnel).
+    track("begin_checkout", { productId: product.id, meta: { source: "buy_now" } });
     // The checkout page gates on auth (redirects guests to sign up).
     router.push(`/${lang}/checkout`);
   };

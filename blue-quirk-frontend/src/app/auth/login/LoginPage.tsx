@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Eye, EyeOff, Loader2, Lock, User, AlertCircle } from "lucide-react";
 import { authProvider } from "../authProvider";
 import { accountHref } from "@/lib/auth";
+import { track } from "@/lib/analytics/tracker";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -45,6 +46,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await authProvider.login(credentials);
+      track("login");
       // Honour an explicit redirect (e.g. back to checkout); otherwise route by
       // role: admins to the dashboard, customers to their account.
       router.push(redirectTo || accountHref());

@@ -24,7 +24,8 @@
     "react-dom": "18.2.0",
     "react-final-form": "^7.0.0",
     "react-icons": "^5.5.0",
-    "react-quill": "^2.0.0"
+    "react-quill": "^2.0.0",
+    "recharts": "^3.9.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

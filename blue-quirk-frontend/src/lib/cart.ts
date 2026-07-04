@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics/tracker";
 
 export type CartItem = {
   id: number;
@@ -45,6 +46,7 @@ export function addToCart(item: CartItem) {
     cart.push(item);
   }
   writeCart(cart);
+  track("add_to_cart", { productId: item.id, value: item.quantity });
 }
 
 export function setQuantity(key: string, quantity: number) {

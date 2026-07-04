@@ -15,6 +15,7 @@ import {
   Webhook,
   ScrollText,
   Settings,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,7 +25,10 @@ type Group = { heading: string; items: Item[] };
 const groups: Group[] = [
   {
     heading: "Aperçu",
-    items: [{ name: "Tableau de bord", href: "/admin-v2", icon: LayoutDashboard }],
+    items: [
+      { name: "Tableau de bord", href: "/admin-v2", icon: LayoutDashboard },
+      { name: "Analytics", href: "/admin-v2/analytics", icon: BarChart3 },
+    ],
   },
   {
     heading: "Ventes",

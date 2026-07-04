@@ -14,6 +14,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import { track } from "@/lib/analytics/tracker";
+
 // Identity-Service registration endpoint (same host as the login flow).
 const REGISTER_URL = "http://localhost:57825/register";
 
@@ -104,6 +106,7 @@ export default function SignupPage() {
       }
 
       const data = await res.json().catch(() => null);
+      track("register");
 
       // If the backend returned tokens, log the user in immediately.
       const token = data?.token;

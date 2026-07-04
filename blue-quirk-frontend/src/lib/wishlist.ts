@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { track } from "@/lib/analytics/tracker";
 
 export type WishlistItem = {
   id: number;
@@ -36,6 +37,7 @@ export function addToWishlist(item: WishlistItem) {
   if (items.some((i) => i.id === item.id)) return;
   items.push(item);
   writeWishlist(items);
+  track("wishlist_add", { productId: item.id });
 }
 
 export function removeFromWishlist(id: number) {
@@ -51,6 +53,7 @@ export function toggleWishlist(item: WishlistItem): boolean {
   }
   items.push(item);
   writeWishlist(items);
+  track("wishlist_add", { productId: item.id });
   return true;
 }
 

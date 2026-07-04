@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useMemo, useState } from "react";
+import { use, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -15,6 +15,7 @@ import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
 import LoginModal from "@/components/storefront/LoginModal";
 import { t } from "@/lib/i18n";
+import { track } from "@/lib/analytics/tracker";
 
 type Form = {
   firstName: string;
@@ -128,6 +129,15 @@ export default function CheckoutPage({
     [form, items]
   );
 
+  // Fire begin_checkout once, when the checkout page first has items.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (!checkoutTracked.current && items.length > 0) {
+      checkoutTracked.current = true;
+      track("begin_checkout", { value: cartTotal(items) });
+    }
+  }, [items]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -146,6 +156,10 @@ export default function CheckoutPage({
         postalCode: form.postalCode.trim() || undefined,
         note: form.note.trim() || undefined,
         items: cartToOrderItems(items),
+      });
+      track("purchase", {
+        value: order.total,
+        meta: { orderId: order.id, orderNumber: order.orderNumber },
       });
       clearCart();
       setPlaced(order);

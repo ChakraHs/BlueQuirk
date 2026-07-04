@@ -9,6 +9,7 @@ import { ProductService } from "@/services/product.service";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/money";
 import { colorSwatch } from "@/lib/colors";
+import { track } from "@/lib/analytics/tracker";
 
 /* ----------------------------- i18n labels ------------------------------ */
 
@@ -178,6 +179,14 @@ export default function SearchClient({
   const [maxPrice, setMaxPrice] = useState<string>(sp.get("max") ?? "");
   const [inStock, setInStock] = useState<boolean>(sp.get("stock") === "1");
   const [sort, setSort] = useState<SortKey>((sp.get("sort") as SortKey) || "relevance");
+
+  // Emit a debounced `search` event as the shopper types (min 2 chars).
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < 2) return;
+    const id = setTimeout(() => track("search", { meta: { query: q } }), 800);
+    return () => clearTimeout(id);
+  }, [query]);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // ---- fetch the catalog once ----
