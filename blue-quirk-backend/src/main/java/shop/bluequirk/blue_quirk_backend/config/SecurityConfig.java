@@ -47,7 +47,22 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        // Use allowedOriginPatterns (not allowedOrigins) so the storefront can be
+        // reached over the LAN by a phone/other device via the machine's IP
+        // (e.g. http://192.168.0.101:3000) — otherwise every client-side call is
+        // blocked by CORS and only same-machine "localhost" works. Patterns still
+        // work with allowCredentials(true), unlike a bare "*". Port is wildcarded
+        // with :[*]; the no-port variant covers a frontend served on port 80.
+        // This CORS source (used by Spring Security's .cors filter) is the one
+        // that actually takes effect; keep it in sync with CorsConfig.
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:[*]",             // frontend on host (any port)
+            "http://127.0.0.1:[*]",
+            "http://host.docker.internal:[*]",  // frontend from host when backend in Docker
+            "http://192.168.*.*:[*]", "http://192.168.*.*", // LAN (home/office)
+            "http://10.*.*.*:[*]",     "http://10.*.*.*",   // LAN
+            "http://172.*.*.*:[*]",    "http://172.*.*.*"   // LAN (incl. Docker bridges)
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept-Encoding", "Connection"));
         configuration.setAllowCredentials(true);
