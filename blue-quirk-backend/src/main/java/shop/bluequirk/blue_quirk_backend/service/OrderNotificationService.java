@@ -2,6 +2,9 @@ package shop.bluequirk.blue_quirk_backend.service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Optional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,9 +12,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import shop.bluequirk.blue_quirk_backend.domain.EmailEvent;
 import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
+import shop.bluequirk.blue_quirk_backend.entity.EmailTemplate;
 import shop.bluequirk.blue_quirk_backend.provider.EmailProvider;
+import shop.bluequirk.blue_quirk_backend.repository.EmailTemplateRepository;
+import shop.bluequirk.blue_quirk_backend.utility.TemplateEngine;
 
 /**
  * Sends order-confirmation emails (customer + admin) after an order is placed.
@@ -24,33 +31,40 @@ public class OrderNotificationService {
     private static final Logger LOG = LoggerFactory.getLogger(OrderNotificationService.class);
 
     private final EmailProvider emailProvider;
+    private final EmailTemplateRepository templateRepository;
     private final String adminEmail;
     private final String currency;
+    private final String storeName;
     private final String frontendBaseUrl;
 
     public OrderNotificationService(
             EmailProvider emailProvider,
+            EmailTemplateRepository templateRepository,
             @Value("${order.admin-email:}") String adminEmail,
             @Value("${order.currency:$}") String currency,
+            @Value("${app.store-name:BlueQuirk}") String storeName,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
         this.emailProvider = emailProvider;
+        this.templateRepository = templateRepository;
         this.adminEmail = adminEmail == null ? "" : adminEmail.trim();
         this.currency = currency;
+        this.storeName = (storeName == null || storeName.isBlank()) ? "BlueQuirk" : storeName.trim();
         this.frontendBaseUrl = (frontendBaseUrl == null ? "" : frontendBaseUrl.trim()).replaceAll("/+$", "");
     }
 
     @Async
     public void sendOrderEmails(OrderResponse order) {
+        Map<String, String> vars = buildVars(order);
         // Customer confirmation
         if (order.email() != null && !order.email().isBlank()) {
-            trySend(order.email(),
-                    "Votre commande BlueQuirk " + ref(order) + " est confirmée",
+            sendEvent(order.email(), EmailEvent.ORDER_PLACED_CUSTOMER, vars,
+                    storeName + " order " + ref(order) + " confirmed",
                     customerHtml(order));
         }
         // Admin notification
         if (!adminEmail.isBlank()) {
-            trySend(adminEmail,
-                    "Nouvelle commande " + ref(order) + " — " + money(order.total()),
+            sendEvent(adminEmail, EmailEvent.ORDER_PLACED_ADMIN, vars,
+                    "New order " + ref(order) + " — " + money(order.total()),
                     adminHtml(order));
         }
     }
@@ -94,7 +108,63 @@ public class OrderNotificationService {
         if (order.email() == null || order.email().isBlank()) {
             return;
         }
-        trySend(order.email(), statusSubject(order, status), statusHtml(order, status));
+        EmailEvent event = EmailEvent.forStatus(status);
+        if (event == null) {
+            return; // no email for this status (e.g. PENDING)
+        }
+        sendEvent(order.email(), event, buildVars(order),
+                statusSubject(order, status), statusHtml(order, status));
+    }
+
+    /**
+     * Sends an event email using the active {@link EmailTemplate} whose code
+     * matches the event, rendering {@code {{variables}}}. Falls back to the
+     * built-in subject/HTML when no active template is assigned. Best-effort.
+     */
+    private void sendEvent(String to, EmailEvent event, Map<String, String> vars,
+                           String fallbackSubject, String fallbackHtml) {
+        String subject = fallbackSubject;
+        String html = fallbackHtml;
+        Optional<EmailTemplate> template = templateRepository.findByCodeAndActiveTrue(event.code());
+        if (template.isPresent()) {
+            subject = TemplateEngine.process(template.get().getSubject(), vars);
+            html = TemplateEngine.process(template.get().getBody(), vars);
+        }
+        trySend(to, subject, html);
+    }
+
+    /** All template variables for an order (see EmailTemplateCatalog). */
+    private Map<String, String> buildVars(OrderResponse o) {
+        Map<String, String> v = new LinkedHashMap<>();
+        v.put("storeName", storeName);
+        v.put("orderRef", ref(o));
+        v.put("customerName", esc(o.customerName()));
+        v.put("customerEmail", esc(o.email() != null ? o.email() : ""));
+        v.put("phone", esc(o.phone()));
+        v.put("address", esc(o.address()));
+        v.put("city", esc(o.city()));
+        v.put("subtotal", money(o.subtotal()));
+        v.put("shipping", o.shippingFee() == 0 ? "Free" : money(o.shippingFee()));
+        v.put("total", money(o.total()));
+
+        String tracking = o.trackingNumber() != null ? o.trackingNumber().trim() : "";
+        v.put("trackingNumber", esc(tracking));
+        v.put("trackingLine", tracking.isBlank() ? ""
+                : "Tracking number: <strong>" + esc(tracking) + "</strong>.");
+
+        String reason = o.cancellationReason() != null ? o.cancellationReason().trim() : "";
+        v.put("cancellationReason", esc(reason));
+        v.put("cancellationLine", reason.isBlank() ? ""
+                : "Reason: <strong>" + esc(reason) + "</strong>.");
+
+        v.put("estimatedDelivery", esc(o.estimatedDelivery() != null ? o.estimatedDelivery() : ""));
+        String url = trackUrl(o);
+        v.put("trackUrl", url != null ? url : "");
+        v.put("trackButton", trackButton(o));
+        v.put("itemsTable", itemsTable(o));
+        v.put("orderSummary", totals(o));
+        v.put("shippingBlock", shipping(o));
+        return v;
     }
 
     private String statusSubject(OrderResponse order, OrderStatus status) {
