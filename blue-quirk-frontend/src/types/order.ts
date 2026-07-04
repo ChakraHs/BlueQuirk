@@ -16,32 +16,32 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAYMENT_STATUSES = ["UNPAID", "PAID", "REFUNDED"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
-// French labels shared by the storefront (confirmation, tracking) and admin.
+// Status labels shared by the storefront (confirmation, tracking) and admin.
 export const ORDER_STATUS_LABELS: Record<string, string> = {
-  PENDING: "En attente",
-  CONFIRMED: "Confirmée",
-  PROCESSING: "En préparation",
-  PACKED: "Emballée",
-  SHIPPED: "Expédiée",
-  DELIVERED: "Livrée",
-  CANCELLED: "Annulée",
+  PENDING: "Pending",
+  CONFIRMED: "Confirmed",
+  PROCESSING: "Processing",
+  PACKED: "Packed",
+  SHIPPED: "Shipped",
+  DELIVERED: "Delivered",
+  CANCELLED: "Cancelled",
 };
 
 export const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  UNPAID: "Non payé",
-  PAID: "Payé",
-  REFUNDED: "Remboursé",
+  UNPAID: "Unpaid",
+  PAID: "Paid",
+  REFUNDED: "Refunded",
 };
 
-// Preset reasons shown when an admin cancels an order. "Autre" lets the admin
+// Preset reasons shown when an admin cancels an order. "Other" lets the admin
 // type a free-text reason. The chosen reason is emailed to the customer.
 export const CANCELLATION_REASONS = [
-  "Rupture de stock",
-  "Demande du client",
-  "Client injoignable",
-  "Adresse invalide",
-  "Commande en double",
-  "Autre",
+  "Out of stock",
+  "Customer request",
+  "Customer unreachable",
+  "Invalid address",
+  "Duplicate order",
+  "Other",
 ] as const;
 
 export interface OrderItem {

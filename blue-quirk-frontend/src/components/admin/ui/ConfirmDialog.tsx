@@ -19,10 +19,10 @@ type Props = {
  */
 export default function ConfirmDialog({
   open,
-  title = "Confirmer",
+  title = "Confirm",
   message,
-  confirmLabel = "Confirmer",
-  cancelLabel = "Annuler",
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
   busy = false,
   onConfirm,
   onCancel,

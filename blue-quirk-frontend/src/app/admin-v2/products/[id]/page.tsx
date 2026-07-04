@@ -70,7 +70,7 @@ export default function EditProductPage() {
         setImages(p.images ?? []);
         setCategoryIds((p.categories ?? []).map((c) => c.id));
       } catch {
-        setError("Produit introuvable.");
+        setError("Product not found.");
       } finally {
         setLoading(false);
       }
@@ -126,10 +126,10 @@ export default function EditProductPage() {
         images,
         categoryIds,
       });
-      sessionStorage.setItem("success", "Produit mis à jour");
+      sessionStorage.setItem("success", "Product updated");
       router.push("/admin-v2/products");
     } catch {
-      setError("Échec de la mise à jour du produit.");
+      setError("Failed to update product.");
       setSaving(false);
     }
   };
@@ -137,7 +137,7 @@ export default function EditProductPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Chargement…
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
       </div>
     );
   }
@@ -149,7 +149,7 @@ export default function EditProductPage() {
           href="/admin-v2/products"
           className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
         >
-          <ArrowLeft size={16} /> Retour aux produits
+          <ArrowLeft size={16} /> Back to products
         </Link>
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600">
           {error}
@@ -164,10 +164,10 @@ export default function EditProductPage() {
         href="/admin-v2/products"
         className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
       >
-        <ArrowLeft size={16} /> Retour aux produits
+        <ArrowLeft size={16} /> Back to products
       </Link>
 
-      <PageHeader title="Modifier le produit" subtitle={product?.name} />
+      <PageHeader title="Edit product" subtitle={product?.name} />
 
       <div className="max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
         {error && (
@@ -179,7 +179,7 @@ export default function EditProductPage() {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Nom
+              Name
             </label>
             <input
               name="name"
@@ -193,7 +193,7 @@ export default function EditProductPage() {
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Prix (DH)
+                Price (DH)
               </label>
               <input
                 name="price"
@@ -237,7 +237,7 @@ export default function EditProductPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Statut
+              Status
             </label>
             <select
               name="status"
@@ -253,10 +253,10 @@ export default function EditProductPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Catégories
+              Categories
             </label>
             {flatCategories.length === 0 ? (
-              <p className="text-sm text-gray-400">Aucune catégorie disponible.</p>
+              <p className="text-sm text-gray-400">No categories available.</p>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {flatCategories.map((c) => {
@@ -283,7 +283,7 @@ export default function EditProductPage() {
           {attributes.length > 0 && (
             <div className="pt-2">
               <h2 className="mb-3 text-sm font-semibold text-gray-800">
-                Attributs
+                Attributes
               </h2>
               <div className="space-y-4">
                 {attributes.map((attr) => (
@@ -323,13 +323,13 @@ export default function EditProductPage() {
               className="inline-flex items-center gap-2 rounded-md bg-gray-900 px-5 py-2 text-sm font-medium text-white transition hover:bg-black disabled:opacity-60"
             >
               {saving && <Loader2 className="h-4 w-4 animate-spin" />}
-              {saving ? "Enregistrement…" : "Enregistrer"}
+              {saving ? "Saving…" : "Save"}
             </button>
             <Link
               href="/admin-v2/products"
               className="rounded-md border border-gray-300 px-5 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
-              Annuler
+              Cancel
             </Link>
           </div>
         </form>
@@ -366,9 +366,9 @@ function TodifyLinkPanel({
     try {
       await TodifyService.linkProduct(productId, templateId.trim());
       setLinked(templateId.trim());
-      setMsg("Produit lié au template Todify.");
+      setMsg("Product linked to the Todify template.");
     } catch {
-      setMsg("Échec de la liaison.");
+      setMsg("Failed to link.");
     } finally {
       setBusy(false);
     }
@@ -381,9 +381,9 @@ function TodifyLinkPanel({
       await TodifyService.unlinkProduct(productId);
       setLinked(null);
       setTemplateId("");
-      setMsg("Produit délié de Todify.");
+      setMsg("Product unlinked from Todify.");
     } catch {
-      setMsg("Échec de la suppression du lien.");
+      setMsg("Failed to remove the link.");
     } finally {
       setBusy(false);
     }
@@ -391,23 +391,23 @@ function TodifyLinkPanel({
 
   return (
     <div className="mt-6 max-w-3xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-      <h2 className="mb-1 text-sm font-semibold text-gray-800">Intégration Todify</h2>
+      <h2 className="mb-1 text-sm font-semibold text-gray-800">Todify integration</h2>
       <p className="mb-3 text-xs text-gray-500">
-        Liez ce produit à un template Todify pour la fabrication à la demande.
-        {syncedFromTodify && " Ce produit a été importé depuis Todify."}
+        Link this product to a Todify template for print-on-demand fulfillment.
+        {syncedFromTodify && " This product was imported from Todify."}
       </p>
 
       {linked ? (
         <div className="flex flex-wrap items-center gap-3">
           <span className="rounded-full bg-green-100 px-2.5 py-1 text-xs font-medium text-green-700">
-            Lié : {linked}
+            Linked: {linked}
           </span>
           <button
             disabled={busy}
             onClick={unlink}
             className="rounded-md border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
           >
-            Délier
+            Unlink
           </button>
         </div>
       ) : (
@@ -415,7 +415,7 @@ function TodifyLinkPanel({
           <input
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
-            placeholder="ID du template Todify"
+            placeholder="Todify template ID"
             className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <button
@@ -423,7 +423,7 @@ function TodifyLinkPanel({
             onClick={link}
             className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
-            Lier
+            Link
           </button>
         </div>
       )}

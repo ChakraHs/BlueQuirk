@@ -16,8 +16,9 @@ public class EmailTemplate {
     @Column(nullable = false)
     private String subject;
 
-    @Lob
-    @Column(nullable = false)
+    // Full HTML email body. Explicit LONGTEXT: on this MariaDB setup a plain
+    // @Lob String maps to TINYTEXT (255 chars), which truncates real emails.
+    @Column(columnDefinition = "LONGTEXT", nullable = false)
     private String body;
 
     private boolean active = true;

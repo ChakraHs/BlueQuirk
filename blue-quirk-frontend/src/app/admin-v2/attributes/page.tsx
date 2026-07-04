@@ -10,11 +10,11 @@ import { Attribute } from "@/types/attribute";
 
 // Attribute types supported by the backend enum (domain/AttributeType).
 const TYPES: { value: string; label: string; hint: string }[] = [
-  { value: "SIZE", label: "Taille", hint: "ex. S, M, L, XL" },
-  { value: "COLOR", label: "Couleur", hint: "ex. Rouge, Bleu, Noir" },
-  { value: "RANGE", label: "Gamme", hint: "ex. Standard, Premium" },
-  { value: "TEXT", label: "Texte", hint: "valeurs libres" },
-  { value: "NUMBER", label: "Nombre", hint: "ex. 38, 40, 42" },
+  { value: "SIZE", label: "Size", hint: "e.g. S, M, L, XL" },
+  { value: "COLOR", label: "Color", hint: "e.g. Red, Blue, Black" },
+  { value: "RANGE", label: "Range", hint: "e.g. Standard, Premium" },
+  { value: "TEXT", label: "Text", hint: "free values" },
+  { value: "NUMBER", label: "Number", hint: "e.g. 38, 40, 42" },
 ];
 
 const TYPE_BADGE: Record<string, string> = {
@@ -50,7 +50,7 @@ export default function AttributesPage() {
       setError(null);
       setAttributes(await AttributeService.getAll());
     } catch {
-      setError("Échec du chargement des attributs.");
+      setError("Failed to load attributes.");
     } finally {
       setLoading(false);
     }
@@ -114,11 +114,11 @@ export default function AttributesPage() {
       });
 
     if (!name) {
-      setFormError("Le nom de l'attribut est requis.");
+      setFormError("Attribute name is required.");
       return;
     }
     if (values.length === 0) {
-      setFormError("Ajoutez au moins une valeur.");
+      setFormError("Add at least one value.");
       return;
     }
 
@@ -135,7 +135,7 @@ export default function AttributesPage() {
       closeForm();
       await load();
     } catch {
-      setFormError("Échec de l'enregistrement de l'attribut.");
+      setFormError("Failed to save the attribute.");
     } finally {
       setSaving(false);
     }
@@ -149,7 +149,7 @@ export default function AttributesPage() {
       setToDelete(null);
       await load();
     } catch {
-      setError("Échec de la suppression de l'attribut.");
+      setError("Failed to delete the attribute.");
     } finally {
       setDeleting(false);
     }
@@ -158,15 +158,15 @@ export default function AttributesPage() {
   return (
     <div>
       <PageHeader
-        title="Attributs"
-        subtitle="Définissez les variantes de vos produits (tailles, couleurs…) et leurs valeurs."
+        title="Attributes"
+        subtitle="Define your product variants (sizes, colors…) and their values."
       >
         <button
           onClick={() => (showForm ? closeForm() : openCreate())}
           className="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-black"
         >
           {showForm ? <X size={16} /> : <Plus size={16} />}
-          {showForm ? "Fermer" : "Nouvel attribut"}
+          {showForm ? "Close" : "New attribute"}
         </button>
       </PageHeader>
 
@@ -178,18 +178,18 @@ export default function AttributesPage() {
           className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
         >
           <h2 className="mb-4 text-sm font-semibold text-gray-800">
-            {editingId != null ? "Modifier l'attribut" : "Nouvel attribut"}
+            {editingId != null ? "Edit attribute" : "New attribute"}
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Nom de l&apos;attribut *
+                Attribute name *
               </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="ex. Taille, Couleur"
+                placeholder="e.g. Size, Color"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
@@ -217,7 +217,7 @@ export default function AttributesPage() {
           {/* Values editor */}
           <div className="mt-5">
             <label className="mb-2 block text-sm font-medium text-gray-700">
-              Valeurs *
+              Values *
             </label>
             <div className="space-y-2">
               {form.values.map((v, i) => (
@@ -234,14 +234,14 @@ export default function AttributesPage() {
                         if (i === form.values.length - 1 && v.trim()) addValue();
                       }
                     }}
-                    placeholder={`Valeur ${i + 1}`}
+                    placeholder={`Value ${i + 1}`}
                     className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                   />
                   <button
                     type="button"
                     onClick={() => removeValue(i)}
                     className="shrink-0 rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
-                    aria-label="Retirer la valeur"
+                    aria-label="Remove value"
                   >
                     <Trash2 size={15} />
                   </button>
@@ -254,7 +254,7 @@ export default function AttributesPage() {
               className="mt-2 inline-flex items-center gap-1.5 rounded-md border border-dashed border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:border-blue-400 hover:text-blue-600"
             >
               <Plus size={15} />
-              Ajouter une valeur
+              Add value
             </button>
           </div>
 
@@ -267,17 +267,17 @@ export default function AttributesPage() {
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
             >
               {saving
-                ? "Enregistrement…"
+                ? "Saving…"
                 : editingId != null
-                ? "Enregistrer les modifications"
-                : "Créer l'attribut"}
+                ? "Save changes"
+                : "Create attribute"}
             </button>
             <button
               type="button"
               onClick={closeForm}
               className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
-              Annuler
+              Cancel
             </button>
           </div>
         </form>
@@ -296,7 +296,7 @@ export default function AttributesPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <SlidersHorizontal className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-sm text-gray-500">
-            Aucun attribut. Créez-en un pour commencer (ex. Taille, Couleur).
+            No attributes yet. Create one to get started (e.g. Size, Color).
           </p>
         </div>
       ) : (
@@ -322,7 +322,7 @@ export default function AttributesPage() {
                     {typeLabel(attr.type)}
                   </span>
                   <span className="text-xs text-gray-400">
-                    {attr.values?.length ?? 0} valeur
+                    {attr.values?.length ?? 0} value
                     {(attr.values?.length ?? 0) > 1 ? "s" : ""}
                   </span>
                 </div>
@@ -343,14 +343,14 @@ export default function AttributesPage() {
                 <button
                   onClick={() => startEdit(attr)}
                   className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
-                  aria-label="Modifier"
+                  aria-label="Edit"
                 >
                   <Pencil size={16} />
                 </button>
                 <button
                   onClick={() => setToDelete(attr)}
                   className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
-                  aria-label="Supprimer"
+                  aria-label="Delete"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -362,11 +362,11 @@ export default function AttributesPage() {
 
       <ConfirmDialog
         open={toDelete !== null}
-        title="Supprimer l'attribut"
-        message={`Supprimer « ${toDelete?.name} » et ses ${
+        title="Delete attribute"
+        message={`Delete "${toDelete?.name}" and its ${
           toDelete?.values?.length ?? 0
-        } valeur(s) ? Les produits utilisant cet attribut le perdront.`}
-        confirmLabel="Supprimer"
+        } value(s)? Products using this attribute will lose it.`}
+        confirmLabel="Delete"
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}

@@ -13,7 +13,7 @@ import { formatPrice } from "@/lib/money";
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export default function CustomersPage() {
@@ -30,7 +30,7 @@ export default function CustomersPage() {
         OrderService.getAll(),
       ]);
       if (c.status === "fulfilled") setCustomers(c.value);
-      else setError("Échec du chargement des clients.");
+      else setError("Failed to load customers.");
       if (o.status === "fulfilled") setOrders(o.value);
       setLoading(false);
     })();
@@ -63,8 +63,8 @@ export default function CustomersPage() {
   return (
     <div>
       <PageHeader
-        title="Clients"
-        subtitle="Tous les clients (invités et inscrits) et leur activité d'achat."
+        title="Customers"
+        subtitle="All customers (guests and registered) and their purchase activity."
       />
 
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
@@ -73,19 +73,19 @@ export default function CustomersPage() {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Nom, email, téléphone ou n° de commande…"
+            placeholder="Name, email, phone or order number…"
             className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
         <div className="flex gap-2 text-xs">
           <span className="rounded-full bg-gray-100 px-3 py-1 font-medium text-gray-600">
-            {customers.length} clients
+            {customers.length} customers
           </span>
           <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">
-            {registered} inscrits
+            {registered} registered
           </span>
           <span className="rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">
-            {guests} invités
+            {guests} guests
           </span>
         </div>
       </div>
@@ -101,19 +101,19 @@ export default function CustomersPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <UsersIcon className="mx-auto mb-3 text-gray-300" size={40} />
-          <p className="text-sm text-gray-500">Aucun client.</p>
+          <p className="text-sm text-gray-500">No customers.</p>
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-5 py-3 text-left">Client</th>
+                <th className="px-5 py-3 text-left">Customer</th>
                 <th className="px-5 py-3 text-left">Contact</th>
                 <th className="px-5 py-3 text-center">Type</th>
-                <th className="px-5 py-3 text-center">Commandes</th>
-                <th className="px-5 py-3 text-right">Total dépensé</th>
-                <th className="px-5 py-3 text-left">Dernière commande</th>
+                <th className="px-5 py-3 text-center">Orders</th>
+                <th className="px-5 py-3 text-right">Total spent</th>
+                <th className="px-5 py-3 text-left">Last order</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -140,7 +140,7 @@ export default function CustomersPage() {
                       <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
                         c.guest ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
                       }`}>
-                        {c.guest ? "Invité" : "Inscrit"}
+                        {c.guest ? "Guest" : "Registered"}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-center text-gray-700">{c.totalOrders}</td>
@@ -153,7 +153,7 @@ export default function CustomersPage() {
                         href={`/admin-v2/users/${c.id}`}
                         className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-sm font-medium text-blue-600 hover:bg-blue-50"
                       >
-                        <Eye size={14} /> Profil
+                        <Eye size={14} /> Profile
                       </Link>
                     </td>
                   </tr>

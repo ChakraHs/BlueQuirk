@@ -1,4 +1,4 @@
-// Coloured pills for order, payment + product statuses, with French labels.
+// Coloured pills for order, payment + product statuses.
 import {
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,

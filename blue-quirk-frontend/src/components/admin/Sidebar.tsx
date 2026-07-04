@@ -16,6 +16,7 @@ import {
   ScrollText,
   Settings,
   BarChart3,
+  Mail,
   type LucideIcon,
 } from "lucide-react";
 
@@ -24,40 +25,43 @@ type Group = { heading: string; items: Item[] };
 
 const groups: Group[] = [
   {
-    heading: "Aperçu",
+    heading: "Overview",
     items: [
-      { name: "Tableau de bord", href: "/admin-v2", icon: LayoutDashboard },
+      { name: "Dashboard", href: "/admin-v2", icon: LayoutDashboard },
       { name: "Analytics", href: "/admin-v2/analytics", icon: BarChart3 },
     ],
   },
   {
-    heading: "Ventes",
-    items: [{ name: "Commandes", href: "/admin-v2/orders", icon: ShoppingBag }],
+    heading: "Sales",
+    items: [{ name: "Orders", href: "/admin-v2/orders", icon: ShoppingBag }],
   },
   {
-    heading: "Catalogue",
+    heading: "Catalog",
     items: [
-      { name: "Produits", href: "/admin-v2/products", icon: Package },
-      { name: "Catégories", href: "/admin-v2/categories", icon: Tags },
-      { name: "Attributs", href: "/admin-v2/attributes", icon: SlidersHorizontal },
+      { name: "Products", href: "/admin-v2/products", icon: Package },
+      { name: "Categories", href: "/admin-v2/categories", icon: Tags },
+      { name: "Attributes", href: "/admin-v2/attributes", icon: SlidersHorizontal },
     ],
   },
   {
-    heading: "Clients",
-    items: [{ name: "Clients", href: "/admin-v2/users", icon: Users }],
+    heading: "Customers",
+    items: [{ name: "Customers", href: "/admin-v2/users", icon: Users }],
   },
   {
     heading: "Todify",
     items: [
       { name: "Templates", href: "/admin-v2/todify/templates", icon: Shirt },
-      { name: "Commandes Todify", href: "/admin-v2/todify/orders", icon: Truck },
+      { name: "Todify Orders", href: "/admin-v2/todify/orders", icon: Truck },
       { name: "Webhooks", href: "/admin-v2/todify/webhooks", icon: Webhook },
-      { name: "Journaux", href: "/admin-v2/todify/logs", icon: ScrollText },
+      { name: "Logs", href: "/admin-v2/todify/logs", icon: ScrollText },
     ],
   },
   {
     heading: "Configuration",
-    items: [{ name: "Paramètres", href: "/admin-v2/settings", icon: Settings }],
+    items: [
+      { name: "Email templates", href: "/admin-v2/emails", icon: Mail },
+      { name: "Settings", href: "/admin-v2/settings", icon: Settings },
+    ],
   },
 ];
 
@@ -76,7 +80,7 @@ export default function Sidebar() {
         <h1 className="text-lg font-bold tracking-tight text-white">
           Blue<span className="text-blue-400">Quirk</span>
         </h1>
-        <p className="text-xs text-gray-500">Espace administrateur</p>
+        <p className="text-xs text-gray-500">Admin panel</p>
       </div>
 
       {/* Navigation */}
@@ -116,7 +120,7 @@ export default function Sidebar() {
           className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-gray-400 transition hover:bg-gray-800 hover:text-white"
         >
           <Store size={18} />
-          Voir la boutique
+          View store
         </Link>
         <p className="px-3 pt-3 text-xs text-gray-600">
           © {new Date().getFullYear()} BlueQuirk

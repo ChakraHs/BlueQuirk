@@ -30,7 +30,7 @@ function formatDateTime(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("fr-FR", {
+  return d.toLocaleString("en-GB", {
     day: "2-digit",
     month: "long",
     year: "numeric",
@@ -71,7 +71,7 @@ export default function OrderDetailPage() {
         setTrackingNumber(o.trackingNumber ?? "");
         setEstimatedDelivery(o.estimatedDelivery ?? "");
       } catch {
-        setError("Commande introuvable.");
+        setError("Order not found.");
       } finally {
         setLoading(false);
       }
@@ -89,9 +89,9 @@ export default function OrderDetailPage() {
         estimatedDelivery: estimatedDelivery || undefined,
       });
       setOrder(updated);
-      setNotice("Informations de livraison enregistrées.");
+      setNotice("Fulfillment details saved.");
     } catch {
-      setError("Échec de l'enregistrement des informations de livraison.");
+      setError("Failed to save fulfillment details.");
     } finally {
       setSavingFulfillment(false);
     }
@@ -110,10 +110,10 @@ export default function OrderDetailPage() {
       const updated = await OrderService.updateStatus(id, status, reason);
       setOrder(updated);
       setNotice(
-        `Statut mis à jour : ${STATUS_LABELS[status]}. Le client a été notifié par e-mail.`
+        `Status updated: ${STATUS_LABELS[status]}. The customer has been notified by email.`
       );
     } catch {
-      setError("Échec de la mise à jour du statut.");
+      setError("Failed to update status.");
     } finally {
       setSavingStatus(null);
     }
@@ -128,10 +128,10 @@ export default function OrderDetailPage() {
       setOrder(updated);
       setCancelOpen(false);
       setNotice(
-        `Commande annulée (motif : ${reason}). Le client a été notifié par e-mail.`
+        `Order cancelled (reason: ${reason}). The customer has been notified by email.`
       );
     } catch {
-      setError("Échec de l'annulation de la commande.");
+      setError("Failed to cancel the order.");
     } finally {
       setCancelling(false);
     }
@@ -143,7 +143,7 @@ export default function OrderDetailPage() {
       await OrderService.delete(id);
       router.push("/admin-v2/orders");
     } catch {
-      setError("Échec de la suppression.");
+      setError("Failed to delete.");
       setDeleting(false);
       setConfirmDelete(false);
     }
@@ -152,7 +152,7 @@ export default function OrderDetailPage() {
   if (loading) {
     return (
       <div className="flex h-64 items-center justify-center text-gray-400">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Chargement…
+        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
       </div>
     );
   }
@@ -164,7 +164,7 @@ export default function OrderDetailPage() {
           href="/admin-v2/orders"
           className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
         >
-          <ArrowLeft size={16} /> Retour aux commandes
+          <ArrowLeft size={16} /> Back to orders
         </Link>
         <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-600">
           {error}
@@ -181,11 +181,11 @@ export default function OrderDetailPage() {
         href="/admin-v2/orders"
         className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800"
       >
-        <ArrowLeft size={16} /> Retour aux commandes
+        <ArrowLeft size={16} /> Back to orders
       </Link>
 
       <PageHeader
-        title={order.orderNumber || `Commande #${order.id}`}
+        title={order.orderNumber || `Order #${order.id}`}
         subtitle={formatDateTime(order.orderDate)}
       >
         <StatusBadge status={order.status} />
@@ -194,7 +194,7 @@ export default function OrderDetailPage() {
           onClick={() => setConfirmDelete(true)}
           className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50"
         >
-          <Trash2 size={15} /> Supprimer
+          <Trash2 size={15} /> Delete
         </button>
       </PageHeader>
 
@@ -211,7 +211,7 @@ export default function OrderDetailPage() {
 
       {order.status === "CANCELLED" && order.cancellationReason && (
         <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">
-          <span className="font-semibold">Commande annulée</span> — motif :{" "}
+          <span className="font-semibold">Order cancelled</span> — reason:{" "}
           {order.cancellationReason}
         </div>
       )}
@@ -219,7 +219,7 @@ export default function OrderDetailPage() {
       {/* Status workflow */}
       <div className="mb-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-gray-700">
-          Faire évoluer le statut
+          Advance the status
         </h2>
         <div className="flex flex-wrap gap-2">
           {ORDER_STATUSES.map((s) => {
@@ -249,7 +249,7 @@ export default function OrderDetailPage() {
           })}
         </div>
         <p className="mt-3 text-xs text-gray-400">
-          Le client reçoit un e-mail automatique à chaque changement de statut.
+          The customer receives an automatic email on every status change.
         </p>
       </div>
 
@@ -257,7 +257,7 @@ export default function OrderDetailPage() {
         {/* Items */}
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm lg:col-span-2">
           <div className="border-b border-gray-100 px-5 py-4">
-            <h2 className="text-sm font-semibold text-gray-700">Articles</h2>
+            <h2 className="text-sm font-semibold text-gray-700">Items</h2>
           </div>
           <div className="divide-y divide-gray-100">
             {order.items.map((it, i) => (
@@ -290,14 +290,14 @@ export default function OrderDetailPage() {
           </div>
           <div className="space-y-1 border-t border-gray-100 px-5 py-4 text-sm">
             <div className="flex justify-between text-gray-500">
-              <span>Sous-total</span>
+              <span>Subtotal</span>
               <span>{formatPrice(order.subtotal)}</span>
             </div>
             <div className="flex justify-between text-gray-500">
-              <span>Livraison</span>
+              <span>Shipping</span>
               <span>
                 {order.shippingFee === 0
-                  ? "Gratuite"
+                  ? "Free"
                   : formatPrice(order.shippingFee)}
               </span>
             </div>
@@ -311,7 +311,7 @@ export default function OrderDetailPage() {
         {/* Customer / shipping */}
         <div className="space-y-6">
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <h2 className="mb-3 text-sm font-semibold text-gray-700">Client</h2>
+            <h2 className="mb-3 text-sm font-semibold text-gray-700">Customer</h2>
             <p className="font-medium text-gray-800">{order.customerName}</p>
             <div className="mt-3 space-y-2 text-sm text-gray-600">
               <p className="flex items-center gap-2">
@@ -342,18 +342,18 @@ export default function OrderDetailPage() {
 
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold text-gray-700">
-              Paiement & expédition
+              Payment & shipping
             </h2>
             <p className="mb-4 text-sm text-gray-600">
               {order.paymentMethod === "COD"
-                ? "Paiement à la livraison (COD)"
+                ? "Cash on delivery (COD)"
                 : order.paymentMethod}
             </p>
 
             <div className="space-y-3">
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">
-                  Statut du paiement
+                  Payment status
                 </label>
                 <select
                   value={paymentStatus}
@@ -367,7 +367,7 @@ export default function OrderDetailPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">
-                  Numéro de suivi
+                  Tracking number
                 </label>
                 <input
                   value={trackingNumber}
@@ -378,7 +378,7 @@ export default function OrderDetailPage() {
               </div>
               <div>
                 <label className="mb-1 block text-xs font-medium text-gray-500">
-                  Livraison estimée
+                  Estimated delivery
                 </label>
                 <input
                   type="date"
@@ -393,7 +393,7 @@ export default function OrderDetailPage() {
                 className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
               >
                 {savingFulfillment ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
-                Enregistrer
+                Save
               </button>
             </div>
           </div>
@@ -402,9 +402,9 @@ export default function OrderDetailPage() {
 
       <ConfirmDialog
         open={confirmDelete}
-        title="Supprimer la commande"
-        message={`Supprimer définitivement la commande #${order.id} ? Cette action est irréversible.`}
-        confirmLabel="Supprimer"
+        title="Delete order"
+        message={`Permanently delete order #${order.id}? This action cannot be undone.`}
+        confirmLabel="Delete"
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setConfirmDelete(false)}

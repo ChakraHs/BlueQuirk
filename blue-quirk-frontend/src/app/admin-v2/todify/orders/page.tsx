@@ -27,7 +27,7 @@ export default function TodifyOrdersPage() {
     try {
       setOrders(await TodifyService.orders());
     } catch {
-      setError("Impossible de charger les commandes.");
+      setError("Unable to load orders.");
     } finally {
       setLoading(false);
     }
@@ -68,8 +68,8 @@ export default function TodifyOrdersPage() {
   return (
     <div>
       <PageHeader
-        title="Commandes Todify"
-        subtitle="Suivi de la synchronisation des commandes avec Todify (fulfillment)."
+        title="Todify Orders"
+        subtitle="Track order synchronization with Todify (fulfillment)."
       />
 
       <div className="mb-4">
@@ -77,7 +77,7 @@ export default function TodifyOrdersPage() {
           onClick={load}
           className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <RefreshCw size={15} /> Actualiser
+          <RefreshCw size={15} /> Refresh
         </button>
       </div>
 
@@ -93,7 +93,7 @@ export default function TodifyOrdersPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Truck className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-sm text-gray-500">
-            Aucune commande liée à Todify pour le moment.
+            No Todify-linked orders yet.
           </p>
         </div>
       ) : (
@@ -101,10 +101,10 @@ export default function TodifyOrdersPage() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-4 py-3 text-left">Commande</th>
-                <th className="px-4 py-3 text-left">ID Todify</th>
-                <th className="px-4 py-3 text-left">Statut local</th>
-                <th className="px-4 py-3 text-left">Statut Todify</th>
+                <th className="px-4 py-3 text-left">Order</th>
+                <th className="px-4 py-3 text-left">Todify ID</th>
+                <th className="px-4 py-3 text-left">Local status</th>
+                <th className="px-4 py-3 text-left">Todify status</th>
                 <th className="px-4 py-3 text-left">Sync</th>
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
@@ -161,7 +161,7 @@ export default function TodifyOrdersPage() {
                         disabled={busy === o.id}
                         onClick={() => sync(o.id)}
                         className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                        title="Renvoyer à Todify"
+                        title="Resend to Todify"
                       >
                         <Send size={13} /> Sync
                       </button>
@@ -169,7 +169,7 @@ export default function TodifyOrdersPage() {
                         disabled={busy === o.id || !o.todifyOrderId}
                         onClick={() => refresh(o.id)}
                         className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40"
-                        title="Rafraîchir le statut depuis Todify"
+                        title="Refresh status from Todify"
                       >
                         <RefreshCw size={13} /> Refresh
                       </button>

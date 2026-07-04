@@ -43,14 +43,14 @@ export default function TodifyLogsPage() {
 
   function fmt(iso: string) {
     const d = new Date(iso);
-    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("fr-FR");
+    return Number.isNaN(d.getTime()) ? iso : d.toLocaleString("en-GB");
   }
 
   return (
     <div>
       <PageHeader
-        title="Journaux Todify"
-        subtitle="Requêtes, réponses, erreurs, événements webhook et tentatives de retry."
+        title="Todify Logs"
+        subtitle="Requests, responses, errors, webhook events and retry attempts."
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -67,14 +67,14 @@ export default function TodifyLogsPage() {
                 : "bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50"
             }`}
           >
-            {t || "Tous"}
+            {t || "All"}
           </button>
         ))}
         <button
           onClick={load}
           className="ml-auto inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <RefreshCw size={15} /> Actualiser
+          <RefreshCw size={15} /> Refresh
         </button>
       </div>
 
@@ -83,7 +83,7 @@ export default function TodifyLogsPage() {
       ) : logs.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <ScrollText className="mx-auto mb-3 text-gray-300" size={40} />
-          <p className="text-sm text-gray-500">Aucun journal.</p>
+          <p className="text-sm text-gray-500">No logs.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -93,8 +93,8 @@ export default function TodifyLogsPage() {
                 <th className="w-8 px-2 py-3"></th>
                 <th className="px-4 py-3 text-left">Date</th>
                 <th className="px-4 py-3 text-left">Type</th>
-                <th className="px-4 py-3 text-left">Événement</th>
-                <th className="px-4 py-3 text-left">Réf.</th>
+                <th className="px-4 py-3 text-left">Event</th>
+                <th className="px-4 py-3 text-left">Ref.</th>
                 <th className="px-4 py-3 text-left">HTTP</th>
               </tr>
             </thead>
@@ -151,7 +151,7 @@ export default function TodifyLogsPage() {
             onClick={() => setPage((p) => Math.max(0, p - 1))}
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
           >
-            Précédent
+            Previous
           </button>
           <span className="text-sm text-gray-500">
             Page {page + 1} / {totalPages}
@@ -161,7 +161,7 @@ export default function TodifyLogsPage() {
             onClick={() => setPage((p) => p + 1)}
             className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm disabled:opacity-40"
           >
-            Suivant
+            Next
           </button>
         </div>
       )}
@@ -172,9 +172,9 @@ export default function TodifyLogsPage() {
 function LogDetail({ log }: { log: TodifySyncLog }) {
   const blocks: [string, string | undefined][] = [
     ["Delivery ID", log.deliveryId],
-    ["Requête", log.requestBody],
-    ["Réponse", log.responseBody],
-    ["Erreur", log.errorMessage],
+    ["Request", log.requestBody],
+    ["Response", log.responseBody],
+    ["Error", log.errorMessage],
   ];
   return (
     <div className="space-y-2">

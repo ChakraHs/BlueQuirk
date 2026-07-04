@@ -67,7 +67,7 @@ export default function CategoriesPage() {
   const handleImageFile = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setImageError("Le fichier doit être une image.");
+      setImageError("The file must be an image.");
       return;
     }
     setImageError(null);
@@ -78,7 +78,7 @@ export default function CategoriesPage() {
       // which is what the storefront renders for category covers/cards.
       setForm((f) => ({ ...f, imageUrl: uploaded.displayUrl || uploaded.url }));
     } catch {
-      setImageError("Échec du téléversement de l'image. Réessayez.");
+      setImageError("Failed to upload the image. Please try again.");
     } finally {
       setUploadingImage(false);
     }
@@ -90,7 +90,7 @@ export default function CategoriesPage() {
       setError(null);
       setCategories(await CategoryService.getAll());
     } catch {
-      setError("Échec du chargement des catégories.");
+      setError("Failed to load categories.");
     } finally {
       setLoading(false);
     }
@@ -149,7 +149,7 @@ export default function CategoriesPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) {
-      setFormError("Le nom (anglais) est requis.");
+      setFormError("The name (English) is required.");
       return;
     }
     setSaving(true);
@@ -181,8 +181,8 @@ export default function CategoriesPage() {
           : undefined;
       setFormError(
         status === 409
-          ? "Une catégorie portant ce nom existe déjà."
-          : "Échec de l'enregistrement de la catégorie."
+          ? "A category with this name already exists."
+          : "Failed to save the category."
       );
     } finally {
       setSaving(false);
@@ -197,7 +197,7 @@ export default function CategoriesPage() {
       setToDelete(null);
       await load();
     } catch {
-      setError("Échec de la suppression.");
+      setError("Failed to delete.");
     } finally {
       setDeleting(false);
     }
@@ -213,7 +213,7 @@ export default function CategoriesPage() {
         onChange={(e) =>
           setForm({ ...form, [lang]: { ...form[lang], name: e.target.value } })
         }
-        placeholder={`Nom (${lang})`}
+        placeholder={`Name (${lang})`}
         dir={lang === "ar" ? "rtl" : "ltr"}
         className="mb-2 w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
       />
@@ -235,15 +235,15 @@ export default function CategoriesPage() {
   return (
     <div>
       <PageHeader
-        title="Catégories"
-        subtitle="Organisez votre catalogue en catégories et sous-catégories (FR / AR)."
+        title="Categories"
+        subtitle="Organize your catalog into categories and subcategories (FR / AR)."
       >
         <button
           onClick={() => (showForm ? closeForm() : openCreate())}
           className="inline-flex items-center gap-1.5 rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-black"
         >
           {showForm ? <X size={16} /> : <Plus size={16} />}
-          {showForm ? "Fermer" : "Nouvelle catégorie"}
+          {showForm ? "Close" : "New category"}
         </button>
       </PageHeader>
 
@@ -256,35 +256,35 @@ export default function CategoriesPage() {
         >
           <h2 className="mb-4 text-sm font-semibold text-gray-800">
             {editingId != null
-              ? "Modifier la catégorie"
-              : "Nouvelle catégorie"}
+              ? "Edit category"
+              : "New category"}
           </h2>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Nom (anglais) *
+                Name (English) *
               </label>
               <input
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="ex. T-shirts"
+                placeholder="e.g. T-shirts"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
               <p className="mt-1 text-xs text-gray-400">
-                Valeur par défaut affichée si une traduction manque.
+                Default value shown when a translation is missing.
               </p>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Catégorie parente
+                Parent category
               </label>
               <select
                 value={form.parentId}
                 onChange={(e) => setForm({ ...form, parentId: e.target.value })}
                 className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
               >
-                <option value="">— Aucune (catégorie racine)</option>
+                <option value="">— None (root category)</option>
                 {flatOptions
                   .filter((o) => o.id !== editingId)
                   .map((o) => (
@@ -296,20 +296,20 @@ export default function CategoriesPage() {
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Description (anglais)
+                Description (English)
               </label>
               <input
                 value={form.description}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
-                placeholder="Optionnel"
+                placeholder="Optional"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium text-gray-700">
-                Image de la catégorie
+                Category image
               </label>
 
               {form.imageUrl ? (
@@ -318,7 +318,7 @@ export default function CategoriesPage() {
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={form.imageUrl}
-                      alt="Aperçu de la catégorie"
+                      alt="Category preview"
                       className="h-full w-full object-cover"
                     />
                     {uploadingImage && (
@@ -334,7 +334,7 @@ export default function CategoriesPage() {
                       disabled={uploadingImage}
                       className="inline-flex w-fit items-center gap-1.5 rounded-md border border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
                     >
-                      <UploadCloud size={15} /> Remplacer
+                      <UploadCloud size={15} /> Replace
                     </button>
                     <button
                       type="button"
@@ -342,7 +342,7 @@ export default function CategoriesPage() {
                       disabled={uploadingImage}
                       className="inline-flex w-fit items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium text-rose-600 transition hover:bg-rose-50 disabled:opacity-60"
                     >
-                      <Trash2 size={15} /> Retirer
+                      <Trash2 size={15} /> Remove
                     </button>
                   </div>
                 </div>
@@ -360,16 +360,16 @@ export default function CategoriesPage() {
                   {uploadingImage ? (
                     <>
                       <Loader2 className="mb-2 animate-spin text-gray-400" size={26} />
-                      <p className="text-sm font-medium text-gray-600">Téléversement…</p>
+                      <p className="text-sm font-medium text-gray-600">Uploading…</p>
                     </>
                   ) : (
                     <>
                       <UploadCloud className="mb-2 text-gray-400" size={26} />
                       <p className="text-sm font-medium text-gray-600">
-                        Cliquez pour téléverser une image
+                        Click to upload an image
                       </p>
                       <p className="mt-1 text-xs text-gray-400">
-                        JPG, PNG, WebP — optimisée automatiquement par le serveur
+                        JPG, PNG, WebP — automatically optimized by the server
                       </p>
                     </>
                   )}
@@ -398,11 +398,11 @@ export default function CategoriesPage() {
           {/* Translations */}
           <div className="mt-5">
             <h3 className="mb-3 text-sm font-semibold text-gray-800">
-              Traductions
+              Translations
             </h3>
             <div className="grid gap-4 sm:grid-cols-2">
-              {renderTranslationCard("fr", "Français")}
-              {renderTranslationCard("ar", "العربية (Arabe)")}
+              {renderTranslationCard("fr", "Français (French)")}
+              {renderTranslationCard("ar", "العربية (Arabic)")}
             </div>
           </div>
 
@@ -415,17 +415,17 @@ export default function CategoriesPage() {
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
             >
               {saving
-                ? "Enregistrement…"
+                ? "Saving…"
                 : editingId != null
-                ? "Enregistrer les modifications"
-                : "Créer la catégorie"}
+                ? "Save changes"
+                : "Create category"}
             </button>
             <button
               type="button"
               onClick={closeForm}
               className="rounded-md border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
             >
-              Annuler
+              Cancel
             </button>
           </div>
         </form>
@@ -444,7 +444,7 @@ export default function CategoriesPage() {
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Tags className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-sm text-gray-500">
-            Aucune catégorie. Créez-en une pour commencer.
+            No categories yet. Create one to get started.
           </p>
         </div>
       ) : (
@@ -467,22 +467,22 @@ export default function CategoriesPage() {
                     )}
                   </div>
                   <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-500">
-                    {root.children?.length ?? 0} sous-catégorie
-                    {(root.children?.length ?? 0) > 1 ? "s" : ""}
+                    {root.children?.length ?? 0} subcategor
+                    {(root.children?.length ?? 0) > 1 ? "ies" : "y"}
                   </span>
                 </div>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => startEdit(root)}
                     className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
-                    aria-label="Modifier"
+                    aria-label="Edit"
                   >
                     <Pencil size={16} />
                   </button>
                   <button
                     onClick={() => setToDelete(root)}
                     className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
-                    aria-label="Supprimer"
+                    aria-label="Delete"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -503,14 +503,14 @@ export default function CategoriesPage() {
                     <button
                       onClick={() => startEdit(child)}
                       className="rounded-md p-1.5 text-blue-600 hover:bg-blue-50"
-                      aria-label="Modifier"
+                      aria-label="Edit"
                     >
                       <Pencil size={15} />
                     </button>
                     <button
                       onClick={() => setToDelete(child)}
                       className="rounded-md p-1.5 text-rose-600 hover:bg-rose-50"
-                      aria-label="Supprimer"
+                      aria-label="Delete"
                     >
                       <Trash2 size={15} />
                     </button>
@@ -524,13 +524,13 @@ export default function CategoriesPage() {
 
       <ConfirmDialog
         open={toDelete !== null}
-        title="Supprimer la catégorie"
-        message={`Supprimer « ${toDelete?.name} » ?${
+        title="Delete category"
+        message={`Delete "${toDelete?.name}"?${
           toDelete?.children?.length
-            ? " Ses sous-catégories seront détachées."
+            ? " Its subcategories will be detached."
             : ""
         }`}
-        confirmLabel="Supprimer"
+        confirmLabel="Delete"
         busy={deleting}
         onConfirm={handleDelete}
         onCancel={() => setToDelete(null)}

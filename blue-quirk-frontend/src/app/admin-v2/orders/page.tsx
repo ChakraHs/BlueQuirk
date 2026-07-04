@@ -15,13 +15,13 @@ import { formatPrice } from "@/lib/money";
 // button so it can collect a reason).
 const PROGRESS_STATUSES = ORDER_STATUSES.filter((s) => s !== "CANCELLED");
 
-const TAB_LABELS: Record<string, string> = { ALL: "Toutes", ...ORDER_STATUS_LABELS };
+const TAB_LABELS: Record<string, string> = { ALL: "All", ...ORDER_STATUS_LABELS };
 
 function formatDate(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString("fr-FR", {
+  return d.toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -44,7 +44,7 @@ export default function OrdersPage() {
       try {
         setOrders(await OrderService.getAll());
       } catch {
-        setError("Impossible de charger les commandes.");
+        setError("Unable to load orders.");
       } finally {
         setLoading(false);
       }
@@ -62,10 +62,10 @@ export default function OrdersPage() {
     try {
       patchOrder(await OrderService.updateStatus(order.id, status));
       setNotice(
-        `Commande ${order.orderNumber || `#${order.id}`} : statut « ${ORDER_STATUS_LABELS[status]} ». Client notifié par e-mail.`
+        `Order ${order.orderNumber || `#${order.id}`}: status "${ORDER_STATUS_LABELS[status]}". Customer notified by email.`
       );
     } catch {
-      setError("Échec de la mise à jour du statut.");
+      setError("Failed to update status.");
     } finally {
       setBusyId(null);
     }
@@ -79,11 +79,11 @@ export default function OrdersPage() {
     try {
       patchOrder(await OrderService.updateStatus(cancelTarget.id, "CANCELLED", reason));
       setNotice(
-        `Commande ${cancelTarget.orderNumber || `#${cancelTarget.id}`} annulée (motif : ${reason}). Client notifié par e-mail.`
+        `Order ${cancelTarget.orderNumber || `#${cancelTarget.id}`} cancelled (reason: ${reason}). Customer notified by email.`
       );
       setCancelTarget(null);
     } catch {
-      setError("Échec de l'annulation de la commande.");
+      setError("Failed to cancel the order.");
     } finally {
       setCancelling(false);
     }
@@ -115,8 +115,8 @@ export default function OrdersPage() {
   return (
     <div>
       <PageHeader
-        title="Commandes"
-        subtitle="Gérez le cycle de vie des commandes (paiement à la livraison)."
+        title="Orders"
+        subtitle="Manage the order lifecycle (cash on delivery)."
       />
 
       {/* Tabs */}
@@ -152,7 +152,7 @@ export default function OrdersPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Rechercher par nom, téléphone, n°…"
+          placeholder="Search by name, phone, number…"
           className="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
         />
       </div>
@@ -173,19 +173,19 @@ export default function OrdersPage() {
       ) : filtered.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <ShoppingBag className="mx-auto mb-3 text-gray-300" size={40} />
-          <p className="text-sm text-gray-500">Aucune commande trouvée.</p>
+          <p className="text-sm text-gray-500">No orders found.</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-5 py-3 text-left">N°</th>
+                <th className="px-5 py-3 text-left">No.</th>
                 <th className="px-5 py-3 text-left">Date</th>
-                <th className="px-5 py-3 text-left">Client</th>
-                <th className="px-5 py-3 text-left">Ville</th>
-                <th className="px-5 py-3 text-center">Articles</th>
-                <th className="px-5 py-3 text-left">Statut</th>
+                <th className="px-5 py-3 text-left">Customer</th>
+                <th className="px-5 py-3 text-left">City</th>
+                <th className="px-5 py-3 text-center">Items</th>
+                <th className="px-5 py-3 text-left">Status</th>
                 <th className="px-5 py-3 text-right">Total</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
@@ -226,7 +226,7 @@ export default function OrdersPage() {
                         value={o.status}
                         disabled={busyId === o.id || o.status === "CANCELLED"}
                         onChange={(e) => changeStatus(o, e.target.value)}
-                        title="Changer le statut"
+                        title="Change status"
                         className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-500 disabled:opacity-60"
                       >
                         {o.status === "CANCELLED" && (
@@ -243,17 +243,17 @@ export default function OrdersPage() {
                       <button
                         onClick={() => setCancelTarget(o)}
                         disabled={busyId === o.id || o.status === "CANCELLED"}
-                        title="Annuler la commande"
+                        title="Cancel order"
                         className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
                       >
-                        <XCircle size={13} /> Annuler
+                        <XCircle size={13} /> Cancel
                       </button>
                       <Link
                         href={`/admin-v2/orders/${o.id}`}
-                        title="Voir les détails"
+                        title="View details"
                         className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
                       >
-                        <Eye size={13} /> Voir
+                        <Eye size={13} /> View
                       </Link>
                       {busyId === o.id && (
                         <Loader2 size={14} className="animate-spin text-gray-400" />

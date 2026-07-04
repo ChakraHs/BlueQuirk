@@ -15,7 +15,7 @@ import { formatPrice } from "@/lib/money";
 
 function fmtDate(iso?: string | null): string {
   if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export default function CustomerProfilePage({
@@ -33,7 +33,7 @@ export default function CustomerProfilePage({
       try {
         setDetail(await CustomerService.getById(Number(id)));
       } catch {
-        setError("Client introuvable.");
+        setError("Customer not found.");
       } finally {
         setLoading(false);
       }
@@ -44,7 +44,7 @@ export default function CustomerProfilePage({
     return (
       <div>
         <Link href="/admin-v2/users" className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-          <ArrowLeft size={16} /> Clients
+          <ArrowLeft size={16} /> Customers
         </Link>
         <TableSkeleton />
       </div>
@@ -54,9 +54,9 @@ export default function CustomerProfilePage({
   if (error || !detail) {
     return (
       <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
-        <p className="text-sm text-gray-500">{error || "Client introuvable."}</p>
+        <p className="text-sm text-gray-500">{error || "Customer not found."}</p>
         <Link href="/admin-v2/users" className="mt-4 inline-block text-sm font-medium text-blue-600">
-          Retour aux clients
+          Back to customers
         </Link>
       </div>
     );
@@ -68,7 +68,7 @@ export default function CustomerProfilePage({
   return (
     <div>
       <Link href="/admin-v2/users" className="mb-4 inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700">
-        <ArrowLeft size={16} /> Clients
+        <ArrowLeft size={16} /> Customers
       </Link>
 
       <div className="mb-6 flex flex-wrap items-center gap-4">
@@ -81,25 +81,25 @@ export default function CustomerProfilePage({
             <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
               c.guest ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
             }`}>
-              {c.guest ? "Invité" : "Inscrit"}
+              {c.guest ? "Guest" : "Registered"}
             </span>
           </div>
-          <p className="text-sm text-gray-500">Client depuis {fmtDate(c.createdAt)}</p>
+          <p className="text-sm text-gray-500">Customer since {fmtDate(c.createdAt)}</p>
         </div>
       </div>
 
       {/* KPIs */}
       <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Commandes" value={c.totalOrders} icon={ShoppingBag} />
-        <StatCard label="Total dépensé" value={formatPrice(c.totalSpent)} icon={Wallet} accent="green" />
-        <StatCard label="Première commande" value={fmtDate(c.firstOrderDate)} icon={Calendar} accent="violet" />
+        <StatCard label="Orders" value={c.totalOrders} icon={ShoppingBag} />
+        <StatCard label="Total spent" value={formatPrice(c.totalSpent)} icon={Wallet} accent="green" />
+        <StatCard label="First order" value={fmtDate(c.firstOrderDate)} icon={Calendar} accent="violet" />
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[300px_1fr]">
         {/* Contact / info card */}
         <div className="h-fit rounded-xl border border-gray-200 bg-white p-5">
           <h2 className="mb-4 flex items-center gap-2 text-sm font-bold text-gray-900">
-            <UserIcon size={16} /> Coordonnées
+            <UserIcon size={16} /> Contact details
           </h2>
           <ul className="space-y-3 text-sm">
             <li className="flex items-start gap-2.5">
@@ -125,20 +125,20 @@ export default function CustomerProfilePage({
 
         {/* Order history */}
         <div>
-          <h2 className="mb-3 text-sm font-bold text-gray-900">Historique des commandes</h2>
+          <h2 className="mb-3 text-sm font-bold text-gray-900">Order history</h2>
           {detail.orders.length === 0 ? (
             <div className="rounded-xl border border-gray-200 bg-white p-10 text-center text-sm text-gray-500">
-              Aucune commande.
+              No orders.
             </div>
           ) : (
             <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
                   <tr>
-                    <th className="px-4 py-3 text-left">Commande</th>
+                    <th className="px-4 py-3 text-left">Order</th>
                     <th className="px-4 py-3 text-left">Date</th>
-                    <th className="px-4 py-3 text-center">Articles</th>
-                    <th className="px-4 py-3 text-center">Statut</th>
+                    <th className="px-4 py-3 text-center">Items</th>
+                    <th className="px-4 py-3 text-center">Status</th>
                     <th className="px-4 py-3 text-right">Total</th>
                   </tr>
                 </thead>
