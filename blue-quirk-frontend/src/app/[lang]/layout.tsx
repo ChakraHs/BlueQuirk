@@ -93,7 +93,11 @@ export default async function LangLayout({
               logoUrl={config.logoUrl}
             />
             <Providers>{children}</Providers>
-            <Footer lang={lang} storeName={config.storeName} />
+            <Footer
+              lang={lang}
+              storeName={config.storeName}
+              logoUrl={config.logoUrl}
+            />
       </body>
     </html>
   );
