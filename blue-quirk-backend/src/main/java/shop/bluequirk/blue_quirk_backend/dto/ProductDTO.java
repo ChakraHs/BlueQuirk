@@ -22,6 +22,11 @@ public class ProductDTO {
 
     private Set<ProductTranslation> translations;
 
+    // Categories this product belongs to (many-to-many). Optional: when null the
+    // product's category links are left untouched on update; when present (incl.
+    // empty) they are replaced with exactly these ids.
+    private List<Long> categoryIds;
+
     public ProductDTO() {}
 
     public ProductDTO(String name, double price, String description, Set<AttributeDto> attributes, Set<Image> images) {
@@ -59,6 +64,9 @@ public class ProductDTO {
 
     public Set<ProductTranslation> getTranslations() { return translations; }
     public void setTranslations(Set<ProductTranslation> translations) { this.translations = translations; }
-     
+
+    public List<Long> getCategoryIds() { return categoryIds; }
+    public void setCategoryIds(List<Long> categoryIds) { this.categoryIds = categoryIds; }
+
 
 }

@@ -27,6 +27,7 @@ import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.translation.CategoryTranslation;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
 import shop.bluequirk.blue_quirk_backend.repository.AttributeRepository;
+import shop.bluequirk.blue_quirk_backend.repository.CategoryRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
 
@@ -36,12 +37,15 @@ public class ProductService {
 	private final ProductRepository productRepository;
     private final ImageRepository imageRepository;
     private final AttributeRepository attributeRepository;
+    private final CategoryRepository categoryRepository;
 
-    public ProductService(ProductRepository productRepository, ImageRepository imageRepository, AttributeRepository attributeRepository) {
+    public ProductService(ProductRepository productRepository, ImageRepository imageRepository,
+            AttributeRepository attributeRepository, CategoryRepository categoryRepository) {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
-        
+        this.categoryRepository = categoryRepository;
+
     }
     
     
@@ -71,6 +75,9 @@ public class ProductService {
         applyImages(existing, dto.getImages());
         if (dto.getTranslations() != null) {
             applyTranslations(existing, dto.getTranslations());
+        }
+        if (dto.getCategoryIds() != null) {
+            applyCategories(existing, dto.getCategoryIds());
         }
 
         existing.setSelectedValues(extractSelectedValues(dto));
@@ -224,6 +231,9 @@ public class ProductService {
         product.setStatus(dto.getStatus());
         applyImages(product, dto.getImages());
         applyTranslations(product, dto.getTranslations());
+        if (dto.getCategoryIds() != null) {
+            applyCategories(product, dto.getCategoryIds());
+        }
 
         Set<AttributeValue> selectedValues = new HashSet<>();
         if (dto.getAttributes() != null) {
@@ -320,6 +330,20 @@ public class ProductService {
             translation.setProduct(product);
             product.getTranslations().add(translation);
         });
+    }
+
+    /**
+     * Replaces the product's category links with exactly the given ids. The
+     * many-to-many is owned on the Product side, so mutating the collection here
+     * writes the join table on save. Unknown ids are ignored.
+     */
+    private void applyCategories(Product product, List<Long> categoryIds) {
+        Set<Category> resolved = new HashSet<>(categoryRepository.findAllById(categoryIds));
+        if (product.getCategories() == null) {
+            product.setCategories(new HashSet<>());
+        }
+        product.getCategories().clear();
+        product.getCategories().addAll(resolved);
     }
 
     private String resolveName(Product product, String lang) {

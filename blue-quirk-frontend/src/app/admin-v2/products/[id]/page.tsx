@@ -7,8 +7,10 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import { ProductService } from "@/services/product.service";
+import { CategoryService } from "@/services/category.service";
 import { TodifyService } from "@/services/todify.service";
 import { Product, ProductAttribute, ProductImage } from "@/types/product";
+import { Category } from "@/types/category";
 import { colorOptionsFromAttributes } from "@/lib/colorImages";
 
 type FormState = {
@@ -30,7 +32,20 @@ export default function EditProductPage() {
   const [product, setProduct] = useState<Product | null>(null);
   const [attributes, setAttributes] = useState<ProductAttribute[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoryIds, setCategoryIds] = useState<number[]>([]);
   const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
+
+  // Flatten the category tree (roots + children) for the checkbox list.
+  const flatCategories = useMemo(() => {
+    const out: { id: number; label: string }[] = [];
+    for (const root of categories) {
+      out.push({ id: root.id, label: root.name });
+      for (const child of root.children ?? [])
+        out.push({ id: child.id, label: `— ${child.name}` });
+    }
+    return out;
+  }, [categories]);
   const [form, setForm] = useState<FormState>({
     name: "",
     price: 0,
@@ -53,6 +68,7 @@ export default function EditProductPage() {
         });
         setAttributes(p.attributes ?? []);
         setImages(p.images ?? []);
+        setCategoryIds((p.categories ?? []).map((c) => c.id));
       } catch {
         setError("Produit introuvable.");
       } finally {
@@ -60,6 +76,19 @@ export default function EditProductPage() {
       }
     })();
   }, [id]);
+
+  // Categories are independent of the product — load them once for the picker.
+  useEffect(() => {
+    CategoryService.getAll()
+      .then(setCategories)
+      .catch(() => setCategories([]));
+  }, []);
+
+  const toggleCategory = (catId: number) => {
+    setCategoryIds((prev) =>
+      prev.includes(catId) ? prev.filter((c) => c !== catId) : [...prev, catId]
+    );
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -95,6 +124,7 @@ export default function EditProductPage() {
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
+        categoryIds,
       });
       sessionStorage.setItem("success", "Produit mis à jour");
       router.push("/admin-v2/products");
@@ -219,6 +249,35 @@ export default function EditProductPage() {
               <option value="PUBLISHED">PUBLISHED</option>
               <option value="ARCHIVED">ARCHIVED</option>
             </select>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Catégories
+            </label>
+            {flatCategories.length === 0 ? (
+              <p className="text-sm text-gray-400">Aucune catégorie disponible.</p>
+            ) : (
+              <div className="flex flex-wrap gap-2">
+                {flatCategories.map((c) => {
+                  const active = categoryIds.includes(c.id);
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      onClick={() => toggleCategory(c.id)}
+                      className={`rounded-full border px-3 py-1 text-sm transition ${
+                        active
+                          ? "border-gray-900 bg-gray-900 text-white"
+                          : "border-gray-300 bg-white text-gray-700 hover:border-gray-500"
+                      }`}
+                    >
+                      {c.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {attributes.length > 0 && (
