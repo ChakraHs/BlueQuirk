@@ -231,7 +231,8 @@ export default function AdminDashboard() {
               No orders yet.
             </p>
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full min-w-[520px] text-sm">
               <tbody className="divide-y divide-gray-100">
                 {stats.recent.map((o) => (
                   <tr key={o.id} className="hover:bg-gray-50">
@@ -254,6 +255,7 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 
