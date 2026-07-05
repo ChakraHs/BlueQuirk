@@ -1,6 +1,7 @@
 import api from "./client";
+import { IDENTITY_BASE_URL } from "@/lib/config";
 
-const AUTH_URL = "http://localhost:57825/uaa/token";
+const AUTH_URL = `${IDENTITY_BASE_URL}/uaa/token`;
 
 export async function login(email: string, password: string) {
   const { data } = await api.post(AUTH_URL, { email, password });

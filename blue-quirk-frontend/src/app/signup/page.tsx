@@ -15,9 +15,10 @@ import {
 } from "lucide-react";
 
 import { track } from "@/lib/analytics/tracker";
+import { IDENTITY_BASE_URL } from "@/lib/config";
 
 // Identity-Service registration endpoint (same host as the login flow).
-const REGISTER_URL = "http://localhost:57825/register";
+const REGISTER_URL = `${IDENTITY_BASE_URL}/register`;
 
 type Form = {
   firstName: string;

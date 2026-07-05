@@ -48,7 +48,19 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        // Use allowedOriginPatterns (not allowedOrigins) so the login/signup flows
+        // can be reached over the LAN by a phone/other device via the machine's IP
+        // (e.g. http://192.168.0.102:3000) — otherwise the browser blocks every
+        // request with CORS and only same-machine "localhost" works. Patterns still
+        // work with allowCredentials(true), unlike a bare "*". Port is wildcarded
+        // with :[*]. Keep this in sync with the shop backend's CORS config.
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:[*]",             // frontend on host (any port)
+            "http://127.0.0.1:[*]",
+            "http://192.168.*.*:[*]", "http://192.168.*.*", // LAN (home/office)
+            "http://10.*.*.*:[*]",     "http://10.*.*.*",   // LAN
+            "http://172.*.*.*:[*]",    "http://172.*.*.*"   // LAN (incl. Docker bridges)
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept-Encoding", "Connection"));
         configuration.setAllowCredentials(true);

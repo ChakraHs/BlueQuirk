@@ -1,4 +1,5 @@
 import { AuthProvider } from "react-admin";
+import { IDENTITY_BASE_URL } from "@/lib/config";
 
 export const authProvider: AuthProvider = {
   login: async ({ login, email, password }) => {
@@ -7,7 +8,7 @@ export const authProvider: AuthProvider = {
       ? { login, password }
       : { email, password };
 
-    const response = await fetch("http://localhost:57825/uaa/token", {
+    const response = await fetch(`${IDENTITY_BASE_URL}/uaa/token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),

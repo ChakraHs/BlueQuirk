@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
-import Sidebar from "@/components/admin/Sidebar";
-import Topbar from "@/components/admin/Topbar";
+import AdminShell from "@/components/admin/AdminShell";
 import RoleGuard from "@/components/auth/RoleGuard";
 
 const geistSans = Geist({
@@ -24,17 +23,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <div className="flex min-h-screen bg-gray-100">
-          <Sidebar />
-
-          <div className="flex-1">
-            <Topbar />
-
-            <main className="p-6">
-              <RoleGuard requireRole="admin">{children}</RoleGuard>
-            </main>
-          </div>
-        </div>
+        <AdminShell>
+          <RoleGuard requireRole="admin">{children}</RoleGuard>
+        </AdminShell>
       </body>
     </html>
   );

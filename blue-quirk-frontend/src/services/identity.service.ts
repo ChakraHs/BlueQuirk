@@ -6,8 +6,9 @@
 // src/app/signup/page.tsx). Keep this in sync if the Docker port changes.
 import axios from "axios";
 import { TOKEN_KEY } from "@/lib/auth";
+import { IDENTITY_BASE_URL } from "@/lib/config";
 
-export const IDENTITY_BASE_URL = "http://localhost:57825";
+export { IDENTITY_BASE_URL };
 
 const identityApi = axios.create({ baseURL: IDENTITY_BASE_URL });
 
