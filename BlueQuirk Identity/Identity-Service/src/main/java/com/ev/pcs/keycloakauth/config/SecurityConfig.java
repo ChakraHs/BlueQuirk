@@ -2,6 +2,7 @@ package com.ev.pcs.keycloakauth.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,9 +31,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Use custom CORS configuration
                 .sessionManagement(sm->sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf->csrf.disable())
-//                .authorizeHttpRequests(ar->ar.requestMatchers("/api/**").hasAnyAuthority("user"))
+                // Fail closed: only the auth flows themselves are public. The user
+                // directory (/users) is admin-only; per-user endpoints additionally
+                // enforce self-or-admin via @PreAuthorize on the controllers.
                 .authorizeHttpRequests(ar -> ar
-                        .requestMatchers("/**","/register","/swagger-ui/**","/v3/api-docs/**","/uaa/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/uaa/**", "/register", "/account/activate").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/users").hasAuthority("admin")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(ors->ors.jwt(jwt->jwt.jwtAuthenticationConverter(jwtAuthConverter)))
@@ -48,7 +54,19 @@ public class SecurityConfig {
     @Bean
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+        // Use allowedOriginPatterns (not allowedOrigins) so the login/signup flows
+        // can be reached over the LAN by a phone/other device via the machine's IP
+        // (e.g. http://192.168.0.102:3000) — otherwise the browser blocks every
+        // request with CORS and only same-machine "localhost" works. Patterns still
+        // work with allowCredentials(true), unlike a bare "*". Port is wildcarded
+        // with :[*]. Keep this in sync with the shop backend's CORS config.
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+            "http://localhost:[*]",             // frontend on host (any port)
+            "http://127.0.0.1:[*]",
+            "http://192.168.*.*:[*]", "http://192.168.*.*", // LAN (home/office)
+            "http://10.*.*.*:[*]",     "http://10.*.*.*",   // LAN
+            "http://172.*.*.*:[*]",    "http://172.*.*.*"   // LAN (incl. Docker bridges)
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept-Encoding", "Connection"));
         configuration.setAllowCredentials(true);

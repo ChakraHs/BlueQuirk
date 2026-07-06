@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  X,
   LayoutDashboard,
   ShoppingBag,
   Package,
@@ -65,7 +66,13 @@ const groups: Group[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({
+  open = false,
+  onClose,
+}: {
+  open?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
 
   const isActive = (href: string) =>
@@ -74,14 +81,38 @@ export default function Sidebar() {
       : pathname === href || pathname.startsWith(`${href}/`);
 
   return (
-    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-900 text-gray-200">
-      {/* Logo */}
-      <div className="px-6 py-5">
-        <h1 className="text-lg font-bold tracking-tight text-white">
-          Blue<span className="text-blue-400">Quirk</span>
-        </h1>
-        <p className="text-xs text-gray-500">Admin panel</p>
-      </div>
+    <>
+      {/* Backdrop (mobile only) — tap to close the drawer. */}
+      <div
+        onClick={onClose}
+        className={`fixed inset-0 z-40 bg-black/50 transition-opacity md:hidden ${
+          open ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        aria-hidden
+      />
+
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 flex h-screen w-64 shrink-0 flex-col border-r border-gray-800 bg-gray-900 text-gray-200 transition-transform duration-200 md:sticky md:top-0 md:z-auto md:translate-x-0 ${
+          open ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        {/* Logo */}
+        <div className="flex items-center justify-between px-6 py-5">
+          <div>
+            <h1 className="text-lg font-bold tracking-tight text-white">
+              Blue<span className="text-blue-400">Quirk</span>
+            </h1>
+            <p className="text-xs text-gray-500">Admin panel</p>
+          </div>
+          {/* Close button (mobile only) */}
+          <button
+            onClick={onClose}
+            aria-label="Close menu"
+            className="flex h-9 w-9 items-center justify-center rounded-md text-gray-400 hover:bg-gray-800 hover:text-white md:hidden"
+          >
+            <X size={20} />
+          </button>
+        </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
@@ -97,6 +128,7 @@ export default function Sidebar() {
                   <Link
                     key={item.name}
                     href={item.href}
+                    onClick={onClose}
                     className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition ${
                       active
                         ? "bg-blue-600 text-white"
@@ -126,6 +158,7 @@ export default function Sidebar() {
           © {new Date().getFullYear()} BlueQuirk
         </p>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

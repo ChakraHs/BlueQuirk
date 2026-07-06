@@ -1,30 +1,17 @@
 import api from "./api";
 import { User } from "@/types/user";
-import { API_BASE_URL } from "@/lib/config";
 
+// /api/users is admin-only on the backend, so every call goes through the
+// shared axios client, which attaches the admin bearer token.
 export const UserService = {
   getAll: async (): Promise<User[]> => {
-    const res = await fetch(`${API_BASE_URL}/users`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch users: ${res.status}`);
-    }
-
-    return res.json();
+    const res = await api.get<User[]>(`/users`);
+    return res.data;
   },
 
   getById: async (id: number): Promise<User> => {
-    const res = await fetch(`${API_BASE_URL}/users/${id}`, {
-      cache: "no-store",
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to fetch user ${id}: ${res.status}`);
-    }
-
-    return res.json();
+    const res = await api.get<User>(`/users/${id}`);
+    return res.data;
   },
 
   delete: async (id: number) => {

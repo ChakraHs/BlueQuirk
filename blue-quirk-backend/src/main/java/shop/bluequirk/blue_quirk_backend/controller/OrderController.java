@@ -3,6 +3,7 @@ package shop.bluequirk.blue_quirk_backend.controller;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -89,8 +90,25 @@ public class OrderController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * A signed-in customer's own order history. Ownership is enforced: the
+     * caller's JWT must map to the requested userId (admins may read any) —
+     * otherwise any authenticated user could enumerate other customers' orders.
+     */
     @GetMapping("/user/{userId}")
-    public List<OrderResponse> getOrdersByUser(@PathVariable Long userId) {
+    public List<OrderResponse> getOrdersByUser(@PathVariable Long userId,
+                                               @AuthenticationPrincipal Jwt jwt,
+                                               Authentication authentication) {
+        boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "admin".equals(a.getAuthority()));
+        if (!isAdmin) {
+            User caller = jwt == null ? null
+                    : userRepository.findByKeycloakId(jwt.getSubject()).orElse(null);
+            if (caller == null || !caller.getId().equals(userId)) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                        "You can only view your own orders");
+            }
+        }
         return orderService.getOrdersByUserId(userId);
     }
 

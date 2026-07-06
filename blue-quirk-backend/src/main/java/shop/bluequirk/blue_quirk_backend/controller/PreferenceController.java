@@ -2,7 +2,11 @@ package shop.bluequirk.blue_quirk_backend.controller;
 
 import java.util.Set;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -33,8 +37,22 @@ public class PreferenceController {
 
     public record PreferenceResponse(String userId, String language) {}
 
+    /**
+     * Ownership guard: the {userId} in the path is the Keycloak user id, which
+     * must match the caller's own JWT subject — otherwise any signed-in user
+     * could read or overwrite another user's preferences.
+     */
+    private static void requireSelf(Jwt jwt, String userId) {
+        if (jwt == null || !jwt.getSubject().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "You can only access your own preferences");
+        }
+    }
+
     @GetMapping("/{userId}")
-    public ResponseEntity<PreferenceResponse> getPreference(@PathVariable String userId) {
+    public ResponseEntity<PreferenceResponse> getPreference(@PathVariable String userId,
+                                                            @AuthenticationPrincipal Jwt jwt) {
+        requireSelf(jwt, userId);
         return repository.findById(userId)
                 .map(p -> ResponseEntity.ok(new PreferenceResponse(p.getUserId(), p.getLanguage())))
                 .orElse(ResponseEntity.noContent().build());
@@ -43,8 +61,10 @@ public class PreferenceController {
     @PutMapping("/{userId}")
     public ResponseEntity<PreferenceResponse> savePreference(
             @PathVariable String userId,
-            @RequestBody PreferenceRequest request) {
+            @RequestBody PreferenceRequest request,
+            @AuthenticationPrincipal Jwt jwt) {
 
+        requireSelf(jwt, userId);
         String language = request.language();
         if (language == null || !SUPPORTED_LANGS.contains(language)) {
             return ResponseEntity.badRequest().build();

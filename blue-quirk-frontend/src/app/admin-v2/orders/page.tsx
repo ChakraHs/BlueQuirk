@@ -176,8 +176,8 @@ export default function OrdersPage() {
           <p className="text-sm text-gray-500">No orders found.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[720px] text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
                 <th className="px-5 py-3 text-left">No.</th>

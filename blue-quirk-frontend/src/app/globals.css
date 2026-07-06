@@ -29,6 +29,17 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Mobile safety net: never let a single stray-wide element force horizontal
+   scroll / pinch-zoom on phones. Without this, one overflowing child makes the
+   whole page wider than the viewport, so full-bleed sections (like the hero)
+   stop reaching the screen edges and the header appears cut off until you zoom
+   out. Clamping the root to the viewport width keeps the layout phone-friendly. */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 
 
 

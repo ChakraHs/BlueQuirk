@@ -41,23 +41,31 @@ spring:
           keycloak:
             issuer-uri: http://keycloak-server:8080/auth/realms/blue-quirk-realm
 
+# Secrets come from the environment (docker/.env, which is gitignored) — never
+# commit them here. KEYCLOAK_CLIENT_SECRET / KEYCLOAK_ADMIN_PASSWORD must be set
+# for the service to talk to Keycloak.
 keycloak:
   auth-server-url: http://keycloak-server:8080
   realm: blue-quirk-realm
   resource: blue-quirk-client
   credentials:
-    secret: 3an2hV7l6GoIreW8wyi8D0uH2bZgEN6B
+    secret: ${KEYCLOAK_CLIENT_SECRET:}
   client-id: blue-quirk-client
   grant-type: password
-  name: admin
-  password: admin@123
+  # IDENTITY_-prefixed on purpose: plain KEYCLOAK_ADMIN_PASSWORD already exists
+  # in docker/.env as the Keycloak container's bootstrap password (a different
+  # credential) and is injected into this container via env_file.
+  name: ${IDENTITY_KEYCLOAK_ADMIN_USER:admin}
+  password: ${IDENTITY_KEYCLOAK_ADMIN_PASSWORD:}
 
 
 management:
   endpoints:
     web:
       exposure:
-        include: "*"
+        # Only health/info — "*" exposed /actuator/env & heapdump, which leak
+        # runtime secrets (Keycloak client secret, passwords) to anyone.
+        include: "health,info"
 #  tracing:
 #    sampling:
 #      probability: 1.0

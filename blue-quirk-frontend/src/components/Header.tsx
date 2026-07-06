@@ -51,22 +51,25 @@ export default function Header({
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
       {/* ---- Top row ---- */}
       <div className="mx-auto max-w-7xl px-4 md:px-6">
-        <div className="flex h-16 items-center gap-4">
-          {/* Logo — uploaded image when set, otherwise the store name as text */}
+        <div className="flex h-16 items-center gap-2 md:gap-4">
+          {/* Logo — uploaded image when set, otherwise the store name as text.
+              min-w-0 + truncate let the logo yield/shrink first on tiny screens
+              so the action icons (and the menu button) are never pushed off the
+              edge and clipped. */}
           <Link
             href={`/${lang}`}
             aria-label={storeName}
-            className="flex shrink-0 items-center"
+            className="flex min-w-0 items-center"
           >
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={logoUrl}
                 alt={storeName}
-                className="h-9 w-auto max-w-[180px] object-contain"
+                className="h-8 w-auto max-w-[130px] object-contain md:h-9 md:max-w-[180px]"
               />
             ) : (
-              <span className="text-2xl font-extrabold tracking-tight text-gray-900">
+              <span className="truncate text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
                 {storeName}
               </span>
             )}
@@ -77,20 +80,21 @@ export default function Header({
             <SearchBar lang={lang} />
           </div>
 
-          {/* Actions */}
-          <nav className="ml-auto flex items-center gap-1 sm:gap-2">
+          {/* Actions — shrink-0 so the icons and the mobile menu button always
+              stay fully visible (the logo above absorbs any tight space). */}
+          <nav className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
             {loggedIn ? (
               <>
                 <Link
                   href={accountUrl}
-                  className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   <UserIcon size={18} />
                   {t(lang, "nav.account")}
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="hidden sm:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   <LogOut size={18} />
                   {t(lang, "nav.logout")}
@@ -100,13 +104,13 @@ export default function Header({
               <>
                 <Link
                   href="/login"
-                  className="hidden sm:flex items-center rounded-full px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                  className="hidden md:flex items-center rounded-full px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
                 >
                   {t(lang, "nav.login")}
                 </Link>
                 <Link
                   href="/signup"
-                  className="hidden sm:flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  className="hidden md:flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
                 >
                   {t(lang, "nav.signup")}
                 </Link>

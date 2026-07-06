@@ -2,8 +2,11 @@ package shop.bluequirk.blue_quirk_backend.config;
 
 import java.util.Arrays;
 
+import jakarta.servlet.DispatcherType;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -31,9 +34,42 @@ public class SecurityConfig {
         http
         	.csrf(csrf -> csrf.disable())
         	.cors(cors -> cors.configurationSource(corsConfigurationSource())) // Use custom CORS configuration
+	        // Access policy. Realm roles from Keycloak are mapped verbatim by
+	        // JwtAuthConverter, so the admin authority is the realm role "admin".
+	        // Default is admin-only (anyRequest at the bottom): any NEW endpoint is
+	        // locked down unless explicitly opened here — fail closed, not open.
 	        .authorizeHttpRequests(auth -> auth
-	                .requestMatchers("/**","/uploads/**","/swagger-ui/**","/v3/api-docs/**").permitAll()
-	                .anyRequest().authenticated()
+	                // Spring Security 6 authorizes every dispatch type. Without
+	                // this, any request that errors (e.g. a 400 on the public
+	                // guest-checkout POST) is re-dispatched to /error, denied
+	                // there, and surfaces as a misleading 401.
+	                .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
+	                // CORS preflights never carry credentials
+	                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+	                // Public storefront reads (catalog, config, media)
+	                .requestMatchers(HttpMethod.GET,
+	                        "/api/products/**",
+	                        "/api/categories/**",
+	                        "/api/attributes/**",
+	                        "/api/shop/config",
+	                        "/uploads/**").permitAll()
+	                // Guest checkout (COD, open to non-registered visitors by design)
+	                // and public order tracking by reference number
+	                .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
+	                .requestMatchers(HttpMethod.GET, "/api/orders/track/*").permitAll()
+	                // Storefront analytics beacon
+	                .requestMatchers(HttpMethod.POST, "/api/analytics/event").permitAll()
+	                // Todify webhook — authenticated by HMAC signature in the controller
+	                .requestMatchers("/api/todify/webhook").permitAll()
+	                // API docs (dev convenience; consider locking down in production)
+	                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+	                // Signed-in customer endpoints. Ownership (own userId only,
+	                // unless admin) is enforced in the controllers.
+	                .requestMatchers("/api/preferences/**").authenticated()
+	                .requestMatchers(HttpMethod.GET, "/api/orders/user/*").authenticated()
+	                // Everything else (admin dashboards, catalog/order/settings
+	                // writes, emails, images, users, Todify admin, analytics admin)
+	                .anyRequest().hasAuthority("admin")
 	        )
             .oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))

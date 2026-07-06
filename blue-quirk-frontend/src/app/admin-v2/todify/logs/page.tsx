@@ -86,8 +86,8 @@ export default function TodifyLogsPage() {
           <p className="text-sm text-gray-500">No logs.</p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[640px] text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
                 <th className="w-8 px-2 py-3"></th>
