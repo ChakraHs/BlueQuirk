@@ -172,6 +172,18 @@ export default function SearchClient({
 
   // ---- filter state (initialised from the URL) ----
   const [query, setQuery] = useState(sp.get("q") ?? initialQuery ?? "");
+  const refineInputRef = useRef<HTMLInputElement>(null);
+
+  // Adopt a query navigated in from outside (header SearchBar submit while this
+  // page is already mounted): router.push only changes the URL — this mounted
+  // component keeps its old state, so re-searching from the header looked dead.
+  // Skipped while the refine input is focused, because its keystrokes echo back
+  // through the router.replace below and a stale echo could clobber fast typing.
+  const urlQ = sp.get("q") ?? "";
+  useEffect(() => {
+    if (refineInputRef.current === document.activeElement) return;
+    setQuery((cur) => (cur.trim() === urlQ.trim() ? cur : urlQ));
+  }, [urlQ]);
   const [cats, setCats] = useState<Set<number>>(() => parseNums(sp.get("cat")));
   const [sizes, setSizes] = useState<Set<string>>(() => parseStrs(sp.get("size")));
   const [colors, setColors] = useState<Set<string>>(() => parseStrs(sp.get("color")));
@@ -344,6 +356,7 @@ export default function SearchClient({
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           <input
+            ref={refineInputRef}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.keywordPh}
