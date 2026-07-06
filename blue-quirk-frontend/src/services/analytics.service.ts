@@ -1,7 +1,7 @@
 // Admin analytics API client. Read-only endpoints backing the dashboard; all take
-// the same range filter. Uses plain fetch (no auth header today, matching the
-// other open admin reads) with no-store so numbers are always fresh.
-import { API_BASE_URL } from "@/lib/config";
+// the same range filter. Uses the shared axios client so the admin bearer token
+// is attached — /api/admin/analytics/** is admin-only on the backend.
+import api from "./api";
 
 export type RangeKey =
   | "today"
@@ -93,11 +93,10 @@ function qs(p: RangeParams): string {
 }
 
 async function get<T>(path: string, p: RangeParams): Promise<T> {
-  const res = await fetch(`${API_BASE_URL}/admin/analytics/${path}?${qs(p)}`, {
-    cache: "no-store",
-  });
-  if (!res.ok) throw new Error(`analytics/${path} failed: ${res.status}`);
-  return res.json() as Promise<T>;
+  // Axios has no HTTP cache by default, so numbers stay as fresh as the old
+  // fetch(cache: "no-store") behaviour.
+  const res = await api.get<T>(`/admin/analytics/${path}?${qs(p)}`);
+  return res.data;
 }
 
 export const AnalyticsService = {

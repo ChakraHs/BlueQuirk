@@ -2,6 +2,7 @@ package com.ev.pcs.keycloakauth.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -30,9 +31,14 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource())) // Use custom CORS configuration
                 .sessionManagement(sm->sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(csrf->csrf.disable())
-//                .authorizeHttpRequests(ar->ar.requestMatchers("/api/**").hasAnyAuthority("user"))
+                // Fail closed: only the auth flows themselves are public. The user
+                // directory (/users) is admin-only; per-user endpoints additionally
+                // enforce self-or-admin via @PreAuthorize on the controllers.
                 .authorizeHttpRequests(ar -> ar
-                        .requestMatchers("/**","/register","/swagger-ui/**","/v3/api-docs/**","/uaa/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/uaa/**", "/register", "/account/activate").permitAll()
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers("/users").hasAuthority("admin")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(ors->ors.jwt(jwt->jwt.jwtAuthenticationConverter(jwtAuthConverter)))

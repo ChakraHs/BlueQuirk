@@ -42,12 +42,11 @@ export type ProfileUpdate = {
 export const IdentityService = {
   /**
    * GET /users — every account registered in Keycloak (the customer directory).
-   * This endpoint is public on the Identity-Service, so we deliberately call it
-   * WITHOUT the bearer token: the service is an OAuth2 resource server and would
-   * reject a present-but-expired token with 401 even on a permit-all route.
+   * Admin-only on the Identity-Service (it's customer PII), so the bearer token
+   * is required; a 401 here means the admin session expired — log in again.
    */
   getAllUsers: async (): Promise<Profile[]> => {
-    const res = await axios.get<Profile[]>(`${IDENTITY_BASE_URL}/users`);
+    const res = await identityApi.get<Profile[]>(`/users`);
     // The endpoint replies 204 (no body) when there are no users.
     return res.status === 204 || !res.data ? [] : res.data;
   },
