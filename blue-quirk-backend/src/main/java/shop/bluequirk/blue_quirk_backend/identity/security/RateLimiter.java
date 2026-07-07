@@ -14,7 +14,7 @@ import org.springframework.stereotype.Component;
  * than one replica, swap this for a Redis-backed limiter (Bucket4j + Redis) — the
  * {@link #tryAcquire} contract stays the same, so callers don't change.
  */
-@Component
+@Component("identityRateLimiter")
 public class RateLimiter {
 
     private record Window(long windowStartMs, AtomicInteger count) {}

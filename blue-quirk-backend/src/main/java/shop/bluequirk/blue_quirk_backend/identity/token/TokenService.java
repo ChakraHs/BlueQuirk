@@ -24,14 +24,17 @@ import shop.bluequirk.blue_quirk_backend.identity.security.TokenGenerator;
 public class TokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenRevoker refreshTokenRevoker;
     private final JwtService jwtService;
     private final TokenGenerator tokenGenerator;
     private final IdentityProperties props;
     private final AuditService auditService;
 
-    public TokenService(RefreshTokenRepository refreshTokenRepository, JwtService jwtService,
-                        TokenGenerator tokenGenerator, IdentityProperties props, AuditService auditService) {
+    public TokenService(RefreshTokenRepository refreshTokenRepository, RefreshTokenRevoker refreshTokenRevoker,
+                        JwtService jwtService, TokenGenerator tokenGenerator, IdentityProperties props,
+                        AuditService auditService) {
         this.refreshTokenRepository = refreshTokenRepository;
+        this.refreshTokenRevoker = refreshTokenRevoker;
         this.jwtService = jwtService;
         this.tokenGenerator = tokenGenerator;
         this.props = props;
@@ -52,7 +55,9 @@ public class TokenService {
 
         // Reuse detection: a revoked-but-presented token means the family is compromised.
         if (current.isRevoked()) {
-            refreshTokenRepository.revokeFamily(current.getFamilyId());
+            // Commit the revocation in its own transaction — this method throws below,
+            // which would otherwise roll back the containment.
+            refreshTokenRevoker.revokeFamily(current.getFamilyId());
             auditService.record(AuditAction.REFRESH_REUSE_DETECTED, current.getUser().getId(),
                     current.getUser().getEmail(), "Refresh token reuse; family revoked", ip, userAgent);
             throw new IdentityExceptions.InvalidToken("refresh token");

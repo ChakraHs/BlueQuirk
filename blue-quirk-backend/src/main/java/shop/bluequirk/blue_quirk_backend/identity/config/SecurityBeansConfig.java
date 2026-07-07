@@ -8,10 +8,8 @@ import java.util.Map;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Primary;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.DelegatingPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,23 +21,16 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 
-import shop.bluequirk.blue_quirk_backend.identity.jwt.DelegatingIssuerJwtDecoder;
 import shop.bluequirk.blue_quirk_backend.identity.security.KeycloakPbkdf2PasswordEncoder;
 
 /**
  * Wires the cryptographic beans for the Identity Domain: the symmetric signing key,
- * the JWT encoder/decoder pair, the dual-issuer decoder used by the resource server,
- * and the delegating password encoder (BCrypt + legacy Keycloak PBKDF2 verifier).
+ * the HS512 JWT encoder/decoder pair, and the delegating password encoder (BCrypt
+ * for all new/updated passwords, plus a verify-only encoder for hashes imported
+ * from Keycloak so migrated users are lazily upgraded to BCrypt on next login).
  */
 @Configuration
 public class SecurityBeansConfig {
-
-    /**
-     * Kept for the coexistence window so legacy Keycloak tokens still validate.
-     * Blank it (remove the property) at final cutover to disable Keycloak decoding.
-     */
-    @Value("${spring.security.oauth2.resourceserver.jwt.jwk-set-uri:}")
-    private String keycloakJwkSetUri;
 
     /** Derive a fixed 512-bit HMAC key from the configured secret (any length in). */
     @Bean
@@ -58,17 +49,10 @@ public class SecurityBeansConfig {
         return new NimbusJwtEncoder(new ImmutableSecret<>(jwtSigningKey));
     }
 
-    /** Decoder for native HS512 tokens only. */
+    /** Resource-server decoder for native HS512 tokens. */
     @Bean
-    public JwtDecoder nativeJwtDecoder(SecretKey jwtSigningKey) {
+    public JwtDecoder jwtDecoder(SecretKey jwtSigningKey) {
         return NimbusJwtDecoder.withSecretKey(jwtSigningKey).macAlgorithm(MacAlgorithm.HS512).build();
-    }
-
-    /** Primary resource-server decoder: native + legacy Keycloak, routed by issuer. */
-    @Bean
-    @Primary
-    public JwtDecoder jwtDecoder(JwtDecoder nativeJwtDecoder, IdentityProperties props) {
-        return new DelegatingIssuerJwtDecoder(nativeJwtDecoder, props.getJwt().getIssuer(), keycloakJwkSetUri);
     }
 
     @Bean

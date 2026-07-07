@@ -47,6 +47,11 @@ public class User {
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
 
+    // Set when an account was migrated without an importable password hash: the
+    // user must complete a password reset before they can log in natively.
+    @Column(name = "password_reset_required", nullable = false)
+    private boolean passwordResetRequired = false;
+
     // --- Brute-force lockout (replaces a separate LoginAttempt table) ---
     @Column(name = "failed_login_count", nullable = false)
     private int failedLoginCount = 0;
@@ -124,6 +129,9 @@ public class User {
 
     public boolean isEmailVerified() { return emailVerified; }
     public void setEmailVerified(boolean emailVerified) { this.emailVerified = emailVerified; }
+
+    public boolean isPasswordResetRequired() { return passwordResetRequired; }
+    public void setPasswordResetRequired(boolean passwordResetRequired) { this.passwordResetRequired = passwordResetRequired; }
 
     public int getFailedLoginCount() { return failedLoginCount; }
     public void setFailedLoginCount(int failedLoginCount) { this.failedLoginCount = failedLoginCount; }

@@ -19,12 +19,21 @@ public class IdentityProperties {
     private final Lockout lockout = new Lockout();
     private final Tokens tokens = new Tokens();
     private final RateLimit rateLimit = new RateLimit();
+    private final Migration migration = new Migration();
 
     public Jwt getJwt() { return jwt; }
     public Refresh getRefresh() { return refresh; }
     public Lockout getLockout() { return lockout; }
     public Tokens getTokens() { return tokens; }
     public RateLimit getRateLimit() { return rateLimit; }
+    public Migration getMigration() { return migration; }
+
+    public static class Migration {
+        /** Path to a Keycloak realm export JSON. When set, users are imported on startup. */
+        private String keycloakExportFile = "";
+        public String getKeycloakExportFile() { return keycloakExportFile; }
+        public void setKeycloakExportFile(String keycloakExportFile) { this.keycloakExportFile = keycloakExportFile; }
+    }
 
     public static class Jwt {
         /** HMAC secret; MUST be overridden via JWT_SECRET in every real environment. */

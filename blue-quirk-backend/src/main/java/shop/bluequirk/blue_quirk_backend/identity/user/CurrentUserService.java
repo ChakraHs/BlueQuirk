@@ -12,10 +12,8 @@ import shop.bluequirk.blue_quirk_backend.identity.exception.IdentityException;
 import shop.bluequirk.blue_quirk_backend.repository.UserRepository;
 
 /**
- * Resolves the authenticated {@link User} from the JWT in the security context.
- * Handles both native tokens (numeric {@code sub} = local user id) and legacy
- * Keycloak tokens (UUID {@code sub}, resolved by keycloak_id or email) so account
- * endpoints work for either issuer during the coexistence window.
+ * Resolves the authenticated {@link User} from the native JWT in the security
+ * context. The subject is the local user id; email is used as a defensive fallback.
  */
 @Service
 public class CurrentUserService {
@@ -37,10 +35,6 @@ public class CurrentUserService {
         if (sub != null && sub.matches("\\d+")) {
             var byId = userRepository.findById(Long.valueOf(sub));
             if (byId.isPresent()) return byId.get();
-        }
-        if (sub != null) {
-            var byKeycloak = userRepository.findByKeycloakId(sub);
-            if (byKeycloak.isPresent()) return byKeycloak.get();
         }
         String email = token.getClaimAsString("email");
         if (email != null) {

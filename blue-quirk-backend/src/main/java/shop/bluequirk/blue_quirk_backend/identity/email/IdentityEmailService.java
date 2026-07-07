@@ -1,5 +1,7 @@
 package shop.bluequirk.blue_quirk_backend.identity.email;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -9,9 +11,15 @@ import shop.bluequirk.blue_quirk_backend.provider.EmailProvider;
  * Sends Identity Domain transactional emails (verification, password reset) through
  * the existing {@link EmailProvider} bean — no separate mail stack. Links point at
  * the storefront using the configured public frontend base URL.
+ *
+ * <p>Sending is <b>best-effort</b>: a mail-provider outage must never fail the user
+ * action that triggered it (e.g. registration). Failures are logged; the underlying
+ * token still exists so the user can retry (resend verification / request reset).
  */
 @Service
 public class IdentityEmailService {
+
+    private static final Logger LOG = LoggerFactory.getLogger(IdentityEmailService.class);
 
     private final EmailProvider emailProvider;
     private final String frontendBaseUrl;
@@ -30,7 +38,7 @@ public class IdentityEmailService {
                 <p><a href="%s">Verify my email</a></p>
                 <p>This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>
                 """.formatted(escape(name), link);
-        emailProvider.sendHtmlEmail(to, "Verify your BlueQuirk email", html);
+        send(to, "Verify your BlueQuirk email", html);
     }
 
     public void sendPasswordResetEmail(String to, String name, String rawToken) {
@@ -41,7 +49,15 @@ public class IdentityEmailService {
                 <p><a href="%s">Reset my password</a></p>
                 <p>This link expires in 30 minutes. If you didn't request this, no action is needed — your password stays the same.</p>
                 """.formatted(escape(name), link);
-        emailProvider.sendHtmlEmail(to, "Reset your BlueQuirk password", html);
+        send(to, "Reset your BlueQuirk password", html);
+    }
+
+    private void send(String to, String subject, String html) {
+        try {
+            emailProvider.sendHtmlEmail(to, subject, html);
+        } catch (Exception e) {
+            LOG.warn("Failed to send identity email '{}' to {}: {}", subject, to, e.getMessage());
+        }
     }
 
     private String escape(String s) {
