@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.header.writers.ReferrerPolicyHeaderWriter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -65,12 +66,28 @@ public class SecurityConfig {
 	                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 	                // Signed-in customer endpoints. Ownership (own userId only,
 	                // unless admin) is enforced in the controllers.
+	                // Native Identity Domain. Auth flows are public (protected by rate
+	                // limiting + lockout in the service layer); the specific recovery
+	                // and verification endpoints are public; everything else under
+	                // /api/account/** requires authentication.
+	                .requestMatchers("/api/auth/**").permitAll()
+	                .requestMatchers(HttpMethod.POST,
+	                        "/api/account/forgot-password",
+	                        "/api/account/reset-password",
+	                        "/api/account/verify-email").permitAll()
+	                .requestMatchers("/api/account/**").authenticated()
 	                .requestMatchers("/api/preferences/**").authenticated()
 	                .requestMatchers(HttpMethod.GET, "/api/orders/user/*").authenticated()
 	                // Everything else (admin dashboards, catalog/order/settings
 	                // writes, emails, images, users, Todify admin, analytics admin)
 	                .anyRequest().hasAuthority("admin")
 	        )
+            // Baseline security headers (API responses). Content-Security-Policy is
+            // intentionally left to the frontend / reverse proxy where the HTML lives.
+            .headers(headers -> headers
+                .frameOptions(frame -> frame.deny())
+                .referrerPolicy(referrer -> referrer.policy(
+                        ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
             .oauth2ResourceServer(oauth2 ->
                 oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))
             )
