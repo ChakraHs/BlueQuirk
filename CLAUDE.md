@@ -7,25 +7,29 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 BlueQuirk is a multilingual (French/Arabic) e-commerce platform split across independent modules in one repo:
 
 - **`blue-quirk-frontend/`** — Next.js 15 (App Router) storefront + admin UI. React 18, TypeScript, Tailwind CSS v4, TanStack Query, axios.
-- **`blue-quirk-backend/`** — Spring Boot 3.5 shop API (`shop.bluequirk.blue_quirk_backend`). Java 23, JPA/Hibernate against MariaDB, OAuth2 resource server validating Keycloak JWTs.
-- **`BlueQuirk Identity/Identity-Service/`** — Separate Spring Boot service (`com.ev.pcs.keycloakauth`) wrapping Keycloak for login/registration/profile. Runs on port 8087.
-- **`BlueQuirk Identity/docker-keyclaock/`** & **`blue-quirk-backend/docker/`** — Docker Compose stacks (base/db/identity/backend/frontend) plus Keycloak realm imports and a custom theme.
+- **`blue-quirk-backend/`** — Spring Boot 3.5 shop API (`shop.bluequirk.blue_quirk_backend`). Java 23, JPA/Hibernate against MariaDB. Includes the native **Identity Domain** (`identity/` package) — Spring Security auth, no external IdP.
+- **`docker/`** — The production Docker Compose stack: frontend, backend, MariaDB, Caddy.
+- **`docs/`** — Architecture + migration docs (`authentication.md`, `auth-migration-runbook.md`).
 - **`cash/`** — Older/experimental admin UI (`cash/admin`, `cash/bq-admin`); not the active app.
 
-### Authentication & authorization
-Auth is **Keycloak-based**, not local. The backend is a pure OAuth2 resource server: every protected request carries a `Bearer` JWT issued by the Keycloak realm `blue-quirk-realm`. `config/JwtAuthConverter.java` maps the JWT's `realm_access.roles` claim into Spring authorities, and `@EnableMethodSecurity` enables `@PreAuthorize` on controllers/services. The Identity-Service is what actually talks to Keycloak (password grant, user CRUD); the frontend login flows hit it, store tokens in `localStorage`, and attach them via axios interceptors.
+> Keycloak, the separate Identity Service, and the auth-only PostgreSQL have been
+> removed (history preserved in the `legacy-keycloak` branch / `pre-identity-migration` tag).
 
-> **Migration in progress — native auth is replacing Keycloak.** The backend now
-> has a self-contained **Identity Domain** (`identity/` package): native Spring
-> Security auth on MariaDB with JWT access tokens, rotating refresh tokens, RBAC,
-> email verification, and password reset (`/api/auth/**`, `/api/account/**`,
-> `/api/users`). It **coexists** with Keycloak via `DelegatingIssuerJwtDecoder`
-> (routes validation by the token `iss`), so both token types work during cutover.
-> `SecurityConfig.java` is **fail-closed** (`anyRequest().hasAuthority("admin")`),
-> not `permitAll("/**")`. The frontend auth layer is unified on the native backend.
-> See **`docs/authentication.md`** and **`docs/auth-migration-runbook.md`**.
-> Keycloak + the Identity Service are retained until the runbook's verification
-> checklist passes, then removed.
+### Authentication & authorization
+Auth is **native** (Spring Security, MariaDB) — no external IdP. The backend issues its own HS512 **JWT access tokens** (`iss=bluequirk`, 15 min) plus opaque **rotating refresh tokens** (hashed at rest, reuse-detected), and validates access tokens locally as an OAuth2 resource server. `config/JwtAuthConverter.java` maps the JWT's `roles` + `authorities` claims into Spring authorities, and `@EnableMethodSecurity` enables `@PreAuthorize`. The Identity Domain (`identity/`) owns login, registration, refresh, logout, email verification, and password reset (`/api/auth/**`, `/api/account/**`) plus the admin user directory (`/api/users`). The frontend stores `access_token`/`refresh_token` in `localStorage` and attaches them via a single axios interceptor. See `docs/authentication.md`.
+
+> **Auth is native to the backend (Keycloak removed).** The backend has a
+> self-contained **Identity Domain** (`identity/` package): Spring Security auth on
+> MariaDB with HS512 JWT access tokens, rotating/revocable refresh tokens (with
+> reuse detection), RBAC (roles + permissions), email verification, and password
+> reset (`/api/auth/**`, `/api/account/**`, admin `/api/users`). `SecurityConfig.java`
+> is **fail-closed** (`anyRequest().hasAuthority("admin")`). The frontend auth layer
+> is unified on the native backend (one Axios client, `access_token`/`refresh_token`).
+> Keycloak, the separate Identity Service, and the auth Postgres have been removed
+> (preserved in the `legacy-keycloak` branch / `pre-identity-migration` tag). A
+> Keycloak realm-export importer exists for one-time user migration
+> (`identity/migration/`). See **`docs/authentication.md`** and
+> **`docs/auth-migration-runbook.md`**.
 
 ### Internationalization
 - **Frontend:** `middleware.ts` rewrites every non-system path to a locale prefix (`/fr` default, or `/ar`), driven by a `lang` cookie. Public-facing pages live under `src/app/[lang]/...` and read `params.lang`. Helpers in `src/lib/i18n.ts` (`withLang`, `getDefaultLang`).
@@ -37,18 +41,19 @@ Standard Spring layering under `src/main/java/.../blue_quirk_backend/`: `control
 ### Frontend admin
 There are two admin surfaces. `src/app/admin-v2/` is the active custom admin (products, users) using components in `src/components/admin/` (`DataTable`, `Sidebar`, `Topbar`). The project also pulls in **react-admin** (`react-admin`, `ra-data-simple-rest`, `ra-input-rich-text`) for parts of the admin tooling.
 
-## Important caveats (this codebase is mid-refactor)
+## Frontend API client (unified)
 
-The frontend has **multiple, inconsistent API client layers** — check which one a file imports before assuming behavior:
+The frontend uses **one** Axios client — `src/services/api.ts` — with a single base
+URL (`API_BASE_URL` from `src/lib/config.ts`, `<host>:9090/api` locally), one token
+convention (`access_token` / `refresh_token` in `localStorage`), and one refresh
+mechanism (a response interceptor that calls `/api/auth/refresh` once on a 401 and
+retries). `src/api/client.ts` re-exports this same instance for backwards
+compatibility. Server-side reads use `src/services/product.service.ts`. When wiring
+new API calls, import the shared client from `@/services/api` — do not create new
+axios instances or new token keys.
 
-| Client | Base URL | Token key | Used by |
-|--------|----------|-----------|---------|
-| `src/api/client.ts` | `http://localhost:8080/api` | `accessToken` | `AuthContext`, newer code |
-| `src/services/api.ts` | `http://localhost:9090/api` | `access_token` | `*.service.ts` |
-| `src/services/product.service.ts` | hardcoded `http://127.0.0.1:9090/api` | — | server-side `fetch` reads |
-| `src/api/api.js`, `blueQuirkApi.js` | (legacy `.js`) | varies | older pages |
-
-Note the **port mismatch**: the backend actually runs on **9090** locally (`application.properties`); `client.ts` points at 8080. Token storage keys also differ across files (`accessToken`, `access_token`, `token`). When wiring new API calls, prefer `src/services/` (`api.ts` + the `*.service.ts` pattern) and confirm the port against the running backend.
+> A few legacy `.js` modules (`src/api/api.js`, `blueQuirkApi.js`) still linger from
+> older pages; prefer the unified TypeScript client for all new work.
 
 ## Common commands
 
@@ -70,17 +75,22 @@ No frontend test framework is configured — run `npm run lint` and `npm run bui
 .\mvnw.cmd package                  # build the JAR
 .\mvnw.cmd -Pbuild-image package     # build Docker image via Jib (bq/blue-quirk-backend)
 ```
-Same Maven wrapper pattern applies in `BlueQuirk Identity/Identity-Service/`. Tests go under `src/test/java` mirroring the package path, named `*Test`.
+Tests go under `src/test/java` mirroring the package path, named `*Test`. Auth
+requires a `JWT_SECRET` env var in non-local profiles (fails fast otherwise); set
+`AUTH_ADMIN_EMAIL` / `AUTH_ADMIN_PASSWORD` once to bootstrap an admin.
 
-### Docker (run from `blue-quirk-backend/docker/`)
-```powershell
-.\start.ps1     # brings up base + identity + db compose stacks
-.\stop.ps1
+### Docker (production stack, run from `docker/`)
+```bash
+cp .env.example .env   # fill in DB creds, JWT_SECRET, admin bootstrap, Resend key
+docker compose up -d --build
 ```
-The `docker` Spring profile (`application-docker.properties`) points the DB at `host.docker.internal:3306` and Keycloak at `keycloak-server:8080`, and serves the API on 8080.
+Four services only: **frontend, backend, MariaDB, Caddy** (reverse proxy + auto-TLS).
+No Keycloak, no PostgreSQL, no Identity Service. The `docker` Spring profile
+(`application-docker.properties`) points the DB at `host.docker.internal:3306` and
+serves the API on 8080; the compose file sets it to MariaDB and injects `JWT_SECRET`.
 
 ## Conventions
 
 - New frontend code in **TypeScript**. Components `PascalCase.tsx`, hooks `useX.ts`, routes follow Next.js conventions (`page.tsx`, `layout.tsx`). Keep service/API logic in `src/services` / `src/api`, out of components.
 - Java classes are named by role (`ProductController`, `CategoryService`, `ProductRepository`). Keep the controller→service→repository separation.
-- Don't commit secrets, local DB passwords, Keycloak realm exports as credentials, or build output. Use environment-specific Spring properties for runtime config.
+- Don't commit secrets, local DB passwords, JWT secrets, or build output. Use environment-specific Spring properties / env vars for runtime config.

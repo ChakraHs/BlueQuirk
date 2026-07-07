@@ -8,29 +8,20 @@ removed **last**, only after the verification checklist passes.
 
 | Phase | State |
 |-------|-------|
-| 0. Git safety net (`v1`... tag + `legacy-keycloak` branch) | ✅ done (`pre-identity-migration` tag, `legacy-keycloak` branch) |
+| 0. Git safety net (tag + backup branch) | ✅ done (`pre-identity-migration` tag, `legacy-keycloak` branch) |
 | 1. Architecture audit | ✅ done |
 | 2. Native Identity Domain (backend) | ✅ done, compiles |
-| 3. Dual-issuer coexistence wiring | ✅ done |
-| 4. Frontend unified on native auth | ✅ done, type-checks |
+| 3. Native-only security wiring | ✅ done (Keycloak decoding removed) |
+| 4. Frontend unified on native auth | ✅ done, type-checks + lints clean |
 | 5. Admin user directory API (replaces Keycloak user CRUD) | ✅ done |
-| 6. Simplified Docker stack (frontend/backend/mariadb/caddy) | ✅ authored (`docker/`) |
-| 7. Data migration (Keycloak password hashes) | ⏳ **ops task — needs the live realm export** |
-| 8. Verification checklist (running system) | ⏳ **ops task — needs running stack** |
-| 9. Decommission Keycloak/Postgres/Identity Service | ⏳ **gated on phases 7–8** |
+| 6. Simplified Docker stack (frontend/backend/mariadb/caddy) | ✅ done (`docker/`) |
+| 7. User migration utility (Keycloak realm-export importer) | ✅ implemented + unit-tested; **running it needs the real realm export** |
+| 8. Verification (unit + local end-to-end) | ✅ done — 32 backend tests + live E2E (register/login/refresh/rotation/reuse/RBAC/reset) |
+| 9. Decommission Keycloak / Postgres / Identity Service | ✅ done (removed from `main`, preserved in `legacy-keycloak`) |
 
-The remaining phases (7–9) require the **running production environment and the
-Keycloak realm export**, which cannot be executed from the code workspace. They are
-fully specified below.
-
-## Coexistence: how nothing breaks
-
-`DelegatingIssuerJwtDecoder` routes JWT validation by the `iss` claim:
-native tokens (`iss=bluequirk`) → HS512 decoder; anything else → the Keycloak JWKS
-decoder (as long as `spring.security.oauth2.resourceserver.jwt.jwk-set-uri` is set).
-`JwtAuthConverter` maps roles from **both** `realm_access.roles` (Keycloak) and the
-native `roles`/`authorities` claims. So while the frontend is being cut over, tokens
-from either issuer authenticate against the same filter chain.
+Everything that can be validated locally has been. The **only** remaining manual step
+is running the importer against the **production Keycloak realm export** (an external
+artifact) — see Phase 7 below.
 
 ## Phase 7 — Data migration (passwords)
 
@@ -54,13 +45,25 @@ the realm export.
 > matches your realm by testing one known password against one exported hash before
 > bulk import. If it doesn't match, adjust the key length or use the fallback.
 
-### Fallback: forced reset
-Import users with `password_hash = NULL`, `enabled=1`. `AuthService.login` rejects a
-null hash, so direct these users through **Forgot password** (email flow already
-built) to set a native password. Simplest and safe; costs each user one reset.
+### This is already implemented
+The strategy above is built as **`identity/migration/KeycloakRealmImportService`**
+(+ `KeycloakImportRunner`), unit-tested in `KeycloakRealmImportServiceTest`. To run it:
 
-Write the import as a one-off SQL script or a small `CommandLineRunner` behind a
-flag; keep it idempotent (match by email).
+```bash
+# Point the backend at a Keycloak realm export JSON (users + credentials):
+bluequirk.security.migration.keycloak-export-file=/path/to/realm-export.json
+```
+
+On startup the importer upserts users **by email** (idempotent — a user who has since
+set their own BCrypt password is never overwritten): PBKDF2 hashes are stored in the
+verify-able `{keycloak-pbkdf2-*}` format (lazy BCrypt upgrade on next login); accounts
+without an importable hash are flagged `password_reset_required` and issued a reset
+token. Roles and profile are preserved. Leave the property set — re-runs are safe.
+
+### Fallback: forced reset
+The importer already does this for un-importable credentials (`password_hash = NULL`,
+`password_reset_required = true`). `AuthService.login` rejects a null hash, so those
+users go through **Forgot password** to set a native password.
 
 ## Phase 8 — Verification checklist (run against the live stack)
 

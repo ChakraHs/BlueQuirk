@@ -4,9 +4,9 @@ Authentication is a **native domain inside the Spring Boot backend** (package
 `shop.bluequirk.blue_quirk_backend.identity`). There is no Keycloak and no separate
 Identity Service in the target architecture; the only datastore is MariaDB.
 
-> During migration the backend also accepts legacy Keycloak tokens (see the
-> [migration runbook](./auth-migration-runbook.md)). This document describes the
-> native design.
+> Keycloak, the separate Identity Service, and the auth-only PostgreSQL have been
+> removed. For the one-time import of existing Keycloak users, see the
+> [migration runbook](./auth-migration-runbook.md).
 
 ## 1. High-level design
 
@@ -133,5 +133,11 @@ lockout thresholds and rate limits are all in `application.properties`.
 2. **Lowercase role names.** Keeps every existing `hasAuthority("admin")` rule valid
    and makes native/Keycloak tokens interchangeable during migration.
 3. **Reuse the `users` table.** Zero business-FK churn; identity owns it conceptually.
-4. **Dual-issuer decoder.** One decoder routes by `iss`, enabling a phased cutover with
-   no downtime; deleting the Keycloak JWKS URL disables the legacy path with no code change.
+4. **Fail-fast secret + best-effort email.** Startup aborts on a weak/default
+   `JWT_SECRET` under the `docker`/`prod` profiles (`JwtSecretValidator`). Transactional
+   emails (verification, reset) are best-effort — a mail outage never fails the user
+   action; the token persists for a retry.
+5. **One-time Keycloak importer.** `identity/migration/` imports users from a realm
+   export: PBKDF2 hashes are re-verifiable (lazy BCrypt upgrade on next login),
+   otherwise the account is flagged `passwordResetRequired` with a reset token issued.
+   Idempotent; runs on startup only when `bluequirk.security.migration.keycloak-export-file` is set.
