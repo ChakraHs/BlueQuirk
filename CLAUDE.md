@@ -15,7 +15,17 @@ BlueQuirk is a multilingual (French/Arabic) e-commerce platform split across ind
 ### Authentication & authorization
 Auth is **Keycloak-based**, not local. The backend is a pure OAuth2 resource server: every protected request carries a `Bearer` JWT issued by the Keycloak realm `blue-quirk-realm`. `config/JwtAuthConverter.java` maps the JWT's `realm_access.roles` claim into Spring authorities, and `@EnableMethodSecurity` enables `@PreAuthorize` on controllers/services. The Identity-Service is what actually talks to Keycloak (password grant, user CRUD); the frontend login flows hit it, store tokens in `localStorage`, and attach them via axios interceptors.
 
-> **Note:** `SecurityConfig.java` currently `permitAll()`s `/**`, so endpoints are effectively open despite the resource-server setup — keep this in mind when reasoning about access control.
+> **Migration in progress — native auth is replacing Keycloak.** The backend now
+> has a self-contained **Identity Domain** (`identity/` package): native Spring
+> Security auth on MariaDB with JWT access tokens, rotating refresh tokens, RBAC,
+> email verification, and password reset (`/api/auth/**`, `/api/account/**`,
+> `/api/users`). It **coexists** with Keycloak via `DelegatingIssuerJwtDecoder`
+> (routes validation by the token `iss`), so both token types work during cutover.
+> `SecurityConfig.java` is **fail-closed** (`anyRequest().hasAuthority("admin")`),
+> not `permitAll("/**")`. The frontend auth layer is unified on the native backend.
+> See **`docs/authentication.md`** and **`docs/auth-migration-runbook.md`**.
+> Keycloak + the Identity Service are retained until the runbook's verification
+> checklist passes, then removed.
 
 ### Internationalization
 - **Frontend:** `middleware.ts` rewrites every non-system path to a locale prefix (`/fr` default, or `/ar`), driven by a `lang` cookie. Public-facing pages live under `src/app/[lang]/...` and read `params.lang`. Helpers in `src/lib/i18n.ts` (`withLang`, `getDefaultLang`).
