@@ -1,49 +1,37 @@
 import { AuthProvider } from "react-admin";
-import { IDENTITY_BASE_URL } from "@/lib/config";
+import { login as nativeLogin, logout as nativeLogout } from "@/api/auth";
+import { getAuthUser } from "@/lib/auth";
 
+// react-admin auth provider backed by the native backend Identity Domain.
 export const authProvider: AuthProvider = {
   login: async ({ login, email, password }) => {
-    // Choose login or email
-    const body = login
-      ? { login, password }
-      : { email, password };
-
-    const response = await fetch(`${IDENTITY_BASE_URL}/uaa/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (!response.ok) {
-      throw new Error("Invalid credentials");
-    }
-
-    const data = await response.json();
-    // match your backend response field names (check TokenResponse DTO)
-    localStorage.setItem("access_token", data.accessToken);
-    localStorage.setItem("refresh_token", data.refreshToken);
-
-    return Promise.resolve();
+    const identifier = email ?? login;
+    await nativeLogin(identifier, password);
   },
 
   logout: () => {
-    localStorage.removeItem("access_token");
-    localStorage.removeItem("refresh_token");
+    // Clear tokens without a hard redirect (react-admin handles navigation).
+    if (typeof window !== "undefined") {
+      localStorage.removeItem("access_token");
+      localStorage.removeItem("refresh_token");
+    }
     return Promise.resolve();
   },
 
   checkAuth: () =>
-    localStorage.getItem("access_token") ? Promise.resolve() : Promise.reject(),
+    typeof window !== "undefined" && localStorage.getItem("access_token")
+      ? Promise.resolve()
+      : Promise.reject(),
 
   checkError: (error) => {
-    if (error.status === 401 || error.status === 403) {
-      localStorage.removeItem("access_token");
+    if (error?.status === 401 || error?.status === 403) {
       return Promise.reject();
     }
     return Promise.resolve();
   },
 
-  getPermissions: () => Promise.resolve(['admin']),
-  // empty array
-
+  getPermissions: () => Promise.resolve(getAuthUser()?.roles ?? []),
 };
+
+// Re-export for callers that used to trigger a full logout+redirect.
+export const fullLogout = nativeLogout;

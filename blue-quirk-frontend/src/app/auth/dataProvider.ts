@@ -1,10 +1,10 @@
 import simpleRestProvider from "ra-data-simple-rest";
 import { API_BASE_URL } from "@/lib/config";
 
-const fetchJsonWithAuth = async (url: string, options: any = {}) => {
+const fetchJsonWithAuth = async (url: string, options: RequestInit = {}) => {
   const token = localStorage.getItem("access_token");
   options.headers = {
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
     Authorization: token ? `Bearer ${token}` : "",
   };
 

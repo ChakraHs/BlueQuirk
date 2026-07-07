@@ -22,25 +22,6 @@ function resolveApiBaseUrl(): string {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
-// Base URL for the Identity-Service (Keycloak wrapper) that handles login,
-// registration and profile CRUD. It runs on port 57825 on the same host that
-// serves the frontend. Like the shop API above, derive the host from the page
-// the visitor actually loaded so login works over the LAN / a device's IP — a
-// phone hitting http://192.168.0.102:3000 must call the Identity-Service at
-// http://192.168.0.102:57825, because "localhost" on that phone is the phone.
-// Override with NEXT_PUBLIC_IDENTITY_BASE_URL if it ever moves.
-function resolveIdentityBaseUrl(): string {
-  const explicit = process.env.NEXT_PUBLIC_IDENTITY_BASE_URL;
-  if (explicit) return explicit.replace(/\/+$/, "");
-
-  if (typeof window !== "undefined") {
-    return `${window.location.protocol}//${window.location.hostname}:57825`;
-  }
-  return "http://localhost:57825";
-}
-
-export const IDENTITY_BASE_URL = resolveIdentityBaseUrl();
-
 // Public site origin, used to build absolute URLs for SEO (metadataBase,
 // canonical, Open Graph, sitemap, robots). Override with NEXT_PUBLIC_SITE_URL.
 export const SITE_URL = (

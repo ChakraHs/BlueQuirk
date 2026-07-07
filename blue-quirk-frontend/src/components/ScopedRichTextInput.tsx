@@ -7,6 +7,6 @@ import { RichTextInput } from "ra-input-rich-text";
 import "react-quill/dist/quill.snow.css";
 import "react-quill/dist/quill.core.css";
 
-export const ScopedRichTextInput: React.FC<any> = (props) => {
+export const ScopedRichTextInput: React.FC<React.ComponentProps<typeof RichTextInput>> = (props) => {
   return <RichTextInput {...props} />;
 };
