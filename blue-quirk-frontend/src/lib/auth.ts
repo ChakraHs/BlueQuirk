@@ -1,9 +1,12 @@
-// Client-side auth helpers built around the Keycloak JWT issued by the
-// Identity-Service. The token is stored in localStorage under `access_token`
-// (the key used by the login/signup flows and the storefront Header).
+// Client-side auth helpers for the native backend JWT (Identity Domain).
 //
-// Roles live in the `realm_access.roles` claim — the same claim the backend's
-// JwtAuthConverter reads. The realm defines two roles: `admin` and `user`.
+// Single token convention across the whole app:
+//   access_token  → short-lived JWT access token
+//   refresh_token → opaque rotating refresh token
+//
+// Native tokens carry roles in a top-level `roles` claim. Legacy Keycloak tokens
+// (still valid during the migration) carry them under `realm_access.roles`; both
+// are read here so either token type resolves the user correctly.
 
 export const TOKEN_KEY = "access_token";
 export const REFRESH_KEY = "refresh_token";
@@ -11,9 +14,11 @@ export const REFRESH_KEY = "refresh_token";
 export type JwtClaims = {
   sub: string;
   email?: string;
+  name?: string;
   preferred_username?: string;
   given_name?: string;
   family_name?: string;
+  roles?: string[];
   realm_access?: { roles?: string[] };
   exp?: number;
 };
@@ -69,12 +74,12 @@ export function getAuthUser(): AuthUser | null {
   const claims = decodeToken(token);
   if (!claims) return null;
 
-  const roles = claims.realm_access?.roles ?? [];
+  const roles = claims.roles ?? claims.realm_access?.roles ?? [];
   return {
     id: claims.sub,
     email: claims.email ?? "",
-    username: claims.preferred_username ?? "",
-    firstName: claims.given_name ?? "",
+    username: claims.preferred_username ?? claims.email ?? "",
+    firstName: claims.given_name ?? claims.name ?? "",
     lastName: claims.family_name ?? "",
     roles,
     isAdmin: roles.includes("admin"),
