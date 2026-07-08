@@ -19,7 +19,7 @@ import shop.bluequirk.blue_quirk_backend.repository.UserPreferenceRepository;
 
 /**
  * Stores/returns per-user storefront preferences (currently UI language).
- * Keyed by the Keycloak user id, which the frontend reads from the JWT `sub`.
+ * Keyed by the user id, which the frontend reads from the JWT `sub`.
  */
 @RestController
 @RequestMapping("/api/preferences")
@@ -38,9 +38,9 @@ public class PreferenceController {
     public record PreferenceResponse(String userId, String language) {}
 
     /**
-     * Ownership guard: the {userId} in the path is the Keycloak user id, which
-     * must match the caller's own JWT subject — otherwise any signed-in user
-     * could read or overwrite another user's preferences.
+     * Ownership guard: the {userId} in the path must match the caller's own JWT
+     * subject — otherwise any signed-in user could read or overwrite another
+     * user's preferences.
      */
     private static void requireSelf(Jwt jwt, String userId) {
         if (jwt == null || !jwt.getSubject().equals(userId)) {

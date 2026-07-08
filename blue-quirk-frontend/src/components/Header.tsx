@@ -47,139 +47,158 @@ export default function Header({
     logout(`/${lang}`);
   };
 
+  // Scroll behaviour is pure CSS — no scroll listeners, so there's nothing to
+  // oscillate/flicker:
+  //  • Desktop (md+): the whole header is `sticky top-0`, exactly as before.
+  //  • Mobile: the header sits in normal flow, so the page content naturally
+  //    pushes it up as you scroll. The search bar is a *sibling* of the header
+  //    (its containing block is the page body, not the short header), so it
+  //    scrolls up with the content until it reaches the top, then `sticky top-0`
+  //    pins it there for the rest of the page. Scrolling back up lets the header
+  //    slide naturally into view again.
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
-      {/* ---- Top row ---- */}
-      <div className="mx-auto max-w-7xl px-4 md:px-6">
-        <div className="flex h-16 items-center gap-2 md:gap-4">
-          {/* Logo — uploaded image when set, otherwise the store name as text.
-              min-w-0 + truncate let the logo yield/shrink first on tiny screens
-              so the action icons (and the menu button) are never pushed off the
-              edge and clipped. */}
-          <Link
-            href={`/${lang}`}
-            aria-label={storeName}
-            className="flex min-w-0 items-center"
-          >
-            {logoUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={logoUrl}
-                alt={storeName}
-                className="h-8 w-auto max-w-[130px] object-contain md:h-9 md:max-w-[180px]"
-              />
-            ) : (
-              <span className="truncate text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
-                {storeName}
-              </span>
-            )}
-          </Link>
+    <>
+      <header className="relative z-50 bg-white md:sticky md:top-0 md:border-b md:border-gray-200">
+        {/* ---- Top row ---- */}
+        <div className="mx-auto max-w-7xl px-4 md:px-6">
+          <div className="flex h-16 items-center gap-2 md:gap-4">
+            {/* Logo — uploaded image when set, otherwise the store name as text.
+                min-w-0 + truncate let the logo yield/shrink first on tiny screens
+                so the action icons (and the menu button) are never pushed off the
+                edge and clipped. */}
+            <Link
+              href={`/${lang}`}
+              aria-label={storeName}
+              className="flex min-w-0 items-center"
+            >
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={logoUrl}
+                  alt={storeName}
+                  className="h-8 w-auto max-w-[130px] object-contain md:h-9 md:max-w-[180px]"
+                />
+              ) : (
+                <span className="truncate text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
+                  {storeName}
+                </span>
+              )}
+            </Link>
 
-          {/* Search (desktop) */}
-          <div className="hidden md:block flex-1 max-w-2xl">
+            {/* Search (desktop) */}
+            <div className="hidden md:block flex-1 max-w-2xl">
+              <SearchBar lang={lang} />
+            </div>
+
+            {/* Actions — shrink-0 so the icons and the mobile menu button always
+                stay fully visible (the logo above absorbs any tight space). */}
+            <nav className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+              {loggedIn ? (
+                <>
+                  <Link
+                    href={accountUrl}
+                    className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    <UserIcon size={18} />
+                    {t(lang, "nav.account")}
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                  >
+                    <LogOut size={18} />
+                    {t(lang, "nav.logout")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    className="hidden md:flex items-center rounded-full px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
+                  >
+                    {t(lang, "nav.login")}
+                  </Link>
+                  <Link
+                    href="/signup"
+                    className="hidden md:flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                  >
+                    {t(lang, "nav.signup")}
+                  </Link>
+                </>
+              )}
+
+              <LanguageSwitcher current={lang} />
+
+              <Link
+                href={`/${lang}/wishlist`}
+                aria-label={t(lang, "nav.wishlist")}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
+              >
+                <Heart size={20} />
+                {wishlist.length > 0 && (
+                  <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                    {wishlist.length}
+                  </span>
+                )}
+              </Link>
+              <Link
+                href={`/${lang}/cart`}
+                aria-label={t(lang, "nav.cart")}
+                className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
+              >
+                <ShoppingCart size={20} />
+                {cartQty > 0 && (
+                  <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                    {cartQty}
+                  </span>
+                )}
+              </Link>
+
+              {/* Mobile menu toggle */}
+              <button
+                aria-label={t(lang, "nav.menu")}
+                onClick={() => setOpen((o) => !o)}
+                className="flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 md:hidden"
+              >
+                {open ? <X size={22} /> : <Menu size={22} />}
+              </button>
+            </nav>
+          </div>
+        </div>
+
+        {/* ---- Category nav strip (desktop) ---- */}
+        {categories.length > 0 && (
+          <div className="hidden md:block border-t border-gray-100 bg-white">
+            <div className="mx-auto max-w-7xl px-6">
+              <ul className="flex items-center gap-1 overflow-x-auto">
+                {categories.map((cat) => (
+                  <li key={cat.id}>
+                    <Link
+                      href={`/${lang}/category/${cat.id}`}
+                      className="block whitespace-nowrap px-3 py-3 text-sm font-medium text-gray-600 transition hover:text-blue-600"
+                    >
+                      {cat.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* ---- Search (mobile) ----
+          A sibling of the header (not nested inside it) so its sticky
+          containing block is the whole page: it rides up with the content and
+          pins to the top the moment it gets there, staying visible for the rest
+          of the scroll. */}
+      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white md:hidden">
+        <div className="mx-auto max-w-7xl px-4">
+          <div className="py-2">
             <SearchBar lang={lang} />
           </div>
-
-          {/* Actions — shrink-0 so the icons and the mobile menu button always
-              stay fully visible (the logo above absorbs any tight space). */}
-          <nav className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
-            {loggedIn ? (
-              <>
-                <Link
-                  href={accountUrl}
-                  className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                >
-                  <UserIcon size={18} />
-                  {t(lang, "nav.account")}
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="hidden md:flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                >
-                  <LogOut size={18} />
-                  {t(lang, "nav.logout")}
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  href="/login"
-                  className="hidden md:flex items-center rounded-full px-3 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100"
-                >
-                  {t(lang, "nav.login")}
-                </Link>
-                <Link
-                  href="/signup"
-                  className="hidden md:flex items-center rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  {t(lang, "nav.signup")}
-                </Link>
-              </>
-            )}
-
-            <LanguageSwitcher current={lang} />
-
-            <Link
-              href={`/${lang}/wishlist`}
-              aria-label={t(lang, "nav.wishlist")}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
-            >
-              <Heart size={20} />
-              {wishlist.length > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
-                  {wishlist.length}
-                </span>
-              )}
-            </Link>
-            <Link
-              href={`/${lang}/cart`}
-              aria-label={t(lang, "nav.cart")}
-              className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
-            >
-              <ShoppingCart size={20} />
-              {cartQty > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
-                  {cartQty}
-                </span>
-              )}
-            </Link>
-
-            {/* Mobile menu toggle */}
-            <button
-              aria-label={t(lang, "nav.menu")}
-              onClick={() => setOpen((o) => !o)}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 md:hidden"
-            >
-              {open ? <X size={22} /> : <Menu size={22} />}
-            </button>
-          </nav>
-        </div>
-
-        {/* Search (mobile) */}
-        <div className="pb-3 md:hidden">
-          <SearchBar lang={lang} />
         </div>
       </div>
-
-      {/* ---- Category nav strip ---- */}
-      {categories.length > 0 && (
-        <div className="hidden md:block border-t border-gray-100 bg-white">
-          <div className="mx-auto max-w-7xl px-6">
-            <ul className="flex items-center gap-1 overflow-x-auto">
-              {categories.map((cat) => (
-                <li key={cat.id}>
-                  <Link
-                    href={`/${lang}/category/${cat.id}`}
-                    className="block whitespace-nowrap px-3 py-3 text-sm font-medium text-gray-600 transition hover:text-blue-600"
-                  >
-                    {cat.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
 
       {/* ---- Mobile drawer ---- */}
       {open && (
@@ -229,6 +248,6 @@ export default function Header({
           </div>
         </div>
       )}
-    </header>
+    </>
   );
 }

@@ -1,19 +1,23 @@
 "use client";
 import { createContext, useContext, useState, useEffect } from "react";
-import api from "../api/client";
+import api, { storeTokens, clearTokens } from "@/services/api";
+import { TOKEN_KEY } from "@/lib/auth";
 
 type User = {
-  id: string;
+  id: number;
   email: string;
-  role: string;
+  name: string;
+  emailVerified: boolean;
+  roles: string[];
 };
 
 type AuthContextType = {
   user: User | null;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, rememberMe?: boolean) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
+  isAdmin: boolean;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,43 +27,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem("token");
+    const savedToken = localStorage.getItem(TOKEN_KEY);
     if (savedToken) {
       setToken(savedToken);
-      fetchMe(savedToken);
+      fetchMe();
     }
   }, []);
 
-  async function fetchMe(tok: string) {
+  async function fetchMe() {
     try {
-      const { data } = await api.get<User>("/auth/me", {
-        headers: { Authorization: `Bearer ${tok}` },
-      });
+      const { data } = await api.get<User>("/account/me");
       setUser(data);
     } catch {
-      logout();
+      doLogout();
     }
   }
 
-  async function login(email: string, password: string) {
-    const { data } = await api.post<{ token: string; user: User }>("/auth/login", {
-      email,
-      password,
-    });
-    localStorage.setItem("token", data.token);
-    setToken(data.token);
+  async function login(email: string, password: string, rememberMe = false) {
+    const { data } = await api.post<{
+      accessToken: string;
+      refreshToken: string;
+      user: User;
+    }>("/auth/login", { email, password, rememberMe });
+    storeTokens(data.accessToken, data.refreshToken);
+    setToken(data.accessToken);
     setUser(data.user);
   }
 
-  function logout() {
-    localStorage.removeItem("token");
+  function doLogout() {
+    clearTokens();
     setToken(null);
     setUser(null);
   }
 
   return (
     <AuthContext.Provider
-      value={{ user, token, login, logout, isAuthenticated: !!user }}
+      value={{
+        user,
+        token,
+        login,
+        logout: doLogout,
+        isAuthenticated: !!user,
+        isAdmin: !!user?.roles?.includes("admin"),
+      }}
     >
       {children}
     </AuthContext.Provider>

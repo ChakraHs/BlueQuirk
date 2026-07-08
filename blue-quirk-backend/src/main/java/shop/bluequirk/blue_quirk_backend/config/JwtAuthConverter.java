@@ -1,43 +1,46 @@
 package shop.bluequirk.blue_quirk_backend.config;
 
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.stereotype.Component;
 
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
+/**
+ * Maps a native Identity Domain JWT into Spring authorities. Role names live in the
+ * {@code roles} claim and role names + fine-grained permissions in {@code authorities};
+ * both are mapped verbatim so rules like {@code hasAuthority("admin")} and
+ * {@code hasAuthority("PRODUCT_WRITE")} work. The principal name is the user's email,
+ * falling back to the subject (local user id).
+ */
 @Component
 public class JwtAuthConverter implements Converter<Jwt, AbstractAuthenticationToken> {
-    private final JwtGrantedAuthoritiesConverter jwtGrantedAuthoritiesConverter=new JwtGrantedAuthoritiesConverter();
-
 
     @Override
     public AbstractAuthenticationToken convert(Jwt jwt) {
-        Collection<GrantedAuthority> authorities = Stream.concat(
-                jwtGrantedAuthoritiesConverter.convert(jwt).stream(),
-                extractResourceRoles(jwt).stream()
-        ).collect(Collectors.toSet());
-        return new JwtAuthenticationToken(jwt, authorities,jwt.getClaim("preferred_username"));
-    }
+        Set<GrantedAuthority> authorities = new HashSet<>();
+        addStringClaim(jwt, "roles", authorities);
+        addStringClaim(jwt, "authorities", authorities);
 
-    private Collection<GrantedAuthority> extractResourceRoles(Jwt jwt) {
-        Map<String ,Object> realmAccess;
-        Collection<String> roles;
-        if(jwt.getClaim("realm_access") == null){
-            return Set.of();
+        String principalName = jwt.getClaimAsString("email");
+        if (principalName == null) {
+            principalName = jwt.getSubject();
         }
-        realmAccess = jwt.getClaim("realm_access");
-        roles = (Collection<String>) realmAccess.get("roles");
-        return roles.stream().map(role->new SimpleGrantedAuthority(role)).collect(Collectors.toSet());
+        return new JwtAuthenticationToken(jwt, authorities, principalName);
     }
 
+    private void addStringClaim(Jwt jwt, String claimName, Set<GrantedAuthority> sink) {
+        Object claim = jwt.getClaim(claimName);
+        if (claim instanceof Collection<?> values) {
+            for (Object v : values) {
+                sink.add(new SimpleGrantedAuthority(v.toString()));
+            }
+        }
+    }
 }

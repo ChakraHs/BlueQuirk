@@ -33,11 +33,17 @@ body {
    scroll / pinch-zoom on phones. Without this, one overflowing child makes the
    whole page wider than the viewport, so full-bleed sections (like the hero)
    stop reaching the screen edges and the header appears cut off until you zoom
-   out. Clamping the root to the viewport width keeps the layout phone-friendly. */
+   out. Clamping the root to the viewport width keeps the layout phone-friendly.
+
+   Use `overflow-x: clip` rather than `hidden`: `hidden` is a scrolling value,
+   so it forces the computed `overflow-y` to `auto`, turning the root into a
+   scroll container — which silently breaks `position: sticky` on the header.
+   `clip` prevents horizontal scroll just the same but is NOT a scrolling value,
+   so `overflow-y` stays `visible` and the sticky header keeps working. */
 html,
 body {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 

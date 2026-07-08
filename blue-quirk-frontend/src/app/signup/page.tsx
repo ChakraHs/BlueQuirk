@@ -15,10 +15,7 @@ import {
 } from "lucide-react";
 
 import { track } from "@/lib/analytics/tracker";
-import { IDENTITY_BASE_URL } from "@/lib/config";
-
-// Identity-Service registration endpoint (same host as the login flow).
-const REGISTER_URL = `${IDENTITY_BASE_URL}/register`;
+import { register } from "@/api/auth";
 
 type Form = {
   firstName: string;
@@ -84,47 +81,25 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(REGISTER_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: form.username.trim(),
-          email: form.email.trim(),
-          password: form.password,
-          firstName: form.firstName.trim(),
-          lastName: form.lastName.trim(),
-        }),
-      });
+      // The backend models a single display name; compose it from the form.
+      const name =
+        `${form.firstName.trim()} ${form.lastName.trim()}`.trim() ||
+        form.username.trim();
 
-      if (res.status === 409) {
-        setError("An account with this email or username already exists.");
-        return;
-      }
-
-      if (!res.ok) {
-        setError("Something went wrong. Please try again.");
-        return;
-      }
-
-      const data = await res.json().catch(() => null);
+      // Native register auto-logs-in (returns + stores tokens) and sends a
+      // verification email in the background.
+      await register(form.email.trim(), form.password, name);
       track("register");
-
-      // If the backend returned tokens, log the user in immediately.
-      const token = data?.token;
-      if (token?.accessToken) {
-        localStorage.setItem("access_token", token.accessToken);
-        if (token.refreshToken) {
-          localStorage.setItem("refresh_token", token.refreshToken);
-        }
-        router.push(redirectTo || "/");
-        return;
+      router.push(redirectTo || "/");
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      if (status === 409) {
+        setError("An account with this email already exists.");
+      } else if (status === 400) {
+        setError("Please check your details and try again.");
+      } else {
+        setError("Could not reach the server. Please try again.");
       }
-
-      // Otherwise send them to the login page to sign in (keeping the redirect).
-      setSuccess("Account created! Redirecting you to sign in…");
-      setTimeout(() => router.push(loginHref), 1200);
-    } catch {
-      setError("Could not reach the server. Please try again.");
     } finally {
       setLoading(false);
     }

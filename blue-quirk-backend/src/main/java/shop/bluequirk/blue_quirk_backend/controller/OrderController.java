@@ -16,7 +16,6 @@ import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.User;
 import shop.bluequirk.blue_quirk_backend.repository.UserRepository;
 import shop.bluequirk.blue_quirk_backend.service.OrderService;
-import shop.bluequirk.blue_quirk_backend.service.UserProvisioningService;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -28,39 +27,38 @@ public class OrderController {
 
     private final OrderService orderService;
     private final UserRepository userRepository;
-    private final UserProvisioningService userProvisioningService;
 
     public OrderController(OrderService orderService,
-                           UserRepository userRepository,
-                           UserProvisioningService userProvisioningService) {
+                           UserRepository userRepository) {
         this.orderService = orderService;
         this.userRepository = userRepository;
-        this.userProvisioningService = userProvisioningService;
     }
 
     /**
      * Place a cash-on-delivery order. Open to guests — no sign-up required. When
-     * the request carries a valid Keycloak token we link the order to that login
-     * account; otherwise it's a guest order tied only to its Customer (by email).
+     * the request carries a valid token we link the order to that account;
+     * otherwise it's a guest order tied only to its Customer (by email).
      */
     @PostMapping
     public ResponseEntity<OrderResponse> createOrder(
             @RequestBody CreateOrderRequest request,
             @AuthenticationPrincipal Jwt jwt) {
 
-        User user = null;
-        if (jwt != null) {
-            String keycloakId = jwt.getSubject();
-            user = userRepository.findByKeycloakId(keycloakId).orElse(null);
-            if (user == null) {
-                // The JIT filter usually creates this row already; provision defensively.
-                userProvisioningService.provisionFromJwt(jwt);
-                user = userRepository.findByKeycloakId(keycloakId).orElse(null);
-            }
-        }
-
+        User user = resolveUser(jwt);
         OrderResponse order = orderService.createOrder(request, user);
         return ResponseEntity.status(HttpStatus.CREATED).body(order);
+    }
+
+    /** Resolve the local user from a native token: the subject is the local id. */
+    private User resolveUser(Jwt jwt) {
+        if (jwt == null) {
+            return null;
+        }
+        String sub = jwt.getSubject();
+        if (sub != null && sub.matches("\\d+")) {
+            return userRepository.findById(Long.valueOf(sub)).orElse(null);
+        }
+        return null;
     }
 
     /** Public order tracking by reference (e.g. BQ-2026-000123). */
@@ -102,8 +100,7 @@ public class OrderController {
         boolean isAdmin = authentication != null && authentication.getAuthorities().stream()
                 .anyMatch(a -> "admin".equals(a.getAuthority()));
         if (!isAdmin) {
-            User caller = jwt == null ? null
-                    : userRepository.findByKeycloakId(jwt.getSubject()).orElse(null);
+            User caller = resolveUser(jwt);
             if (caller == null || !caller.getId().equals(userId)) {
                 throw new ResponseStatusException(HttpStatus.FORBIDDEN,
                         "You can only view your own orders");

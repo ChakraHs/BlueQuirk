@@ -5,6 +5,7 @@ import "../globals.css";
 import { Providers } from "../../components/Providers";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import SupportWidget from "@/components/support/SupportWidget";
 import { CategoryService } from "@/services/category.service";
 import { getPublicShopConfig } from "@/lib/shopConfig";
 import { isLang, LANGS, dirOf } from "@/lib/lang";
@@ -94,6 +95,11 @@ export default async function LangLayout({
             />
             <Providers>{children}</Providers>
             <Footer
+              lang={lang}
+              storeName={config.storeName}
+              logoUrl={config.logoUrl}
+            />
+            <SupportWidget
               lang={lang}
               storeName={config.storeName}
               logoUrl={config.logoUrl}

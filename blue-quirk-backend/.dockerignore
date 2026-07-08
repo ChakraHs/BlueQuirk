@@ -1,0 +1,8 @@
+target/
+uploads/
+docker/
+.git/
+.gitignore
+*.log
+.env
+.mvn/wrapper/maven-wrapper.jar

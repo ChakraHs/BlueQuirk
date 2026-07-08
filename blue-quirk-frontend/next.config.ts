@@ -1,8 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig = {
+  // Emit a self-contained server bundle (.next/standalone) so the Docker image
+  // can run `node server.js` without the full node_modules tree.
+  output: "standalone",
+
   images: {
     remotePatterns: [
+      {
+        // Backend-served upload images (/uploads/**) when deployed on Railway
+        // and Cloudflare R2 is not configured.
+        protocol: "https",
+        hostname: "**.up.railway.app",
+      },
       {
         protocol: "https",
         hostname: "images.ctfassets.net",

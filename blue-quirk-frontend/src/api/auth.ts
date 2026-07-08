@@ -1,23 +1,43 @@
-import api from "./client";
-import { IDENTITY_BASE_URL } from "@/lib/config";
+// Native authentication API (backend Identity Domain). Uses the single app Axios
+// client and the single token convention (access_token / refresh_token).
+import api, { storeTokens, clearTokens } from "@/services/api";
 
-const AUTH_URL = `${IDENTITY_BASE_URL}/uaa/token`;
+export type AuthUser = {
+  id: number;
+  email: string;
+  name: string;
+  emailVerified: boolean;
+  roles: string[];
+};
 
-export async function login(email: string, password: string) {
-  const { data } = await api.post(AUTH_URL, { email, password });
+export type TokenResponse = {
+  accessToken: string;
+  refreshToken: string;
+  tokenType: string;
+  expiresIn: number;
+  user: AuthUser;
+};
 
-  if (data.accessToken) {
-    localStorage.setItem("accessToken", data.accessToken);
-  }
-  if (data.refreshToken) {
-    localStorage.setItem("refreshToken", data.refreshToken);
-  }
-
+export async function login(email: string, password: string, rememberMe = false) {
+  const { data } = await api.post<TokenResponse>("/auth/login", { email, password, rememberMe });
+  storeTokens(data.accessToken, data.refreshToken);
   return data;
 }
 
-export function logout() {
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  window.location.href = "/bq-admin/login";
+export async function register(email: string, password: string, name: string) {
+  const { data } = await api.post<TokenResponse>("/auth/register", { email, password, name });
+  storeTokens(data.accessToken, data.refreshToken);
+  return data;
+}
+
+export async function logout(redirectTo = "/login") {
+  const refreshToken =
+    typeof window !== "undefined" ? localStorage.getItem("refresh_token") : null;
+  try {
+    if (refreshToken) await api.post("/auth/logout", { refreshToken });
+  } catch {
+    // Best-effort server-side revocation; always clear locally.
+  }
+  clearTokens();
+  if (typeof window !== "undefined") window.location.href = redirectTo;
 }
