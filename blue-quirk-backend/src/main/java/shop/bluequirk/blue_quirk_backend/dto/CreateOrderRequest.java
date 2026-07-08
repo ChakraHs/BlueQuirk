@@ -20,6 +20,9 @@ public record CreateOrderRequest(
         // Kept for backward compatibility: older clients sent a single full name.
         // When firstName/lastName are present they take precedence.
         String customerName,
+        // Optional coupon code. The server re-validates it and recomputes the
+        // discount from catalog prices — the client's discount/total is ignored.
+        String couponCode,
         List<Item> items
 ) {
     public record Item(

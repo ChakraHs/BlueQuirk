@@ -89,6 +89,27 @@ public class Order {
     private double shippingFee;
     private double total;
 
+    // --- Promotion / coupon (all backend-computed; persisted for invoices + analytics) ---
+    // Pre-discount grand total (subtotal + shipping) at order time.
+    @Column(name = "original_total", nullable = false)
+    private double originalTotal;
+
+    @Column(name = "discount_amount", nullable = false)
+    private double discountAmount;
+
+    // Effective discount as a percentage of the goods subtotal (0 when none).
+    @Column(name = "discount_percentage", nullable = false)
+    private double discountPercentage;
+
+    // The coupon code the customer applied, snapshotted (null if none).
+    @Column(name = "applied_coupon_code")
+    private String appliedCouponCode;
+
+    // The promotion that was applied (null if none). Kept as a plain id — no FK —
+    // so a promotion can be deleted without orphaning historical orders.
+    @Column(name = "promotion_id")
+    private Long promotionId;
+
     private LocalDateTime orderDate;
 
     // --- Todify fulfillment sync (all nullable; local order is source of truth) ---
@@ -194,6 +215,21 @@ public class Order {
 
     public double getTotal() { return total; }
     public void setTotal(double total) { this.total = total; }
+
+    public double getOriginalTotal() { return originalTotal; }
+    public void setOriginalTotal(double originalTotal) { this.originalTotal = originalTotal; }
+
+    public double getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(double discountAmount) { this.discountAmount = discountAmount; }
+
+    public double getDiscountPercentage() { return discountPercentage; }
+    public void setDiscountPercentage(double discountPercentage) { this.discountPercentage = discountPercentage; }
+
+    public String getAppliedCouponCode() { return appliedCouponCode; }
+    public void setAppliedCouponCode(String appliedCouponCode) { this.appliedCouponCode = appliedCouponCode; }
+
+    public Long getPromotionId() { return promotionId; }
+    public void setPromotionId(Long promotionId) { this.promotionId = promotionId; }
 
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }

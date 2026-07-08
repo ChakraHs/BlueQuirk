@@ -28,6 +28,11 @@ public record OrderResponse(
         String email,
         double subtotal,
         double shippingFee,
+        double originalTotal,
+        double discountAmount,
+        double discountPercentage,
+        String appliedCouponCode,
+        Long promotionId,
         double total,
         String orderDate,
         // --- Todify fulfillment (null for non-Todify orders) ---
@@ -81,6 +86,11 @@ public record OrderResponse(
                 order.getEmail(),
                 order.getSubtotal(),
                 order.getShippingFee(),
+                order.getOriginalTotal(),
+                order.getDiscountAmount(),
+                order.getDiscountPercentage(),
+                order.getAppliedCouponCode(),
+                order.getPromotionId(),
                 order.getTotal(),
                 order.getOrderDate() != null
                         ? order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,

@@ -69,6 +69,25 @@ public class CustomerService {
         return customerRepository.save(customer);
     }
 
+    /** Looks up an existing customer by email (no creation). */
+    @Transactional(readOnly = true)
+    public java.util.Optional<Customer> findByEmail(String email) {
+        if (email == null || email.isBlank()) return java.util.Optional.empty();
+        return customerRepository.findByEmailIgnoreCase(email.trim());
+    }
+
+    /**
+     * Whether an order for this email would be the customer's first: true when no
+     * customer exists yet, or an existing customer has no orders. Drives the
+     * FIRST_ORDER_ONLY coupon rule.
+     */
+    @Transactional(readOnly = true)
+    public boolean isFirstOrderForEmail(String email) {
+        return findByEmail(email)
+                .map(c -> orderRepository.countByCustomerId(c.getId()) == 0)
+                .orElse(true);
+    }
+
     @Transactional(readOnly = true)
     public List<CustomerResponse> getAllCustomers() {
         return customerRepository.findAll().stream()

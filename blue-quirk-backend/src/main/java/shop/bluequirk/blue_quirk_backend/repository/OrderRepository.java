@@ -15,6 +15,9 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     List<Order> findByCustomerIdOrderByOrderDateDesc(Long customerId);
 
+    /** How many orders this customer already has — used to detect a first order. */
+    long countByCustomerId(Long customerId);
+
     Optional<Order> findByOrderNumberIgnoreCase(String orderNumber);
 
     // --- Todify ---
