@@ -17,12 +17,16 @@ import shop.bluequirk.blue_quirk_backend.entity.Customer;
 import shop.bluequirk.blue_quirk_backend.entity.Order;
 import shop.bluequirk.blue_quirk_backend.entity.OrderItem;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
-import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
 import shop.bluequirk.blue_quirk_backend.entity.User;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
+import shop.bluequirk.blue_quirk_backend.promotion.service.AppliedPromotion;
+import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService;
+import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService.CustomerRef;
 import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
-import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
+import shop.bluequirk.blue_quirk_backend.service.PricingService.LineInput;
+import shop.bluequirk.blue_quirk_backend.service.PricingService.PricedCart;
+import shop.bluequirk.blue_quirk_backend.service.PricingService.PricedLine;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -34,26 +38,26 @@ import java.util.Optional;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
     private final OrderNotificationService notificationService;
     private final CustomerService customerService;
     private final ApplicationEventPublisher events;
-    private final StoreSettingsService storeSettingsService;
+    private final PricingService pricingService;
+    private final PromotionRedemptionService promotionRedemptionService;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
     public OrderService(OrderRepository orderRepository,
-                        ProductRepository productRepository,
                         OrderNotificationService notificationService,
                         CustomerService customerService,
                         ApplicationEventPublisher events,
-                        StoreSettingsService storeSettingsService) {
+                        PricingService pricingService,
+                        PromotionRedemptionService promotionRedemptionService) {
         this.orderRepository = orderRepository;
-        this.productRepository = productRepository;
         this.notificationService = notificationService;
         this.customerService = customerService;
         this.events = events;
-        this.storeSettingsService = storeSettingsService;
+        this.pricingService = pricingService;
+        this.promotionRedemptionService = promotionRedemptionService;
     }
 
     /**
@@ -106,18 +110,20 @@ public class OrderService {
         order.setPaymentStatus(PaymentStatus.UNPAID);
         order.setOrderDate(LocalDateTime.now());
 
-        double subtotal = 0;
-        boolean anyTodifyLinked = false;
-        for (CreateOrderRequest.Item line : req.items()) {
-            require(line.productId() != null, "Order line is missing a product");
-            int qty = Math.max(1, line.quantity());
-            Product product = productRepository.findById(line.productId())
-                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Product " + line.productId() + " no longer exists"));
+        // Reprice the cart from the catalog — the client's prices/totals are never
+        // trusted. Only product ids + quantities from the request are used.
+        List<LineInput> lineInputs = req.items().stream()
+                .map(i -> new LineInput(i.productId(), i.quantity()))
+                .toList();
+        PricedCart cart = pricingService.price(lineInputs);
+        double subtotal = cart.subtotal();
+        double shippingFee = cart.shippingFee();
 
-            double unitPrice = product.getPrice();
-            double lineTotal = unitPrice * qty;
-            subtotal += lineTotal;
+        boolean anyTodifyLinked = false;
+        for (int i = 0; i < req.items().size(); i++) {
+            CreateOrderRequest.Item line = req.items().get(i);
+            PricedLine priced = cart.lines().get(i);
+            Product product = priced.product();
 
             OrderItem item = new OrderItem();
             item.setProductId(product.getId());
@@ -126,9 +132,9 @@ public class OrderService {
             item.setImageUrl(line.image());
             item.setVariant(line.variant());
             item.setVariantAttributes(serializeVariant(line.variantAttributes()));
-            item.setUnitPrice(unitPrice);
-            item.setQuantity(qty);
-            item.setLineTotal(lineTotal);
+            item.setUnitPrice(priced.unitPrice());
+            item.setQuantity(priced.quantity());
+            item.setLineTotal(priced.lineTotal());
             order.addItem(item);
 
             if (product.getTodifyTemplateId() != null && !product.getTodifyTemplateId().isBlank()) {
@@ -136,17 +142,33 @@ public class OrderService {
             }
         }
 
-        // Free shipping kicks in automatically once the subtotal reaches the
-        // configured threshold (threshold <= 0 disables the perk). Read from the
-        // admin-editable store settings so totals always match the storefront.
-        StoreSettings settings = storeSettingsService.getOrCreate();
-        double shippingFee = settings.getShippingFee();
-        double freeShippingThreshold = settings.getFreeShippingThreshold();
-        double effectiveShipping =
-                (freeShippingThreshold > 0 && subtotal >= freeShippingThreshold) ? 0.0 : shippingFee;
+        // --- Coupon: validate + reserve a usage slot server-side (atomic). Any
+        // rejection throws a 400 and fails the whole order. The discount is always
+        // recomputed here from the server subtotal — never taken from the client.
+        boolean firstOrder = orderRepository.countByCustomerId(customer.getId()) == 0;
+        CustomerRef promoRef = new CustomerRef(
+                customer.getId(), user != null ? user.getId() : null, email, firstOrder);
+
+        AppliedPromotion applied = null;
+        double discount = 0;
+        String couponCode = trimToNull(req.couponCode());
+        if (couponCode != null) {
+            applied = promotionRedemptionService.apply(couponCode, subtotal, shippingFee, promoRef);
+            discount = applied.discountAmount();
+        }
+
+        double originalTotal = round(subtotal + shippingFee);
+        double finalTotal = Math.max(0, round(subtotal - discount + shippingFee));
+        double discountPercentage = subtotal > 0 ? round(discount / subtotal * 100.0) : 0;
+
         order.setSubtotal(subtotal);
-        order.setShippingFee(effectiveShipping);
-        order.setTotal(subtotal + effectiveShipping);
+        order.setShippingFee(shippingFee);
+        order.setOriginalTotal(originalTotal);
+        order.setDiscountAmount(discount);
+        order.setDiscountPercentage(discountPercentage);
+        order.setAppliedCouponCode(applied != null ? applied.code() : null);
+        order.setPromotionId(applied != null ? applied.promotionId() : null);
+        order.setTotal(finalTotal);
         // Mark for Todify sync only when at least one item is linked to a template;
         // pure-local orders never touch Todify.
         order.setTodifySyncState(anyTodifyLinked ? TodifySyncState.PENDING : TodifySyncState.NOT_APPLICABLE);
@@ -155,6 +177,12 @@ public class OrderService {
         Order saved = orderRepository.save(order);
         saved.setOrderNumber(buildOrderNumber(saved));
         saved = orderRepository.save(saved);
+
+        // Record the redemption now that the order id exists (same transaction, so
+        // it rolls back with the order if anything downstream fails).
+        if (applied != null) {
+            promotionRedemptionService.recordUsage(applied, saved.getId(), promoRef, originalTotal);
+        }
 
         OrderResponse response = OrderResponse.from(saved);
 
@@ -301,5 +329,9 @@ public class OrderService {
     private String joinName(String first, String last) {
         String joined = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
         return joined.isEmpty() ? null : joined;
+    }
+
+    private double round(double value) {
+        return Math.round(value * 100.0) / 100.0;
     }
 }

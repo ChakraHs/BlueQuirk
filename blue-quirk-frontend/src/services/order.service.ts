@@ -25,6 +25,9 @@ export type CreateOrderPayload = {
   address: string;
   postalCode?: string;
   note?: string;
+  // Optional coupon code. The backend re-validates it and recomputes the
+  // discount + total from catalog prices — the client total is never trusted.
+  couponCode?: string;
   items: OrderItemPayload[];
 };
 
@@ -60,6 +63,11 @@ export type OrderResponse = {
   email?: string;
   subtotal: number;
   shippingFee: number;
+  originalTotal: number;
+  discountAmount: number;
+  discountPercentage: number;
+  appliedCouponCode?: string;
+  promotionId?: number;
   total: number;
   orderDate: string;
   // --- Todify fulfillment (null for non-Todify orders) ---

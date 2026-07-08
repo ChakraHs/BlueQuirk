@@ -18,6 +18,7 @@ import {
   Settings,
   BarChart3,
   Mail,
+  BadgePercent,
   type LucideIcon,
 } from "lucide-react";
 
@@ -47,6 +48,10 @@ const groups: Group[] = [
   {
     heading: "Customers",
     items: [{ name: "Customers", href: "/admin-v2/users", icon: Users }],
+  },
+  {
+    heading: "Marketing",
+    items: [{ name: "Promotions", href: "/admin-v2/promotions", icon: BadgePercent }],
   },
   {
     heading: "Todify",

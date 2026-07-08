@@ -53,6 +53,9 @@ public class SecurityConfig {
 	                // and public order tracking by reference number
 	                .requestMatchers(HttpMethod.POST, "/api/orders").permitAll()
 	                .requestMatchers(HttpMethod.GET, "/api/orders/track/*").permitAll()
+	                // Coupon preview during checkout — read-only, reprices server-side,
+	                // never mutates usage (see CouponController). Open like guest checkout.
+	                .requestMatchers(HttpMethod.POST, "/api/coupons/validate").permitAll()
 	                // Storefront analytics beacon
 	                .requestMatchers(HttpMethod.POST, "/api/analytics/event").permitAll()
 	                // Todify webhook — authenticated by HMAC signature in the controller

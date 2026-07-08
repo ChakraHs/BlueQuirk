@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
-  User as UserIcon, Mail, Package, LogIn,
+  User as UserIcon, Mail, Package, LogIn, Tag, X, Check,
 } from "lucide-react";
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
@@ -13,6 +13,7 @@ import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
+import { validateCoupon, type CouponValidation } from "@/services/promotion.service";
 import LoginModal from "@/components/storefront/LoginModal";
 import { t } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
@@ -48,6 +49,18 @@ export default function CheckoutPage({
   const shippingConfig = useShippingConfig();
   const shipping = computeShipping(total, shippingConfig);
   const grandTotal = total + shipping;
+
+  // --- Coupon state. The server validates + reprices; we only display what it
+  // returns and forward the code on submit. The final total is never computed here.
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const couponActive = appliedCoupon?.valid === true;
+  const discount = couponActive ? appliedCoupon!.discountAmount : 0;
+  const effectiveShipping = couponActive ? appliedCoupon!.shippingFee : shipping;
+  const finalTotal = couponActive ? appliedCoupon!.total : grandTotal;
 
   const [form, setForm] = useState<Form>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -138,6 +151,57 @@ export default function CheckoutPage({
     }
   }, [items]);
 
+  // Cart lines reduced to what the coupon endpoint trusts (ids + quantities).
+  const couponCartItems = useMemo(
+    () => items.map((i) => ({ productId: i.id, quantity: i.quantity })),
+    [items]
+  );
+
+  const handleApplyCoupon = async () => {
+    const code = couponInput.trim();
+    if (!code) return;
+    setApplyingCoupon(true);
+    setCouponError(null);
+    try {
+      const result = await validateCoupon(code, couponCartItems, form.email.trim() || undefined);
+      if (result.valid) {
+        setAppliedCoupon(result);
+        setCouponError(null);
+      } else {
+        setAppliedCoupon(null);
+        setCouponError(result.message || t(lang, "checkout.couponInvalid"));
+      }
+    } catch {
+      setAppliedCoupon(null);
+      setCouponError(t(lang, "checkout.couponInvalid"));
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponInput("");
+    setCouponError(null);
+  };
+
+  // Keep an applied coupon in sync when the cart changes: re-price server-side,
+  // and drop it (with a message) if it no longer qualifies.
+  useEffect(() => {
+    if (!appliedCoupon?.valid || !appliedCoupon.code) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const result = await validateCoupon(appliedCoupon.code!, couponCartItems, form.email.trim() || undefined);
+        if (cancelled) return;
+        if (result.valid) setAppliedCoupon(result);
+        else { setAppliedCoupon(null); setCouponError(result.message); }
+      } catch { /* keep previous state on transient error */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [couponCartItems]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitError(null);
@@ -155,6 +219,7 @@ export default function CheckoutPage({
         address: form.address.trim(),
         postalCode: form.postalCode.trim() || undefined,
         note: form.note.trim() || undefined,
+        couponCode: couponActive ? appliedCoupon!.code ?? undefined : undefined,
         items: cartToOrderItems(items),
       });
       track("purchase", {
@@ -294,22 +359,82 @@ export default function CheckoutPage({
 
           <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
 
+          {/* Coupon */}
+          <div className="mt-5 border-t border-gray-100 pt-5">
+            {couponActive ? (
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
+                <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
+                  <Check size={16} />
+                  <span className="font-mono">{appliedCoupon!.code}</span>
+                  {t(lang, "checkout.couponApplied")}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleRemoveCoupon}
+                  className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-rose-600"
+                >
+                  <X size={14} /> {t(lang, "checkout.couponRemove")}
+                </button>
+              </div>
+            ) : (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  {t(lang, "checkout.couponLabel")}
+                </label>
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Tag size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      value={couponInput}
+                      onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                      onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApplyCoupon(); } }}
+                      placeholder={t(lang, "checkout.couponPlaceholder")}
+                      className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 font-mono text-sm uppercase text-gray-900 placeholder:font-sans placeholder:normal-case placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={applyingCoupon || !couponInput.trim()}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {applyingCoupon && <Loader2 size={14} className="animate-spin" />}
+                    {t(lang, "checkout.couponApply")}
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="mt-1.5 flex items-center gap-1 text-xs text-rose-600">
+                    <AlertCircle size={12} /> {couponError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.subtotal")}</dt>
               <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
             </div>
+            {couponActive && discount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {t(lang, "checkout.discount")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
-              <dd className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {shipping === 0 ? t(lang, "cart.free") : formatPrice(shipping)}
+              <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping)}
               </dd>
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
-            <span className="text-base font-bold text-gray-900">{formatPrice(grandTotal)}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal)}</span>
           </div>
 
           <button
@@ -375,6 +500,15 @@ function Confirmation({
             <span className="text-sm text-gray-500">{t(lang, "checkout.estDelivery")}</span>
             <span className="text-sm font-medium text-gray-900">{eta}</span>
           </div>
+          {order.discountAmount > 0 && (
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-sm text-emerald-600">
+                {t(lang, "checkout.discount")}
+                {order.appliedCouponCode ? ` (${order.appliedCouponCode})` : ""}
+              </span>
+              <span className="text-sm font-medium text-emerald-600">−{formatPrice(order.discountAmount)}</span>
+            </div>
+          )}
           <div className="mt-2 flex items-center justify-between">
             <span className="text-sm text-gray-500">{t(lang, "checkout.totalToPay")}</span>
             <span className="text-sm font-bold text-gray-900">{formatPrice(order.total)}</span>
