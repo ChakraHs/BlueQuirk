@@ -1,0 +1,60 @@
+# BlueQuirk reverse proxy. Caddy terminates TLS (automatic Let's Encrypt),
+# redirects HTTP→HTTPS automatically, and routes the storefront + API under one
+# origin so the browser makes same-origin calls (CORS is a non-issue in prod).
+#
+# SITE_DOMAIN comes from the environment (.env). Use a real domain in production
+# (A/AAAA record → this server) or "localhost" for local testing (Caddy issues a
+# local CA cert). To receive Let's Encrypt expiry emails, uncomment the global
+# `email` option below after setting ACME_EMAIL.
+
+{
+	# email {$ACME_EMAIL}
+	# Admin API stays on the loopback (used by the container healthcheck only).
+	admin 127.0.0.1:2019
+}
+
+{$SITE_DOMAIN:localhost} {
+	# Compression for text/JSON/HTML responses.
+	encode zstd gzip
+
+	# Next.js build assets are content-hashed and immutable — cache aggressively.
+	@nextStatic path /_next/static/*
+	handle @nextStatic {
+		header Cache-Control "public, max-age=31536000, immutable"
+		reverse_proxy frontend:3000
+	}
+
+	# Uploaded media served by the backend — safe to cache for a day.
+	handle /uploads/* {
+		header Cache-Control "public, max-age=86400"
+		reverse_proxy backend:8080
+	}
+
+	# API — dynamic, never cached.
+	handle /api/* {
+		header /api/* Cache-Control "no-store"
+		reverse_proxy backend:8080
+	}
+
+	# Everything else → Next.js frontend.
+	handle {
+		reverse_proxy frontend:3000
+	}
+
+	# Baseline security headers (HTML/app responses).
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), microphone=(), camera=()"
+		# Don't advertise the server software.
+		-Server
+	}
+
+	# Structured access logs to stdout (captured by Docker's json-file driver).
+	log {
+		output stdout
+		format json
+	}
+}

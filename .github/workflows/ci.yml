@@ -1,0 +1,75 @@
+# Continuous Integration — build & test only (NO deployment).
+#
+# This is the CI *foundation* the project is prepared for. Deployment / zero-
+# downtime rollout is intentionally NOT implemented here yet; see docs/deployment.md
+# and the "CI/CD readiness" notes. Add a deploy job later (SSH to the VPS +
+# `./docker/scripts/update.sh`, or a registry push + pull) once you're ready.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  backend:
+    name: Backend · build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "23"
+          cache: maven
+      - name: Test + package
+        working-directory: blue-quirk-backend
+        run: mvn -B -ntp clean package
+
+  frontend:
+    name: Frontend · lint & build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: blue-quirk-frontend/package-lock.json
+      - name: Install
+        working-directory: blue-quirk-frontend
+        run: npm ci
+      - name: Lint
+        working-directory: blue-quirk-frontend
+        run: npm run lint
+      - name: Build
+        working-directory: blue-quirk-frontend
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://example.com/api
+          NEXT_PUBLIC_SITE_URL: https://example.com
+
+  docker-build:
+    name: Docker · build images (no push)
+    runs-on: ubuntu-latest
+    needs: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./blue-quirk-backend
+          push: false
+          tags: bluequirk/backend:ci
+      - name: Build frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./blue-quirk-frontend
+          push: false
+          tags: bluequirk/frontend:ci
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=https://example.com/api
+            NEXT_PUBLIC_SITE_URL=https://example.com

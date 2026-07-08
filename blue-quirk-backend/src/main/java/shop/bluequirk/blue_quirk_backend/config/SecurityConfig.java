@@ -42,6 +42,12 @@ public class SecurityConfig {
 	                .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
 	                // CORS preflights never carry credentials
 	                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+	                // Actuator health probes (liveness/readiness) — consumed by the
+	                // Docker healthcheck, Caddy and monitoring. Only the health
+	                // endpoints are public; details are hidden and other actuator
+	                // endpoints stay admin-only via anyRequest() below. Caddy does
+	                // not proxy /actuator, so it is not reachable from the internet.
+	                .requestMatchers(HttpMethod.GET, "/actuator/health", "/actuator/health/**").permitAll()
 	                // Public storefront reads (catalog, config, media)
 	                .requestMatchers(HttpMethod.GET,
 	                        "/api/products/**",

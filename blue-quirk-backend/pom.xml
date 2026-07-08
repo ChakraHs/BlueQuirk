@@ -44,6 +44,13 @@
 		    <artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 
+		<!-- Health/readiness/liveness probes + metrics for container orchestration
+		     and monitoring (Docker healthcheck, Caddy, future Prometheus). -->
+		<dependency>
+		    <groupId>org.springframework.boot</groupId>
+		    <artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-devtools</artifactId>
