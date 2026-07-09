@@ -9,7 +9,6 @@ import javax.crypto.spec.SecretKeySpec;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -36,7 +35,7 @@ public class TodifyWebhookService {
 
     private static final Logger LOG = LoggerFactory.getLogger(TodifyWebhookService.class);
 
-    private final String webhookSecret;
+    private final TodifyConfigService config;
     private final TodifyService todifyService;
     private final OrderService orderService;
     private final OrderRepository orderRepository;
@@ -44,13 +43,13 @@ public class TodifyWebhookService {
     private final TodifySyncLogRepository logRepository;
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public TodifyWebhookService(@Value("${todify.webhook-secret:}") String webhookSecret,
+    public TodifyWebhookService(TodifyConfigService config,
                                 TodifyService todifyService,
                                 OrderService orderService,
                                 OrderRepository orderRepository,
                                 ProductRepository productRepository,
                                 TodifySyncLogRepository logRepository) {
-        this.webhookSecret = webhookSecret == null ? "" : webhookSecret.trim();
+        this.config = config;
         this.todifyService = todifyService;
         this.orderService = orderService;
         this.orderRepository = orderRepository;
@@ -59,7 +58,7 @@ public class TodifyWebhookService {
     }
 
     public boolean isSecretConfigured() {
-        return !webhookSecret.isBlank();
+        return !config.effectiveWebhookSecret().isBlank();
     }
 
     /**
@@ -68,6 +67,7 @@ public class TodifyWebhookService {
      * (we cannot trust unsigned events).
      */
     public boolean verifySignature(byte[] rawBody, String signatureHeader) {
+        String webhookSecret = config.effectiveWebhookSecret();
         if (webhookSecret.isBlank() || signatureHeader == null || signatureHeader.isBlank()) {
             return false;
         }

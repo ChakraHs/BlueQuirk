@@ -60,6 +60,7 @@ const groups: Group[] = [
       { name: "Todify Orders", href: "/admin-v2/todify/orders", icon: Truck },
       { name: "Webhooks", href: "/admin-v2/todify/webhooks", icon: Webhook },
       { name: "Logs", href: "/admin-v2/todify/logs", icon: ScrollText },
+      { name: "Settings", href: "/admin-v2/todify/settings", icon: Settings },
     ],
   },
   {
