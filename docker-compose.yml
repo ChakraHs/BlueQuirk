@@ -1,0 +1,235 @@
+# =============================================================================
+# BlueQuirk — production Docker Compose stack.
+#
+#   git clone …  →  cp .env.example .env  →  edit .env  →  docker compose up -d
+#
+# Core services (always start): caddy, frontend, backend, mariadb.
+# Optional services behind profiles:
+#   --profile cache   redis     (shared rate-limit/cache once >1 backend replica)
+#   --profile dev     mailpit + adminer  (local development only — never in prod)
+#
+# Networks:
+#   edge      public-facing; only caddy publishes ports (80/443)
+#   internal  DB/cache/backend private plane; `internal: true` → no internet,
+#             MariaDB is NEVER reachable from outside the host.
+#
+# Mandatory variables use ${VAR:?message} so `docker compose up` fails fast with
+# a clear error if .env is incomplete.
+# =============================================================================
+
+name: bluequirk
+
+# ---- Shared snippets --------------------------------------------------------
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+x-restart: &default-restart
+  restart: unless-stopped
+
+services:
+  # ---- MariaDB (private) ----------------------------------------------------
+  mariadb:
+    image: mariadb:11
+    container_name: bluequirk-mariadb
+    <<: *default-restart
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:?DB_NAME is required (see .env.example)}
+      MARIADB_USER: ${DB_USER:?DB_USER is required}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - mariadb-data:/var/lib/mysql
+      - ./docker/mariadb/conf.d:/etc/mysql/conf.d:ro
+      - ./docker/mariadb/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: ${MARIADB_MEM_LIMIT:-1g}
+
+  # ---- Backend API (private + edge) -----------------------------------------
+  backend:
+    build:
+      context: ./blue-quirk-backend
+      dockerfile: Dockerfile
+    image: bluequirk/backend:latest
+    container_name: bluequirk-backend
+    <<: *default-restart
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/${DB_NAME}
+      SPRING_DATASOURCE_USERNAME: ${DB_USER}
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}
+      # --- Native identity ---
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required (openssl rand -base64 48)}
+      AUTH_ADMIN_EMAIL: ${AUTH_ADMIN_EMAIL:-}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD:-}
+      APP_FRONTEND_BASE_URL: ${PUBLIC_SITE_URL:?PUBLIC_SITE_URL is required}
+      # Native-only JWT validation: no external JWKS (legacy Keycloak path off).
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ""
+      # --- Email (Resend) ---
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      # --- Todify (optional) ---
+      TODIFY_ENABLED: ${TODIFY_ENABLED:-false}
+      TODIFY_API_TOKEN: ${TODIFY_API_TOKEN:-}
+      TODIFY_WEBHOOK_SECRET: ${TODIFY_WEBHOOK_SECRET:-}
+      # --- Logging (quiet by default) ---
+      LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-INFO}
+      LOG_LEVEL_APP: ${LOG_LEVEL_APP:-INFO}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8080/actuator/health/readiness"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    networks: [edge, internal]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    init: true
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: ${BACKEND_MEM_LIMIT:-1g}
+
+  # ---- Frontend (edge) ------------------------------------------------------
+  frontend:
+    build:
+      context: ./blue-quirk-frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+        NEXT_PUBLIC_SITE_URL: ${PUBLIC_SITE_URL}
+    image: bluequirk/frontend:latest
+    container_name: bluequirk-frontend
+    <<: *default-restart
+    environment:
+      PORT: "3000"
+    depends_on:
+      backend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:3000/login"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks: [edge]
+    security_opt: ["no-new-privileges:true"]
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /app/.next/cache
+    init: true
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: ${FRONTEND_MEM_LIMIT:-512m}
+
+  # ---- Caddy reverse proxy + automatic HTTPS (edge) -------------------------
+  caddy:
+    image: caddy:2
+    container_name: bluequirk-caddy
+    <<: *default-restart
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"    # HTTP/3
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN:?SITE_DOMAIN is required (your domain, or localhost)}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    volumes:
+      - ./docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data      # certificates — MUST persist across recreation
+      - caddy-config:/config
+    depends_on:
+      backend:
+        condition: service_started
+      frontend:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:2019/config/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks: [edge]
+    security_opt: ["no-new-privileges:true"]
+    logging: *default-logging
+
+  # ---- Redis (optional: --profile cache) ------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: bluequirk-redis
+    profiles: ["cache"]
+    <<: *default-restart
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+    networks: [internal]
+    security_opt: ["no-new-privileges:true"]
+    logging: *default-logging
+
+  # ---- Mailpit — dev-only SMTP sink (--profile dev) -------------------------
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: bluequirk-mailpit
+    profiles: ["dev"]
+    <<: *default-restart
+    ports:
+      - "8025:8025"   # web UI
+    networks: [edge, internal]
+    logging: *default-logging
+
+  # ---- Adminer — dev-only DB UI (--profile dev) -----------------------------
+  adminer:
+    image: adminer:latest
+    container_name: bluequirk-adminer
+    profiles: ["dev"]
+    <<: *default-restart
+    environment:
+      ADMINER_DEFAULT_SERVER: mariadb
+    ports:
+      - "8081:8080"
+    depends_on: [mariadb]
+    networks: [edge, internal]
+    logging: *default-logging
+
+volumes:
+  mariadb-data:
+  uploads:
+  caddy-data:
+  caddy-config:
+  redis-data:
+
+networks:
+  edge:
+    driver: bridge
+  internal:
+    driver: bridge
+    internal: true

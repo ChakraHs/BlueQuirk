@@ -47,5 +47,9 @@ db-backup-*.sql
 probe.ps1
 **/run-backend.cmd
 
+# Backup artifacts (DB dumps / uploads archives) — never commit
+docker/volumes/backups/*
+!docker/volumes/backups/.gitkeep
+
 # GeoIP database (downloaded separately, see analytics docs)
 **/geoip/
