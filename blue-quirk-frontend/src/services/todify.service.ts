@@ -115,4 +115,38 @@ export const TodifyService = {
     const { data } = await api.delete(`/admin/todify/webhooks/${id}`);
     return data;
   },
+
+  // --- connection settings (DB-backed, editable in admin; env is the fallback) ---
+  getSettings: async (): Promise<TodifySettings> => {
+    const { data } = await api.get<TodifySettings>("/admin/todify/settings");
+    return data;
+  },
+
+  updateSettings: async (
+    payload: TodifySettingsUpdate
+  ): Promise<TodifySettings> => {
+    const { data } = await api.put<TodifySettings>("/admin/todify/settings", payload);
+    return data;
+  },
+};
+
+/** Masked view of the Todify connection config (never exposes the raw secrets). */
+export type TodifySettings = {
+  enabled: boolean;
+  baseUrl: string;
+  apiTokenSet: boolean;
+  apiTokenMasked: string | null;
+  webhookSecretSet: boolean;
+  configured: boolean;
+  source: "db" | "env";
+  updatedAt: string | null;
+  updatedByEmail: string | null;
+};
+
+/** Update payload — omit a secret field to leave it unchanged. */
+export type TodifySettingsUpdate = {
+  enabled?: boolean;
+  baseUrl?: string;
+  apiToken?: string;
+  webhookSecret?: string;
 };

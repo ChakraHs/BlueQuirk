@@ -8,7 +8,6 @@ import java.time.Duration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -29,26 +28,19 @@ public class TodifyClient {
 
     private static final Logger LOG = LoggerFactory.getLogger(TodifyClient.class);
 
-    private final boolean enabled;
-    private final String baseUrl;
-    private final String apiToken;
+    private final TodifyConfigService config;
 
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public TodifyClient(
-            @Value("${todify.enabled:true}") boolean enabled,
-            @Value("${todify.base-url:https://todify.ma/api/v1}") String baseUrl,
-            @Value("${todify.api-token:}") String apiToken) {
-        this.enabled = enabled;
-        this.baseUrl = baseUrl.trim().replaceAll("/+$", "");
-        this.apiToken = apiToken == null ? "" : apiToken.trim();
+    public TodifyClient(TodifyConfigService config) {
+        this.config = config;
     }
 
     public boolean isConfigured() {
-        return enabled && !apiToken.isBlank() && !baseUrl.isBlank();
+        return config.isConfigured();
     }
 
     // --- Store / health ---
@@ -107,7 +99,8 @@ public class TodifyClient {
 
     private JsonNode send(String method, String path, JsonNode body) {
         if (!isConfigured()) {
-            throw new TodifyApiException(0, null, "Todify is not configured (set TODIFY_API_TOKEN).");
+            throw new TodifyApiException(0, null,
+                    "Todify is not configured. Add an API token in Admin → Todify → Settings.");
         }
         // Only GETs are safe to auto-retry (no side effects). POST/DELETE run once.
         int maxAttempts = "GET".equals(method) ? MAX_GET_ATTEMPTS : 1;
@@ -131,11 +124,11 @@ public class TodifyClient {
     }
 
     private JsonNode doSend(String method, String path, JsonNode body) {
-        URI uri = URI.create(baseUrl + path);
+        URI uri = URI.create(config.effectiveBaseUrl() + path);
         try {
             HttpRequest.Builder builder = HttpRequest.newBuilder(uri)
                     .timeout(Duration.ofSeconds(20))
-                    .header("Authorization", "Bearer " + apiToken)
+                    .header("Authorization", "Bearer " + config.effectiveApiToken())
                     .header("Accept", "application/json");
 
             HttpRequest.BodyPublisher publisher;

@@ -16,7 +16,11 @@ import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.TodifySyncLog;
+import shop.bluequirk.blue_quirk_backend.identity.user.CurrentUserService;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyApiException;
+import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyConfigService;
+import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyConfigService.TodifySettingsView;
+import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyConfigService.UpdateTodifySettingsRequest;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyService;
 import shop.bluequirk.blue_quirk_backend.repository.TodifySyncLogRepository;
 import shop.bluequirk.blue_quirk_backend.service.OrderService;
@@ -35,15 +39,34 @@ public class TodifyAdminController {
     private final ProductService productService;
     private final OrderService orderService;
     private final TodifySyncLogRepository logRepository;
+    private final TodifyConfigService configService;
+    private final CurrentUserService currentUserService;
 
     public TodifyAdminController(TodifyService todifyService,
                                  ProductService productService,
                                  OrderService orderService,
-                                 TodifySyncLogRepository logRepository) {
+                                 TodifySyncLogRepository logRepository,
+                                 TodifyConfigService configService,
+                                 CurrentUserService currentUserService) {
         this.todifyService = todifyService;
         this.productService = productService;
         this.orderService = orderService;
         this.logRepository = logRepository;
+        this.configService = configService;
+        this.currentUserService = currentUserService;
+    }
+
+    // --- connection settings (admin-editable, DB-backed with env fallback) ---
+    @GetMapping("/settings")
+    public TodifySettingsView getSettings() {
+        return configService.view();
+    }
+
+    @PutMapping("/settings")
+    public TodifySettingsView updateSettings(@RequestBody UpdateTodifySettingsRequest req) {
+        String actor = null;
+        try { actor = currentUserService.require().getEmail(); } catch (Exception ignored) { /* best-effort audit */ }
+        return configService.update(req, actor);
     }
 
     // --- connection / health ---

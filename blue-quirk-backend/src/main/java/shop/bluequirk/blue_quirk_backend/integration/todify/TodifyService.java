@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -145,16 +146,20 @@ public class TodifyService {
         if (!isConfigured()) {
             // Keep the order queued; the retry job will send once configured.
             order.setTodifySyncState(TodifySyncState.PENDING);
-            order.setTodifyErrorMessage("Todify not configured (TODIFY_API_TOKEN missing).");
+            order.setTodifyErrorMessage("Todify not configured — add an API token in Admin → Todify → Settings.");
             orderRepository.save(order);
             return;
         }
 
-        ObjectNode payload = buildOrderPayload(order, linked);
         order.setTodifySyncAttempts(order.getTodifySyncAttempts() + 1);
         order.setTodifyLastSyncAt(LocalDateTime.now());
 
+        ObjectNode payload = null;
         try {
+            // Build inside the try so a pricing error (e.g. a linked product with
+            // no price) is recorded as FAILED with a clear message rather than
+            // creating a "collect nothing" Todify order.
+            payload = buildOrderPayload(order, linked);
             JsonNode root = client.submitOrder(payload);
             JsonNode data = root.path("data");
             order.setTodifyOrderId(text(data, "id"));
@@ -171,7 +176,7 @@ public class TodifyService {
             order.setTodifyErrorMessage(truncate("HTTP " + e.getStatus() + " " + e.getBody(), 4000));
             orderRepository.save(order);
             log(TodifySyncLog.Type.ERROR, "submitOrder", "OUTBOUND", orderId, null,
-                    e.getStatus(), payload.toString(), e.getBody(), e.getMessage(), null);
+                    e.getStatus(), payload != null ? payload.toString() : null, e.getBody(), e.getMessage(), null);
             LOG.warn("Order {} sync to Todify FAILED: {}", orderId, e.getMessage());
         }
     }
@@ -193,20 +198,80 @@ public class TodifyService {
         shipping.putNull("state");
         shipping.put("country", defaultCountry);
 
+        // The shipping the customer must pay on delivery (already 0 when the order
+        // earned free shipping, otherwise the flat fee). Todify's order API has no
+        // shipping field, so we carry it on the first line's variant as "shipping".
+        String shippingLabel = formatMoney(order.getShippingFee());
+
         ArrayNode items = root.putArray("items");
+        boolean shippingAttached = false;
         for (OrderItem item : linkedItems) {
             Product p = productRepository.findById(item.getProductId()).orElse(null);
             if (p == null) continue;
+
             ObjectNode node = items.addObject();
             node.put("product_id", p.getTodifyTemplateId());
-            ObjectNode variant = parseVariant(item.getVariantAttributes());
-            if (variant != null && variant.size() > 0) {
+
+            // Todify's template attribute keys are lowercase ("size","color") and
+            // its variant values are the option values verbatim (e.g. the color
+            // hex). Imports store the keys capitalized ("Size","Color") and the
+            // values unchanged, so we only lowercase the KEYS for Todify to match.
+            ObjectNode parsed = parseVariant(item.getVariantAttributes());
+            ObjectNode variant = (parsed != null && parsed.size() > 0)
+                    ? lowercaseKeys(parsed, client.mapper())
+                    : client.mapper().createObjectNode();
+
+            // Attach the shipping cost to the FIRST line item only.
+            if (!shippingAttached) {
+                variant.put("shipping", shippingLabel);
+                shippingAttached = true;
+            }
+            if (variant.size() > 0) {
                 node.set("variant", variant);
             }
-            node.put("quantity", Math.max(1, item.getQuantity()));
-            node.put("price", item.getUnitPrice());
+
+            node.put("quantity", Math.min(100, Math.max(1, item.getQuantity())));
+            node.put("price", resolveUnitPrice(item, p));
         }
         return root;
+    }
+
+    /**
+     * The per-unit price (store currency, rounded to 2 decimals) to send to Todify
+     * for a line. Todify requires {@code items[].price > 0} — it drives
+     * {@code total_amount}, the COD the courier collects. Uses the price
+     * snapshotted on the order, falling back to the product's current price for
+     * legacy rows. If neither is positive we throw rather than create a
+     * "collect nothing" order, so the admin sees a clear, actionable error.
+     */
+    /**
+     * Returns a copy of {@code src} with every field name lower-cased (values
+     * untouched) — the inverse of the capitalization applied when a template is
+     * imported, so the variant keys match Todify's ("size","color").
+     */
+    static ObjectNode lowercaseKeys(ObjectNode src, ObjectMapper mapper) {
+        ObjectNode out = mapper.createObjectNode();
+        src.fields().forEachRemaining(e ->
+                out.set(e.getKey().toLowerCase(java.util.Locale.ROOT), e.getValue()));
+        return out;
+    }
+
+    /** Money as a compact string: "0" for free, "29" for whole amounts, else "29.5". */
+    static String formatMoney(double value) {
+        double r = Math.round(value * 100.0) / 100.0;
+        if (r == Math.floor(r)) return String.valueOf((long) r);
+        return String.valueOf(r);
+    }
+
+    static double resolveUnitPrice(OrderItem item, Product product) {
+        double unitPrice = item.getUnitPrice() > 0 ? item.getUnitPrice() : product.getPrice();
+        if (unitPrice <= 0) {
+            throw new TodifyApiException(0, null,
+                    "Cannot sync order to Todify: \"" + product.getName() + "\" has no price. "
+                    + "Todify requires a price greater than 0 — set a selling price on the "
+                    + "product and retry the sync.");
+        }
+        return Math.round(unitPrice * 100.0) / 100.0;
     }
 
     private ObjectNode parseVariant(String json) {

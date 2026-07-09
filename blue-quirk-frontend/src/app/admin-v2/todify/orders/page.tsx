@@ -37,9 +37,13 @@ export default function TodifyOrdersPage() {
     load();
   }, []);
 
-  // Only orders that are relevant to Todify (anything not purely local).
+  // Only orders that are relevant to Todify (anything not purely local),
+  // newest first (most recent order id / date at the top).
   const todifyOrders = useMemo(
-    () => orders.filter((o) => o.todifySyncState && o.todifySyncState !== "NOT_APPLICABLE"),
+    () =>
+      orders
+        .filter((o) => o.todifySyncState && o.todifySyncState !== "NOT_APPLICABLE")
+        .sort((a, b) => b.id - a.id),
     [orders]
   );
 
