@@ -14,7 +14,7 @@ RETENTION_DAYS="${BACKUP_RETENTION_DAYS:-14}"
 # Resolve BACKUP_DIR to an absolute path (needed for docker -v mounts).
 REL_BACKUP_DIR="${BACKUP_DIR:-docker/volumes/backups}"
 mkdir -p "$REPO_ROOT/$REL_BACKUP_DIR" 2>/dev/null || mkdir -p "$REL_BACKUP_DIR"
-ABS_BACKUP_DIR="$(cd "$REPO_ROOT/$REL_BACKUP_DIR" 2>/dev/null && pwd || cd "$REL_BACKUP_DIR" && pwd)"
+ABS_BACKUP_DIR="$(cd "$REPO_ROOT/$REL_BACKUP_DIR" 2>/dev/null || cd "$REL_BACKUP_DIR"; pwd)"
 
 log "Backing up database '${DB_NAME}' → ${REL_BACKUP_DIR}/db-${TS}.sql.gz"
 $COMPOSE exec -T mariadb \

@@ -10,15 +10,19 @@ import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
+import shop.bluequirk.blue_quirk_backend.dto.AdminProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeValueDto;
 import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
+import shop.bluequirk.blue_quirk_backend.finance.service.FinancialCalculationService;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
 import shop.bluequirk.blue_quirk_backend.entity.Category;
@@ -38,14 +42,16 @@ public class ProductService {
     private final ImageRepository imageRepository;
     private final AttributeRepository attributeRepository;
     private final CategoryRepository categoryRepository;
+    private final FinancialCalculationService finance;
 
     public ProductService(ProductRepository productRepository, ImageRepository imageRepository,
-            AttributeRepository attributeRepository, CategoryRepository categoryRepository) {
+            AttributeRepository attributeRepository, CategoryRepository categoryRepository,
+            FinancialCalculationService finance) {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
         this.categoryRepository = categoryRepository;
-
+        this.finance = finance;
     }
     
     
@@ -67,6 +73,11 @@ public class ProductService {
     	
     	existing.setName(dto.getName());
         existing.setPrice(dto.getPrice());
+        // Cost is optional on update: only overwrite when the admin actually sent
+        // a value, so a form that omits it never wipes the stored cost.
+        if (dto.getCost() != null) {
+            existing.setCost(validatedCost(dto.getCost()));
+        }
         if (dto.getStockQuantity() != null) {
             existing.setStockQuantity(dto.getStockQuantity());
         }
@@ -169,6 +180,48 @@ public class ProductService {
 
 
 
+    /**
+     * Admin-only paginated product list including the confidential cost and
+     * derived margins. Served exclusively from {@code /api/admin/products}.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdminProductResponse> getAdminProducts(int page, int size, ProductStatus status) {
+        Page<Product> products = productRepository.findAllWithRelations(PageRequest.of(page, size), status);
+        return products.map(this::toAdminProductResponse);
+    }
+
+    /** Admin-only single product including cost + margins (for the edit form). */
+    @Transactional(readOnly = true)
+    public AdminProductResponse getAdminProductById(Long id) {
+        Product product = productRepository.findByIdWithRelations(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found"));
+        return toAdminProductResponse(product);
+    }
+
+    private AdminProductResponse toAdminProductResponse(Product product) {
+        double price = product.getPrice();
+        double cost = product.getCost();
+        return new AdminProductResponse(
+                product.getId(),
+                product.getName(),
+                price,
+                cost,
+                finance.grossMargin(price, cost),
+                finance.grossMarginPercent(price, cost),
+                product.getStockQuantity(),
+                product.getStatus(),
+                sortedImages(product)
+        );
+    }
+
+    /** Rejects a negative cost (400); otherwise returns the value unchanged. */
+    private double validatedCost(double cost) {
+        if (cost < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Product cost cannot be negative");
+        }
+        return cost;
+    }
+
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
@@ -226,6 +279,7 @@ public class ProductService {
         product.setId(dto.getId());
         product.setName(dto.getName());
         product.setPrice(dto.getPrice());
+        product.setCost(dto.getCost() != null ? validatedCost(dto.getCost()) : 0);
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
         product.setStatus(dto.getStatus());

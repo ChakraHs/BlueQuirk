@@ -7,6 +7,7 @@ import { AttributeService } from "@/services/attribute.service";
 import { Attribute } from "@/types/attribute";
 import { ProductImage } from "@/types/product";
 import ProductImageManager from "@/components/admin/ProductImageManager";
+import PricingFields from "@/components/admin/PricingFields";
 import { colorOptionsFromAttributes } from "@/lib/colorImages";
 
 export default function NewProductPage() {
@@ -23,6 +24,7 @@ export default function NewProductPage() {
   const [form, setForm] = useState({
     name: "",
     price: 0,
+    cost: 0,
     stockQuantity: 0,
     description: "",
     status: "PUBLISHED",
@@ -96,6 +98,7 @@ export default function NewProductPage() {
       await ProductService.create({
         ...form,
         price: Number(form.price),
+        cost: Number(form.cost),
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
@@ -147,40 +150,30 @@ export default function NewProductPage() {
             />
           </div>
 
-          {/* Price + Stock */}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Price (DH)
-              </label>
-              <input
-                name="price"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                onChange={handleChange}
-                required
-                className="w-full border border-gray-300 rounded-md px-3 py-2
-                           text-gray-900
-                           focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Stock
-              </label>
-              <input
-                name="stockQuantity"
-                type="number"
-                min="0"
-                placeholder="0"
-                value={form.stockQuantity}
-                onChange={handleChange}
-                className="w-full border border-gray-300 rounded-md px-3 py-2
-                           text-gray-900
-                           focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-              />
-            </div>
+          {/* Pricing (cost + selling price + live margin) */}
+          <PricingFields
+            cost={form.cost}
+            price={form.price}
+            onCostChange={(cost) => setForm((f) => ({ ...f, cost }))}
+            onPriceChange={(price) => setForm((f) => ({ ...f, price }))}
+          />
+
+          {/* Stock */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Stock
+            </label>
+            <input
+              name="stockQuantity"
+              type="number"
+              min="0"
+              placeholder="0"
+              value={form.stockQuantity}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2
+                         text-gray-900
+                         focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+            />
           </div>
 
           {/* Description */}

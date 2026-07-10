@@ -12,12 +12,14 @@ import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.domain.PaymentStatus;
 import shop.bluequirk.blue_quirk_backend.domain.TodifySyncState;
 import shop.bluequirk.blue_quirk_backend.dto.CreateOrderRequest;
+import shop.bluequirk.blue_quirk_backend.dto.OrderFinancialsResponse;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Customer;
 import shop.bluequirk.blue_quirk_backend.entity.Order;
 import shop.bluequirk.blue_quirk_backend.entity.OrderItem;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.User;
+import shop.bluequirk.blue_quirk_backend.finance.service.FinancialCalculationService;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
 import shop.bluequirk.blue_quirk_backend.promotion.service.AppliedPromotion;
@@ -43,6 +45,7 @@ public class OrderService {
     private final ApplicationEventPublisher events;
     private final PricingService pricingService;
     private final PromotionRedemptionService promotionRedemptionService;
+    private final FinancialCalculationService finance;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -51,13 +54,15 @@ public class OrderService {
                         CustomerService customerService,
                         ApplicationEventPublisher events,
                         PricingService pricingService,
-                        PromotionRedemptionService promotionRedemptionService) {
+                        PromotionRedemptionService promotionRedemptionService,
+                        FinancialCalculationService finance) {
         this.orderRepository = orderRepository;
         this.notificationService = notificationService;
         this.customerService = customerService;
         this.events = events;
         this.pricingService = pricingService;
         this.promotionRedemptionService = promotionRedemptionService;
+        this.finance = finance;
     }
 
     /**
@@ -120,6 +125,7 @@ public class OrderService {
         double shippingFee = cart.shippingFee();
 
         boolean anyTodifyLinked = false;
+        double costTotal = 0;
         for (int i = 0; i < req.items().size(); i++) {
             CreateOrderRequest.Item line = req.items().get(i);
             PricedLine priced = cart.lines().get(i);
@@ -135,6 +141,16 @@ public class OrderService {
             item.setUnitPrice(priced.unitPrice());
             item.setQuantity(priced.quantity());
             item.setLineTotal(priced.lineTotal());
+
+            // Financial snapshot — freeze the cost at order time so this order's
+            // profit is immutable even if the product cost is edited later.
+            double unitCost = product.getCost();
+            double lineCost = finance.lineCost(unitCost, priced.quantity());
+            item.setCostPrice(unitCost);
+            item.setLineCost(lineCost);
+            item.setLineProfit(finance.lineProfit(priced.lineTotal(), lineCost));
+            costTotal += lineCost;
+
             order.addItem(item);
 
             if (product.getTodifyTemplateId() != null && !product.getTodifyTemplateId().isBlank()) {
@@ -163,6 +179,7 @@ public class OrderService {
 
         order.setSubtotal(subtotal);
         order.setShippingFee(shippingFee);
+        order.setCostTotal(round(costTotal));
         order.setOriginalTotal(originalTotal);
         order.setDiscountAmount(discount);
         order.setDiscountPercentage(discountPercentage);
@@ -222,6 +239,41 @@ public class OrderService {
     @Transactional(readOnly = true)
     public Optional<OrderResponse> getOrderById(Long id) {
         return orderRepository.findById(id).map(OrderResponse::from);
+    }
+
+    /**
+     * Admin-only financial breakdown for a single order. All figures come from
+     * the frozen order/line snapshots; profit and margin are (re)derived via the
+     * central {@link FinancialCalculationService} so nothing is ever recomputed
+     * from the live catalog. Confidential — callers must be admin.
+     */
+    @Transactional(readOnly = true)
+    public Optional<OrderFinancialsResponse> getOrderFinancials(Long id) {
+        return orderRepository.findById(id).map(order -> {
+            List<OrderFinancialsResponse.Item> items = order.getItems().stream()
+                    .map(i -> new OrderFinancialsResponse.Item(
+                            i.getProductId(), i.getName(), i.getSku(),
+                            i.getUnitPrice(), i.getCostPrice(), i.getQuantity(),
+                            i.getLineTotal(), i.getLineCost(), i.getLineProfit()))
+                    .toList();
+
+            double selling = order.getSubtotal();
+            double cost = order.getCostTotal();
+            return new OrderFinancialsResponse(
+                    order.getId(),
+                    order.getOrderNumber(),
+                    selling,
+                    cost,
+                    order.getDiscountAmount(),
+                    order.getShippingFee(),
+                    order.getTotal(),
+                    finance.grossProfit(selling, cost),
+                    finance.marginPercent(selling, cost),
+                    finance.netSales(selling, order.getDiscountAmount()),
+                    finance.operationalRevenue(selling, order.getShippingFee()),
+                    items
+            );
+        });
     }
 
     /** Public order tracking — look up by the BQ-YYYY-NNNNNN reference. */

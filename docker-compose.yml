@@ -69,6 +69,11 @@ services:
     <<: *default-restart
     environment:
       SPRING_PROFILES_ACTIVE: docker
+      # Behind Caddy (TLS terminated upstream): honour X-Forwarded-* so Spring sees
+      # the real https origin. Makes same-origin browser calls register as
+      # same-origin (no spurious "Invalid CORS request" 403s) and gives the rate
+      # limiter the real client IP instead of Caddy's.
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
       SPRING_DATASOURCE_URL: jdbc:mariadb://mariadb:3306/${DB_NAME}
       SPRING_DATASOURCE_USERNAME: ${DB_USER}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD}

@@ -1,6 +1,6 @@
 import { PageResponse } from "@/types/page";
 import api from "./api";
-import { Product } from "@/types/product";
+import { Product, AdminProduct } from "@/types/product";
 import { API_BASE_URL } from "@/lib/config";
 
 export const ProductService = {
@@ -46,6 +46,25 @@ export const ProductService = {
     }
 
     return res.json();
+  },
+
+  // --- Admin-only reads (include confidential cost + margins). These hit the
+  // authenticated /api/admin/products endpoints via the axios client (with the
+  // bearer token), NOT the public fetch() reads above. ---
+  getAdminAll: async (
+    page = 0,
+    size = 500,
+    status?: string
+  ): Promise<PageResponse<AdminProduct>> => {
+    const res = await api.get("/admin/products", {
+      params: { page, size, ...(status ? { status } : {}) },
+    });
+    return res.data;
+  },
+
+  getAdminById: async (id: number): Promise<AdminProduct> => {
+    const res = await api.get(`/admin/products/${id}`);
+    return res.data;
   },
 
   create: async (data: Record<string, unknown>) => {

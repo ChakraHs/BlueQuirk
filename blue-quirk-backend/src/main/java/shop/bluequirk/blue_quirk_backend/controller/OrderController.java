@@ -89,6 +89,21 @@ public class OrderController {
     }
 
     /**
+     * Admin-only: confidential cost/profit/margin breakdown for one order. Not in
+     * {@link OrderResponse} because that DTO is also returned by public order
+     * tracking and a customer's own history. Admin-locked via SecurityConfig's
+     * fail-closed {@code anyRequest().hasAuthority("admin")} (this path is not
+     * in the public allowlist).
+     */
+    @GetMapping("/{id}/financials")
+    public ResponseEntity<shop.bluequirk.blue_quirk_backend.dto.OrderFinancialsResponse> getOrderFinancials(
+            @PathVariable Long id) {
+        return orderService.getOrderFinancials(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
      * A signed-in customer's own order history. Ownership is enforced: the
      * caller's JWT must map to the requested userId (admins may read any) —
      * otherwise any authenticated user could enumerate other customers' orders.

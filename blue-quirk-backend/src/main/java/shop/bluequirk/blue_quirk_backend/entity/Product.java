@@ -30,6 +30,13 @@ public class Product {
     @Column(nullable = false)
     private double price;
 
+    // Purchase/manufacturing cost of one unit, in MAD. CONFIDENTIAL: never
+    // exposed through public/customer/product/search APIs — only the admin
+    // surfaces (AdminProductResponse, order financials, finance analytics) read
+    // it. Defaults to 0 so pre-existing products migrate cleanly. Never negative.
+    @Column(name = "cost", nullable = false)
+    private double cost = 0;
+
     // Units in stock for this product. Defaults to 0; used for low-stock alerts
     // and the admin inventory view.
     @Column(nullable = false)
@@ -103,6 +110,9 @@ public class Product {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public double getCost() { return cost; }
+    public void setCost(double cost) { this.cost = cost; }
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }

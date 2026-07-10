@@ -13,6 +13,11 @@
 	admin 127.0.0.1:2019
 }
 
+# Redirect the www subdomain to the canonical apex (both get automatic TLS).
+www.{$SITE_DOMAIN:localhost} {
+	redir https://{$SITE_DOMAIN:localhost}{uri} permanent
+}
+
 {$SITE_DOMAIN:localhost} {
 	# Compression for text/JSON/HTML responses.
 	encode zstd gzip
