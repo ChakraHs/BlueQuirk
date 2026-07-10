@@ -89,6 +89,14 @@ public class Order {
     private double shippingFee;
     private double total;
 
+    // --- Financial snapshot (immutable accounting record) ---------------------
+    // Σ(product cost × quantity) at order time — the goods cost of this order.
+    // Frozen: editing product costs later must never change historical profit.
+    // Gross profit is derived (subtotal − costTotal), so it is computed on read
+    // rather than stored, keeping a single source of truth.
+    @Column(name = "cost_total", nullable = false)
+    private double costTotal = 0;
+
     // --- Promotion / coupon (all backend-computed; persisted for invoices + analytics) ---
     // Pre-discount grand total (subtotal + shipping) at order time.
     @Column(name = "original_total", nullable = false)
@@ -215,6 +223,9 @@ public class Order {
 
     public double getTotal() { return total; }
     public void setTotal(double total) { this.total = total; }
+
+    public double getCostTotal() { return costTotal; }
+    public void setCostTotal(double costTotal) { this.costTotal = costTotal; }
 
     public double getOriginalTotal() { return originalTotal; }
     public void setOriginalTotal(double originalTotal) { this.originalTotal = originalTotal; }

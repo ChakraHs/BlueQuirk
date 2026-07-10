@@ -37,14 +37,35 @@ public class OrderItem {
     @Column(name = "variant_attributes", length = 1024)
     private String variantAttributes;
 
+    // Product SKU at order time (snapshot). Nullable — the catalog has no SKU
+    // yet, but the column is here so historical accounting stays intact once one
+    // is introduced (future-ready per the finance spec).
+    @Column(name = "sku")
+    private String sku;
+
+    // Selling price of one unit at purchase time.
     @Column(nullable = false)
     private double unitPrice;
+
+    // --- Financial snapshots (immutable accounting record) --------------------
+    // Purchase cost of one unit at order time. Frozen: editing the product's cost
+    // later must NEVER change this order's profit. Defaults to 0.
+    @Column(name = "cost_price", nullable = false)
+    private double costPrice = 0;
 
     @Column(nullable = false)
     private int quantity;
 
     @Column(nullable = false)
     private double lineTotal;
+
+    // costPrice × quantity, snapshotted.
+    @Column(name = "line_cost", nullable = false)
+    private double lineCost = 0;
+
+    // lineTotal − lineCost, snapshotted (gross profit for this line).
+    @Column(name = "line_profit", nullable = false)
+    private double lineProfit = 0;
 
     public OrderItem() {}
 
@@ -69,12 +90,24 @@ public class OrderItem {
     public String getVariantAttributes() { return variantAttributes; }
     public void setVariantAttributes(String variantAttributes) { this.variantAttributes = variantAttributes; }
 
+    public String getSku() { return sku; }
+    public void setSku(String sku) { this.sku = sku; }
+
     public double getUnitPrice() { return unitPrice; }
     public void setUnitPrice(double unitPrice) { this.unitPrice = unitPrice; }
+
+    public double getCostPrice() { return costPrice; }
+    public void setCostPrice(double costPrice) { this.costPrice = costPrice; }
 
     public int getQuantity() { return quantity; }
     public void setQuantity(int quantity) { this.quantity = quantity; }
 
     public double getLineTotal() { return lineTotal; }
     public void setLineTotal(double lineTotal) { this.lineTotal = lineTotal; }
+
+    public double getLineCost() { return lineCost; }
+    public void setLineCost(double lineCost) { this.lineCost = lineCost; }
+
+    public double getLineProfit() { return lineProfit; }
+    public void setLineProfit(double lineProfit) { this.lineProfit = lineProfit; }
 }

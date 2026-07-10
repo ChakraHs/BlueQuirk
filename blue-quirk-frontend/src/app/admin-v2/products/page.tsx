@@ -2,16 +2,17 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Link from "next/link";
-import { Search, Plus, Pencil, Trash2, Package } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Package, ArrowUpDown } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { ProductService } from "@/services/product.service";
-import { Product } from "@/types/product";
-import { PageResponse } from "@/types/page";
-import { formatPrice } from "@/lib/money";
+import { AdminProduct } from "@/types/product";
+import { formatPrice, formatPercent } from "@/lib/money";
 import { thumbSrc } from "@/lib/productImage";
+
+type SortKey = "name" | "cost" | "price" | "margin" | "marginPct" | "stock";
 
 const LOW_STOCK = 5;
 const STATUSES = ["PUBLISHED", "DRAFT", "ARCHIVED"] as const;
@@ -38,21 +39,56 @@ function StockBadge({ qty }: { qty?: number }) {
   );
 }
 
+function SortableTh({
+  label,
+  col,
+  sortKey,
+  sortDir,
+  onSort,
+  align,
+}: {
+  label: string;
+  col: SortKey;
+  sortKey: SortKey;
+  sortDir: "asc" | "desc";
+  onSort: (k: SortKey) => void;
+  align: "left" | "right";
+}) {
+  const active = sortKey === col;
+  return (
+    <th className={`px-5 py-3 ${align === "right" ? "text-right" : "text-left"}`}>
+      <button
+        onClick={() => onSort(col)}
+        className={`inline-flex items-center gap-1 uppercase tracking-wider transition hover:text-gray-700 ${
+          active ? "text-gray-800" : ""
+        }`}
+      >
+        {label}
+        <ArrowUpDown size={12} className={active ? "opacity-100" : "opacity-30"} />
+        {active && <span className="text-[10px]">{sortDir === "asc" ? "▲" : "▼"}</span>}
+      </button>
+    </th>
+  );
+}
+
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
-  const [toDelete, setToDelete] = useState<Product | null>(null);
+  const [toDelete, setToDelete] = useState<AdminProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      const res: PageResponse<Product> = await ProductService.getAll(0, 500);
+      // Admin endpoint: includes confidential cost + margins.
+      const res = await ProductService.getAdminAll(0, 500);
       setProducts(res.content);
     } catch {
       setError("Failed to load products.");
@@ -60,6 +96,15 @@ export default function ProductsPage() {
       setLoading(false);
     }
   }, []);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "name" ? "asc" : "desc");
+    }
+  };
 
   useEffect(() => {
     fetchProducts();
@@ -72,10 +117,31 @@ export default function ProductsPage() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return products
+    const rows = products
       .filter((p) => (statusFilter === "ALL" ? true : p.status === statusFilter))
       .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
-  }, [products, query, statusFilter]);
+
+    const value = (p: AdminProduct): number | string => {
+      switch (sortKey) {
+        case "cost": return p.cost;
+        case "price": return p.price;
+        case "margin": return p.grossMargin;
+        case "marginPct": return p.grossMarginPercent;
+        case "stock": return p.stockQuantity ?? -1;
+        default: return p.name.toLowerCase();
+      }
+    };
+
+    return [...rows].sort((a, b) => {
+      const av = value(a);
+      const bv = value(b);
+      const cmp =
+        typeof av === "number" && typeof bv === "number"
+          ? av - bv
+          : String(av).localeCompare(String(bv));
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+  }, [products, query, statusFilter, sortKey, sortDir]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -150,18 +216,23 @@ export default function ProductsPage() {
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full min-w-[720px] text-sm">
+          <table className="w-full min-w-[880px] text-sm">
             <thead className="bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
               <tr>
-                <th className="px-5 py-3 text-left">Product</th>
-                <th className="px-5 py-3 text-left">Price</th>
-                <th className="px-5 py-3 text-left">Stock</th>
+                <SortableTh label="Product" col="name" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="left" />
+                <SortableTh label="Cost" col="cost" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableTh label="Selling Price" col="price" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableTh label="Margin" col="margin" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableTh label="Margin %" col="marginPct" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="right" />
+                <SortableTh label="Stock" col="stock" sortKey={sortKey} sortDir={sortDir} onSort={toggleSort} align="left" />
                 <th className="px-5 py-3 text-left">Status</th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((p) => (
+              {filtered.map((p) => {
+                const negative = p.grossMargin < 0;
+                return (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
@@ -180,8 +251,17 @@ export default function ProductsPage() {
                       <span className="font-medium text-gray-800">{p.name}</span>
                     </div>
                   </td>
-                  <td className="px-5 py-3 text-gray-700">
+                  <td className="px-5 py-3 text-right text-gray-500">
+                    {formatPrice(p.cost)}
+                  </td>
+                  <td className="px-5 py-3 text-right font-medium text-gray-800">
                     {formatPrice(p.price)}
+                  </td>
+                  <td className={`px-5 py-3 text-right font-medium ${negative ? "text-rose-600" : "text-emerald-600"}`}>
+                    {formatPrice(p.grossMargin)}
+                  </td>
+                  <td className={`px-5 py-3 text-right ${negative ? "text-rose-600" : "text-emerald-600"}`}>
+                    {formatPercent(p.grossMarginPercent)}
                   </td>
                   <td className="px-5 py-3">
                     <StockBadge qty={p.stockQuantity} />
@@ -206,7 +286,8 @@ export default function ProductsPage() {
                     </div>
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

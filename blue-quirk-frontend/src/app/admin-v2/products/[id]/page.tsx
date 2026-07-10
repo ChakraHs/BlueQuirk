@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ProductImageManager from "@/components/admin/ProductImageManager";
+import PricingFields from "@/components/admin/PricingFields";
 import { ProductService } from "@/services/product.service";
 import { CategoryService } from "@/services/category.service";
 import { TodifyService } from "@/services/todify.service";
@@ -16,6 +17,7 @@ import { colorOptionsFromAttributes } from "@/lib/colorImages";
 type FormState = {
   name: string;
   price: number;
+  cost: number;
   stockQuantity: number;
   description: string;
   status: string;
@@ -49,6 +51,7 @@ export default function EditProductPage() {
   const [form, setForm] = useState<FormState>({
     name: "",
     price: 0,
+    cost: 0,
     stockQuantity: 0,
     description: "",
     status: "PUBLISHED",
@@ -57,11 +60,18 @@ export default function EditProductPage() {
   useEffect(() => {
     (async () => {
       try {
-        const p = await ProductService.getById(id);
+        // Public product (attributes/images/categories) + the admin-only view
+        // that carries the confidential cost. Fetched together; if the admin
+        // read fails we still render with cost 0 rather than blocking the form.
+        const [p, admin] = await Promise.all([
+          ProductService.getById(id),
+          ProductService.getAdminById(id).catch(() => null),
+        ]);
         setProduct(p);
         setForm({
           name: p.name ?? "",
           price: p.price ?? 0,
+          cost: admin?.cost ?? 0,
           stockQuantity: p.stockQuantity ?? 0,
           description: p.description ?? "",
           status: p.status ?? "PUBLISHED",
@@ -121,6 +131,7 @@ export default function EditProductPage() {
       await ProductService.update(id, {
         ...form,
         price: Number(form.price),
+        cost: Number(form.cost),
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
@@ -190,34 +201,25 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Price (DH)
-              </label>
-              <input
-                name="price"
-                type="number"
-                step="0.01"
-                value={form.price}
-                onChange={handleChange}
-                required
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">
-                Stock
-              </label>
-              <input
-                name="stockQuantity"
-                type="number"
-                min="0"
-                value={form.stockQuantity}
-                onChange={handleChange}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
-              />
-            </div>
+          <PricingFields
+            cost={form.cost}
+            price={form.price}
+            onCostChange={(cost) => setForm((f) => ({ ...f, cost }))}
+            onPriceChange={(price) => setForm((f) => ({ ...f, price }))}
+          />
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Stock
+            </label>
+            <input
+              name="stockQuantity"
+              type="number"
+              min="0"
+              value={form.stockQuantity}
+              onChange={handleChange}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+            />
           </div>
 
           <div>

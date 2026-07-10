@@ -19,6 +19,7 @@ import MiniBarChart, {
   type BarDatum,
 } from "@/components/admin/ui/MiniBarChart";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
+import FinanceKpis from "@/components/admin/FinanceKpis";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { ProductService } from "@/services/product.service";
 import { CustomerService } from "@/services/customer.service";
@@ -148,6 +149,9 @@ export default function AdminDashboard() {
           Overview of your BlueQuirk store.
         </p>
       </div>
+
+      {/* Business performance — revenue, profit, margin, AOV, products sold */}
+      <FinanceKpis />
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">

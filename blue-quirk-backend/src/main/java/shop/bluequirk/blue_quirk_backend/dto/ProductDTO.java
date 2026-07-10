@@ -12,6 +12,10 @@ public class ProductDTO {
 	private Long id;
     private String name;
     private Double price;
+    // Admin-only purchase cost (MAD). Optional on update (null = leave unchanged);
+    // validated non-negative in ProductService. Only submitted via the admin-only
+    // create/update endpoints, so it is safe to accept here.
+    private Double cost;
     private Integer stockQuantity;
     private String description;
     private ProductStatus status;
@@ -46,6 +50,9 @@ public class ProductDTO {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Double getCost() { return cost; }
+    public void setCost(Double cost) { this.cost = cost; }
 
     public Integer getStockQuantity() { return stockQuantity; }
     public void setStockQuantity(Integer stockQuantity) { this.stockQuantity = stockQuantity; }

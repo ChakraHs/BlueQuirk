@@ -4,6 +4,7 @@
 // token, when present, links the order to that login account.
 import api from "./api";
 import type { CartItem } from "@/lib/cart";
+import type { OrderFinancials } from "@/types/finance";
 
 export type OrderItemPayload = {
   productId: number;
@@ -138,6 +139,12 @@ export const OrderService = {
 
   getById: async (id: number): Promise<OrderResponse> => {
     const { data } = await api.get<OrderResponse>(`/orders/${id}`);
+    return data;
+  },
+
+  /** Admin-only cost/profit/margin breakdown for one order (confidential). */
+  getFinancials: async (id: number): Promise<OrderFinancials> => {
+    const { data } = await api.get<OrderFinancials>(`/orders/${id}/financials`);
     return data;
   },
 

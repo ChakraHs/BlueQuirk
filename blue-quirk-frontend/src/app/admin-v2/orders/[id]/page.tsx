@@ -18,11 +18,12 @@ import StatusBadge from "@/components/admin/ui/StatusBadge";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import CancelOrderDialog from "@/components/admin/CancelOrderDialog";
 import { OrderService, type OrderResponse } from "@/services/order.service";
+import type { OrderFinancials } from "@/types/finance";
 import {
   ORDER_STATUSES, ORDER_STATUS_LABELS, PAYMENT_STATUSES, PAYMENT_STATUS_LABELS,
   type OrderStatus,
 } from "@/types/order";
-import { formatPrice } from "@/lib/money";
+import { formatPrice, formatPercent } from "@/lib/money";
 
 const STATUS_LABELS = ORDER_STATUS_LABELS;
 
@@ -45,6 +46,7 @@ export default function OrderDetailPage() {
   const id = Number(params.id);
 
   const [order, setOrder] = useState<OrderResponse | null>(null);
+  const [financials, setFinancials] = useState<OrderFinancials | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [savingStatus, setSavingStatus] = useState<string | null>(null);
@@ -65,8 +67,12 @@ export default function OrderDetailPage() {
   useEffect(() => {
     (async () => {
       try {
-        const o = await OrderService.getById(id);
+        const [o, fin] = await Promise.all([
+          OrderService.getById(id),
+          OrderService.getFinancials(id).catch(() => null),
+        ]);
         setOrder(o);
+        setFinancials(fin);
         setPaymentStatus(o.paymentStatus ?? "UNPAID");
         setTrackingNumber(o.trackingNumber ?? "");
         setEstimatedDelivery(o.estimatedDelivery ?? "");
@@ -306,6 +312,57 @@ export default function OrderDetailPage() {
               <span>{formatPrice(order.total)}</span>
             </div>
           </div>
+
+          {/* Profit & cost — admin only (confidential) */}
+          {financials && (
+            <div className="border-t border-gray-100 px-5 py-4">
+              <div className="mb-2 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-gray-700">
+                  Profit &amp; margin
+                </h3>
+                <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                  Admin only
+                </span>
+              </div>
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between text-gray-500">
+                  <span>Products total</span>
+                  <span>{formatPrice(financials.sellingTotal)}</span>
+                </div>
+                <div className="flex justify-between text-gray-500">
+                  <span>Cost total</span>
+                  <span>−{formatPrice(financials.costTotal)}</span>
+                </div>
+                <div className="flex justify-between text-gray-500">
+                  <span>Discount</span>
+                  <span>{formatPrice(financials.discount)}</span>
+                </div>
+                <div className="flex justify-between text-gray-500">
+                  <span>Shipping</span>
+                  <span>
+                    {financials.shipping === 0 ? "Free" : formatPrice(financials.shipping)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-gray-700">
+                  <span>Final total (paid)</span>
+                  <span>{formatPrice(financials.finalTotal)}</span>
+                </div>
+                <div
+                  className={`mt-1 flex justify-between border-t border-gray-100 pt-2 text-base font-bold ${
+                    financials.grossProfit < 0 ? "text-rose-600" : "text-emerald-600"
+                  }`}
+                >
+                  <span>Gross profit</span>
+                  <span>
+                    {formatPrice(financials.grossProfit)}
+                    <span className="ml-2 text-sm font-medium">
+                      ({formatPercent(financials.marginPercent)})
+                    </span>
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Customer / shipping */}

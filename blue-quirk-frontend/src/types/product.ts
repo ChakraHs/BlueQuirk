@@ -23,6 +23,23 @@ export interface Product {
   syncedFromTodify?: boolean;
 }
 
+/**
+ * Admin-only product view returned by /api/admin/products. Includes the
+ * confidential purchase `cost` and derived margins — never comes from the
+ * public storefront endpoints.
+ */
+export interface AdminProduct {
+  id: number;
+  name: string;
+  price: number;
+  cost: number;
+  grossMargin: number; // price − cost, in DH
+  grossMarginPercent: number; // (price − cost) / price
+  stockQuantity?: number;
+  status: string;
+  images?: ProductImage[];
+}
+
 export interface ProductImage {
   id: number;
   // Legacy single URL. Still sent by the backend (points at the display variant
