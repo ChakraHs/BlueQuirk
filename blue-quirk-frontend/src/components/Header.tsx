@@ -58,7 +58,7 @@ export default function Header({
   //    slide naturally into view again.
   return (
     <>
-      <header className="relative z-50 bg-white md:sticky md:top-0 md:border-b md:border-gray-200">
+      <header className="relative z-[60] bg-white md:sticky md:top-0 md:border-b md:border-gray-200">
         {/* ---- Top row ---- */}
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="flex h-16 items-center gap-2 md:gap-4">
