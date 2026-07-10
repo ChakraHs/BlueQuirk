@@ -3,8 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  DollarSign,
-  ShoppingBag,
   Package,
   Users,
   TrendingUp,
@@ -153,22 +151,8 @@ export default function AdminDashboard() {
       {/* Business performance — revenue, profit, margin, AOV, products sold */}
       <FinanceKpis />
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          label="Revenue"
-          value={formatPrice(stats.revenue)}
-          icon={DollarSign}
-          accent="green"
-          hint="Non-cancelled orders"
-        />
-        <StatCard
-          label="Orders"
-          value={orders.length}
-          icon={ShoppingBag}
-          accent="blue"
-          hint={`Average order ${formatPrice(stats.avg)}`}
-        />
+      {/* Catalog & customer counts — revenue/orders live in Business performance above */}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard
           label="Products"
           value={productTotal}
