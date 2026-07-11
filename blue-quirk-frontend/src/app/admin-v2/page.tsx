@@ -5,14 +5,10 @@ import Link from "next/link";
 import {
   Package,
   Users,
-  TrendingUp,
   AlertTriangle,
 } from "lucide-react";
 import StatCard from "@/components/admin/ui/StatCard";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
-import MiniLineChart, {
-  type ChartPoint,
-} from "@/components/admin/ui/MiniLineChart";
 import MiniBarChart, {
   type BarDatum,
 } from "@/components/admin/ui/MiniBarChart";
@@ -75,22 +71,6 @@ export default function AdminDashboard() {
     const avg = paid.length ? revenue / paid.length : 0;
 
     // Revenue per day for the last 14 days.
-    const days = 14;
-    const buckets = new Map<string, number>();
-    const today = new Date();
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(today.getDate() - i);
-      buckets.set(d.toISOString().slice(0, 10), 0);
-    }
-    for (const o of paid) {
-      const key = (o.orderDate || "").slice(0, 10);
-      if (buckets.has(key)) buckets.set(key, (buckets.get(key) || 0) + o.total);
-    }
-    const revenueSeries: ChartPoint[] = Array.from(buckets.entries()).map(
-      ([label, value]) => ({ label, value })
-    );
-
     // Orders by status.
     const statusBars: BarDatum[] = ORDER_STATUSES.map((s) => ({
       label: STATUS_LABELS[s],
@@ -129,7 +109,6 @@ export default function AdminDashboard() {
     return {
       revenue,
       avg,
-      revenueSeries,
       statusBars,
       topProducts,
       recent,
@@ -151,40 +130,10 @@ export default function AdminDashboard() {
       {/* Business performance — revenue, profit, margin, AOV, products sold */}
       <FinanceKpis />
 
-      {/* Catalog & customer counts — revenue/orders live in Business performance above */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <StatCard
-          label="Products"
-          value={productTotal}
-          icon={Package}
-          accent="violet"
-          hint={`${stats.lowStock.length} low in stock`}
-        />
-        <StatCard
-          label="Customers"
-          value={customerCount}
-          icon={Users}
-          accent="amber"
-        />
-      </div>
-
-      {/* Charts */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {/* Operational snapshot — order pipeline beside catalog/customer counts.
+          Revenue/profit trends live in Business performance above (no duplicates). */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm lg:col-span-2">
-          <div className="mb-4 flex items-center gap-2">
-            <TrendingUp size={18} className="text-blue-600" />
-            <h2 className="text-sm font-semibold text-gray-700">
-              Revenue (last 14 days)
-            </h2>
-          </div>
-          {loading ? (
-            <div className="h-[180px] animate-pulse rounded bg-gray-100" />
-          ) : (
-            <MiniLineChart data={stats.revenueSeries} />
-          )}
-        </div>
-
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 text-sm font-semibold text-gray-700">
             Orders by status
           </h2>
@@ -193,6 +142,22 @@ export default function AdminDashboard() {
           ) : (
             <MiniBarChart data={stats.statusBars} />
           )}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          <StatCard
+            label="Products"
+            value={productTotal}
+            icon={Package}
+            accent="violet"
+            hint={`${stats.lowStock.length} low in stock`}
+          />
+          <StatCard
+            label="Customers"
+            value={customerCount}
+            icon={Users}
+            accent="amber"
+          />
         </div>
       </div>
 
