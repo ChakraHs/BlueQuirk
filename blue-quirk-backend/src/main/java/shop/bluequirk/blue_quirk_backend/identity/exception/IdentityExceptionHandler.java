@@ -5,6 +5,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
  */
 @RestControllerAdvice(basePackages = "shop.bluequirk.blue_quirk_backend.identity")
 public class IdentityExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(IdentityExceptionHandler.class);
 
     @ExceptionHandler(IdentityException.class)
     public ResponseEntity<Map<String, Object>> handleIdentity(IdentityException ex) {
@@ -36,6 +40,7 @@ public class IdentityExceptionHandler {
     /** Any unexpected identity error → 500 without leaking internals. */
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> handleUnexpected(RuntimeException ex) {
+        log.error("Unhandled identity error", ex);
         return build(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected error occurred.");
     }
 
