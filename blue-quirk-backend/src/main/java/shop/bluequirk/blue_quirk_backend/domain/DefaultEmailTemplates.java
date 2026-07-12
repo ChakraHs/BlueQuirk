@@ -83,7 +83,7 @@ public final class DefaultEmailTemplates {
     private static String wrapperOpen() {
         return "<div style='font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827'>"
                 + "<div style='font-size:22px;font-weight:800;padding:8px 0'>"
-                + "Red<span style='color:#2563eb'>Quirk</span></div>";
+                + "Red<span style='color:#dc2626'>Quirk</span></div>";
     }
 
     private static String heading(String title) {
