@@ -14,7 +14,7 @@ import { t } from "@/lib/i18n";
 export default function Header({
   lang,
   categories = [],
-  storeName = "BlueQuirk",
+  storeName = "RedQuirk",
   logoUrl = null,
 }: {
   lang: string;

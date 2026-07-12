@@ -6,17 +6,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 
+import shop.bluequirk.blue_quirk_backend.service.IntegrationConfigService;
+
 /**
  * Sends mail through the Resend HTTP API (https://resend.com).
- * Active when {@code email.provider=resend}. Requires {@code resend.api-key}
- * (supplied via the RESEND_API_KEY env var) and a {@code resend.from} address.
+ * Active when {@code email.provider=resend}. The API key and {@code from} address
+ * are resolved at send time from {@link IntegrationConfigService} (admin-editable
+ * DB values with {@code resend.*} env fallback), so they can be rotated from the
+ * dashboard without a restart.
  *
  * <p>Until a domain is verified in Resend, the only valid {@code from} is
  * {@code onboarding@resend.dev} and mail can only be delivered to the Resend
@@ -27,24 +28,16 @@ import org.springframework.stereotype.Service;
 @ConditionalOnProperty(name = "email.provider", havingValue = "resend")
 public class ResendEmailProvider implements EmailProvider {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ResendEmailProvider.class);
     private static final String ENDPOINT = "https://api.resend.com/emails";
 
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    private final String apiKey;
-    private final String from;
+    private final IntegrationConfigService configService;
 
-    public ResendEmailProvider(
-            @Value("${resend.api-key:}") String apiKey,
-            @Value("${resend.from:}") String from) {
-        this.apiKey = apiKey == null ? "" : apiKey.trim();
-        this.from = from == null ? "" : from.trim();
-        if (this.apiKey.isBlank()) {
-            LOG.warn("email.provider=resend but resend.api-key (RESEND_API_KEY) is not set — emails will fail.");
-        }
+    public ResendEmailProvider(IntegrationConfigService configService) {
+        this.configService = configService;
     }
 
     @Override
@@ -58,6 +51,8 @@ public class ResendEmailProvider implements EmailProvider {
     }
 
     private void send(String to, String subject, String body, boolean html) {
+        String apiKey = configService.effectiveResendApiKey();
+        String from = configService.effectiveResendFrom();
         if (apiKey.isBlank()) {
             throw new IllegalStateException("Resend API key not configured (RESEND_API_KEY)");
         }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
+import ThemeStyle from "@/components/ThemeStyle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sign up · BlueQuirk",
-  description: "Create your BlueQuirk account.",
+  title: "Sign up · RedQuirk",
+  description: "Create your RedQuirk account.",
 };
 
 export default function SignupLayout({
@@ -25,6 +26,7 @@ export default function SignupLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeStyle />
         {children}
       </body>
     </html>

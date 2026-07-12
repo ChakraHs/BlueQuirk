@@ -2,8 +2,13 @@ package shop.bluequirk.blue_quirk_backend.finance.service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -76,17 +81,41 @@ public class FinanceReportService {
         List<Object[]> rows = granularity == Granularity.MONTH
                 ? repository.monthlyFinancials(from, to)
                 : repository.dailyFinancials(from, to);
-        return rows.stream().map(r -> {
+
+        // Index the buckets that actually have orders by their period key.
+        Map<String, FinanceTimePoint> byPeriod = new HashMap<>();
+        for (Object[] r : rows) {
             double revenue = finance.round(num(r[2]));
             double cost = finance.round(num(r[3]));
-            return new FinanceTimePoint(
-                    str(r[0]),
-                    lng(r[1]),
-                    revenue,
-                    cost,
-                    finance.grossProfit(revenue, cost),
-                    finance.marginPercent(revenue, cost));
-        }).toList();
+            String period = str(r[0]);
+            byPeriod.put(period, new FinanceTimePoint(period, lng(r[1]), revenue, cost,
+                    finance.grossProfit(revenue, cost), finance.marginPercent(revenue, cost)));
+        }
+
+        // Emit a CONTINUOUS series: every bucket in [from, to], zero-filled where
+        // there were no orders, so charts always render a real line — not a blank
+        // box — even for new stores whose sales sit in a single day or month.
+        List<FinanceTimePoint> series = new ArrayList<>();
+        if (granularity == Granularity.MONTH) {
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM");
+            YearMonth cursor = YearMonth.from(from);
+            YearMonth end = YearMonth.from(to);
+            while (!cursor.isAfter(end)) {
+                String key = cursor.format(fmt);
+                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0)));
+                cursor = cursor.plusMonths(1);
+            }
+        } else {
+            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            LocalDate cursor = from.toLocalDate();
+            LocalDate end = to.toLocalDate();
+            while (!cursor.isAfter(end)) {
+                String key = cursor.format(fmt);
+                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0)));
+                cursor = cursor.plusDays(1);
+            }
+        }
+        return series;
     }
 
     /**

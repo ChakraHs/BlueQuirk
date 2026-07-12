@@ -6,7 +6,7 @@ type FooterLink = { label: string; href: string };
 
 export default function Footer({
   lang,
-  storeName = "BlueQuirk",
+  storeName = "RedQuirk",
   logoUrl = null,
 }: {
   lang: string;

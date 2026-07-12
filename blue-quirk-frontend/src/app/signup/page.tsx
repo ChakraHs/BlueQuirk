@@ -116,12 +116,12 @@ export default function SignupPage() {
           href="/"
           className="relative z-10 text-2xl font-bold tracking-tight"
         >
-          BlueQuirk
+          RedQuirk
         </Link>
 
         <div className="relative z-10 max-w-md">
           <h1 className="text-4xl font-bold leading-tight">
-            Join BlueQuirk.
+            Join RedQuirk.
           </h1>
           <p className="mt-4 text-blue-100">
             Create an account to track orders, save your favourites, and check
@@ -130,7 +130,7 @@ export default function SignupPage() {
         </div>
 
         <p className="relative z-10 text-sm text-blue-200">
-          © {new Date().getFullYear()} BlueQuirk. All rights reserved.
+          © {new Date().getFullYear()} RedQuirk. All rights reserved.
         </p>
       </aside>
 
@@ -141,7 +141,7 @@ export default function SignupPage() {
             href="/"
             className="mb-10 block text-2xl font-bold tracking-tight text-gray-900 lg:hidden"
           >
-            BlueQuirk
+            RedQuirk
           </Link>
 
           <div className="mb-8">

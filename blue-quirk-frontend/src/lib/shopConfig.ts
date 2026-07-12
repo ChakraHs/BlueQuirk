@@ -12,7 +12,7 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   currency: "DH",
   shippingFee: 29,
   freeShippingThreshold: 300,
-  storeName: "BlueQuirk",
+  storeName: "RedQuirk",
   logoUrl: null,
   defaultLang: "fr",
   heroTitleFr: null,
@@ -26,6 +26,18 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   heroBgColor: null,
   heroImageUrl: null,
   heroImageMobileUrl: null,
+  // Theme colors: null = use the storefront's built-in premium-red defaults.
+  primaryColor: null,
+  primaryHoverColor: null,
+  secondaryColor: null,
+  accentColor: null,
+  backgroundColor: null,
+  surfaceColor: null,
+  textColor: null,
+  borderColor: null,
+  successColor: null,
+  warningColor: null,
+  errorColor: null,
 };
 
 export async function getPublicShopConfig(): Promise<PublicShopConfig> {
@@ -57,6 +69,17 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
       heroBgColor: data.heroBgColor ?? null,
       heroImageUrl: data.heroImageUrl ?? null,
       heroImageMobileUrl: data.heroImageMobileUrl ?? null,
+      primaryColor: data.primaryColor ?? null,
+      primaryHoverColor: data.primaryHoverColor ?? null,
+      secondaryColor: data.secondaryColor ?? null,
+      accentColor: data.accentColor ?? null,
+      backgroundColor: data.backgroundColor ?? null,
+      surfaceColor: data.surfaceColor ?? null,
+      textColor: data.textColor ?? null,
+      borderColor: data.borderColor ?? null,
+      successColor: data.successColor ?? null,
+      warningColor: data.warningColor ?? null,
+      errorColor: data.errorColor ?? null,
     };
   } catch {
     return SHOP_CONFIG_DEFAULTS;

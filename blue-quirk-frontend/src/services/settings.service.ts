@@ -1,7 +1,11 @@
 import api from "./api";
-import { StoreSettings } from "@/types/settings";
+import { StoreSettings, ThemeColors } from "@/types/settings";
 
-export type StoreSettingsPayload = {
+// Theme colors are sent as strings: a value sets the color, an empty string
+// clears it back to the storefront default (matches the backend blankToNull).
+export type ThemeColorsPayload = { [K in keyof ThemeColors]: string };
+
+export type StoreSettingsPayload = ThemeColorsPayload & {
   storeName: string;
   logoUrl: string | null;
   shippingFee: number;
