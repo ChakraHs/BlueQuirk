@@ -82,6 +82,11 @@ public class ProductService {
             existing.setStockQuantity(dto.getStockQuantity());
         }
     	existing.setDescription(dto.getDescription());
+        // Only overwrite the material when the admin actually submitted one, so a
+        // form that omits it never wipes the stored value.
+        if (dto.getMaterial() != null && !dto.getMaterial().isBlank()) {
+            existing.setMaterial(dto.getMaterial().trim());
+        }
         existing.setStatus(dto.getStatus());
         applyImages(existing, dto.getImages());
         if (dto.getTranslations() != null) {
@@ -169,6 +174,7 @@ public class ProductService {
             product.getPrice(),
             product.getStockQuantity(),
             resolveDescription(product, lang),
+            product.getMaterial(),
             product.getStatus(),
             sortedImages(product),
             attributes,
@@ -212,6 +218,14 @@ public class ProductService {
                 product.getStatus(),
                 sortedImages(product)
         );
+    }
+
+    /** Default materials value applied to products created without one. */
+    private static final String DEFAULT_MATERIAL = "100% Cotton";
+
+    /** Trims the submitted material, falling back to the default when blank. */
+    private String normalizedMaterial(String material) {
+        return (material == null || material.isBlank()) ? DEFAULT_MATERIAL : material.trim();
     }
 
     /** Rejects a negative cost (400); otherwise returns the value unchanged. */
@@ -282,6 +296,7 @@ public class ProductService {
         product.setCost(dto.getCost() != null ? validatedCost(dto.getCost()) : 0);
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
+        product.setMaterial(normalizedMaterial(dto.getMaterial()));
         product.setStatus(dto.getStatus());
         applyImages(product, dto.getImages());
         applyTranslations(product, dto.getTranslations());
@@ -342,6 +357,7 @@ public class ProductService {
                 product.getPrice(),
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
+                product.getMaterial(),
                 product.getStatus(),
                 sortedImages(product),
                 attributes,

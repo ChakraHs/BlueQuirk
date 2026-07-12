@@ -3,6 +3,9 @@ export interface Product {
   name: string;
   price: number;
   description: string;
+  // Materials / composition (e.g. "100% Cotton"). Shown in the storefront
+  // "Product Highlights" and editable from the admin product form.
+  material?: string;
   quantity?: number;
   stockQuantity?: number;
   status: string;

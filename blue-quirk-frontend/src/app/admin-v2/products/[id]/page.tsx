@@ -20,6 +20,7 @@ type FormState = {
   cost: number;
   stockQuantity: number;
   description: string;
+  material: string;
   status: string;
 };
 
@@ -54,6 +55,7 @@ export default function EditProductPage() {
     cost: 0,
     stockQuantity: 0,
     description: "",
+    material: "100% Cotton",
     status: "PUBLISHED",
   });
 
@@ -74,6 +76,7 @@ export default function EditProductPage() {
           cost: admin?.cost ?? 0,
           stockQuantity: p.stockQuantity ?? 0,
           description: p.description ?? "",
+          material: p.material ?? "100% Cotton",
           status: p.status ?? "PUBLISHED",
         });
         setAttributes(p.attributes ?? []);
@@ -220,6 +223,22 @@ export default function EditProductPage() {
               onChange={handleChange}
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
             />
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Materials
+            </label>
+            <input
+              name="material"
+              value={form.material}
+              onChange={handleChange}
+              placeholder="e.g. 100% Cotton"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Shown in the product highlights (composition).
+            </p>
           </div>
 
           <div>

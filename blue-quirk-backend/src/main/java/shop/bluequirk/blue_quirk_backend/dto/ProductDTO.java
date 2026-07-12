@@ -18,6 +18,9 @@ public class ProductDTO {
     private Double cost;
     private Integer stockQuantity;
     private String description;
+    // Materials / composition (e.g. "100% Cotton"). Optional; when blank on
+    // create the service falls back to the default value.
+    private String material;
     private ProductStatus status;
     
     private Set<Image> images; 
@@ -59,6 +62,9 @@ public class ProductDTO {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getMaterial() { return material; }
+    public void setMaterial(String material) { this.material = material; }
 
     public Set<AttributeDto> getAttributes() { return attributes; }
     public void setAttributes(Set<AttributeDto> attributes) { this.attributes = attributes; }

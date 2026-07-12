@@ -6,9 +6,11 @@ import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
@@ -55,6 +57,14 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		""")
 		List<Product> findByCategoryIdWithRelations(@Param("categoryId") Long categoryId,
 				@Param("status") ProductStatus status);
+
+	// One-time backfill: give every product with no materials value the default.
+	// Existing products predate the `material` column, so Hibernate leaves it NULL
+	// until this runs. Returns the number of rows updated.
+	@Modifying
+	@Transactional
+	@Query("UPDATE Product p SET p.material = :value WHERE p.material IS NULL OR p.material = ''")
+	int backfillMissingMaterial(@Param("value") String value);
 
 	// --- Todify ---
 	Optional<Product> findByTodifyTemplateId(String todifyTemplateId);

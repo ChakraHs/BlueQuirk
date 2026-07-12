@@ -27,6 +27,13 @@ public class Product {
     @Lob
     private String description; // will store HTML text
 
+    // Materials / composition of the product (e.g. "100% Cotton"). Purely
+    // descriptive (not a variant) — shown in the storefront "Product Highlights"
+    // and editable from the admin product form. Defaults to "100% Cotton" so
+    // pre-existing products and new ones always have a sensible value.
+    @Column(name = "material")
+    private String material = "100% Cotton";
+
     @Column(nullable = false)
     private double price;
 
@@ -107,6 +114,9 @@ public class Product {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getMaterial() { return material; }
+    public void setMaterial(String material) { this.material = material; }
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }

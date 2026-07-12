@@ -11,6 +11,8 @@ public record ProductResponse(
 	    Double price,
 	    Integer stockQuantity,
 	    String description,
+	    // Materials / composition (e.g. "100% Cotton") shown in the storefront.
+	    String material,
 	    ProductStatus status,
 	    List<Image> images,
 	    List<AttributeDto> attributes,
