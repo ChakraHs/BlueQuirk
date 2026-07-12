@@ -22,6 +22,7 @@ import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
+import shop.bluequirk.blue_quirk_backend.dto.ProductTranslationDto;
 import shop.bluequirk.blue_quirk_backend.finance.service.FinancialCalculationService;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
@@ -179,6 +180,7 @@ public class ProductService {
             sortedImages(product),
             attributes,
             toCategoryRefs(product, lang),
+            toTranslationDtos(product),
             product.getTodifyTemplateId(),
             product.isSyncedFromTodify()
         );
@@ -362,9 +364,22 @@ public class ProductService {
                 sortedImages(product),
                 attributes,
                 toCategoryRefs(product, lang),
+                toTranslationDtos(product),
                 product.getTodifyTemplateId(),
                 product.isSyncedFromTodify()
         );
+    }
+
+    /** Raw per-language translations (for the admin edit form), ordered by lang. */
+    private List<ProductTranslationDto> toTranslationDtos(Product product) {
+        if (product.getTranslations() == null) {
+            return List.of();
+        }
+        return product.getTranslations().stream()
+                .map(t -> new ProductTranslationDto(t.getLang(), t.getName(), t.getDescription()))
+                .sorted(Comparator.comparing(ProductTranslationDto::lang,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .collect(Collectors.toList());
     }
 
     /** Locale-resolved category references for the storefront search facets. */

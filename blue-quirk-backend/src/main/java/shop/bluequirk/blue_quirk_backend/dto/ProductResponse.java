@@ -19,6 +19,10 @@ public record ProductResponse(
 	    // Categories this product belongs to (locale-resolved names) — used by the
 	    // storefront search/filter facets.
 	    List<CategoryRef> categories,
+	    // Raw per-language name/description pairs. The storefront ignores these
+	    // (it reads the resolved name/description above); the admin edit form uses
+	    // them to populate the translations editor.
+	    List<ProductTranslationDto> translations,
 	    // --- Todify link info (null/false for normal local products) ---
 	    String todifyTemplateId,
 	    boolean syncedFromTodify
