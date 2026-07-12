@@ -16,9 +16,6 @@ public enum EmailEvent {
     ORDER_PLACED_ADMIN(
             "Order placed — admin",
             "Sent to the store admin when a new order comes in."),
-    ORDER_CONFIRMED(
-            "Order confirmed",
-            "Sent when an admin marks the order as confirmed."),
     ORDER_PROCESSING(
             "Order processing",
             "Sent when the order enters preparation."),
@@ -56,16 +53,22 @@ public enum EmailEvent {
         return description;
     }
 
-    /** Maps an order status change to its email event, or null when none applies. */
+    /**
+     * Maps an order status change to its email event, or null when none applies.
+     * CONFIRMED is intentionally silent: the "Order received" email sent at
+     * checkout already confirms the order, and Todify reports every freshly
+     * pushed order as CONFIRMED, so emailing here produced a duplicate
+     * confirmation. The order still advances to CONFIRMED — only the email is
+     * suppressed.
+     */
     public static EmailEvent forStatus(OrderStatus status) {
         return switch (status) {
-            case CONFIRMED -> ORDER_CONFIRMED;
             case PROCESSING -> ORDER_PROCESSING;
             case PACKED -> ORDER_PACKED;
             case SHIPPED -> ORDER_SHIPPED;
             case DELIVERED -> ORDER_DELIVERED;
             case CANCELLED -> ORDER_CANCELLED;
-            default -> null;
+            default -> null; // PENDING, CONFIRMED → no customer email
         };
     }
 }

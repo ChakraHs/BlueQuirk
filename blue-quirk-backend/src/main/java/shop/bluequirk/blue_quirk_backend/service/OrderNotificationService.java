@@ -170,7 +170,6 @@ public class OrderNotificationService {
     private String statusSubject(OrderResponse order, OrderStatus status) {
         String ref = ref(order);
         return switch (status) {
-            case CONFIRMED  -> "Votre commande BlueQuirk " + ref + " est confirmée";
             case PROCESSING -> "Votre commande BlueQuirk " + ref + " est en préparation";
             case PACKED     -> "Votre commande BlueQuirk " + ref + " est prête à l'expédition";
             case SHIPPED    -> "Votre commande BlueQuirk " + ref + " a été expédiée";
@@ -185,11 +184,6 @@ public class OrderNotificationService {
         String title;
         String intro;
         switch (status) {
-            case CONFIRMED -> {
-                title = "Commande confirmée";
-                intro = "Bonne nouvelle " + esc(order.customerName()) + " ! Votre commande <strong>" + ref
-                        + "</strong> est confirmée et en cours de préparation.";
-            }
             case PROCESSING -> {
                 title = "Commande en préparation";
                 intro = "Votre commande <strong>" + ref + "</strong> est en cours de préparation dans nos ateliers.";

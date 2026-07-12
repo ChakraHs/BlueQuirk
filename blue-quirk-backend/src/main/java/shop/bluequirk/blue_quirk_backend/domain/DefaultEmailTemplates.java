@@ -22,11 +22,6 @@ public final class DefaultEmailTemplates {
                     "Hi {{customerName}}, your order <strong>{{orderRef}}</strong> has been registered. "
                     + "Keep this reference to track it. We'll call you to confirm delivery — "
                     + "you pay in cash on delivery.");
-            case ORDER_CONFIRMED -> customer(
-                    "Your {{storeName}} order {{orderRef}} is confirmed",
-                    "Order confirmed",
-                    "Good news {{customerName}}! Your order <strong>{{orderRef}}</strong> is confirmed "
-                    + "and now being prepared.");
             case ORDER_PROCESSING -> customer(
                     "Your {{storeName}} order {{orderRef}} is being prepared",
                     "Order in preparation",
