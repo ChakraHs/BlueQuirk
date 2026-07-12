@@ -21,7 +21,7 @@ const COPY = {
     invalid: "Saisissez une taille (140–220 cm) et un poids (30–200 kg) valides.",
     resultLead: "Votre taille recommandée",
     apply: (s: string) => `Choisir la taille ${s}`,
-    note: "Estimation indicative basée sur votre morphologie. Entre deux tailles, privilégiez la plus grande pour plus d'aisance.",
+    note: "Recommandation personnalisée selon votre morphologie (taille au plus juste). Pour un porter plus ample, prenez la taille au-dessus.",
     close: "Fermer",
   },
   ar: {
@@ -36,7 +36,7 @@ const COPY = {
     invalid: "أدخل طولاً (140–220 سم) ووزناً (30–200 كغ) صحيحين.",
     resultLead: "المقاس الموصى به",
     apply: (s: string) => `اختر المقاس ${s}`,
-    note: "تقدير إرشادي حسب بنية جسمك. بين مقاسين، اختر الأكبر لمزيد من الراحة.",
+    note: "توصية مخصّصة حسب بنية جسمك (مقاس مضبوط). لمظهر أوسع، اختر المقاس الأكبر.",
     close: "إغلاق",
   },
   en: {
@@ -51,7 +51,7 @@ const COPY = {
     invalid: "Enter a valid height (140–220 cm) and weight (30–200 kg).",
     resultLead: "Your recommended size",
     apply: (s: string) => `Choose size ${s}`,
-    note: "Indicative estimate based on your body type. Between two sizes, pick the larger one for more comfort.",
+    note: "Personalized recommendation based on your body type (true-to-size). For a looser fit, size up.",
     close: "Close",
   },
 } as const;
