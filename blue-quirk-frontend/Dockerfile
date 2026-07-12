@@ -7,8 +7,8 @@
 #
 # NEXT_PUBLIC_* values are inlined at BUILD time, so they arrive as build args
 # (docker compose forwards them from .env):
-#   NEXT_PUBLIC_API_BASE_URL   -> public API origin + /api  (e.g. https://bluequirk.shop/api)
-#   NEXT_PUBLIC_SITE_URL       -> public site origin        (e.g. https://bluequirk.shop)
+#   NEXT_PUBLIC_API_BASE_URL   -> public API origin + /api  (e.g. https://redquirk.com/api)
+#   NEXT_PUBLIC_SITE_URL       -> public site origin        (e.g. https://redquirk.com)
 # ============================================================================
 
 # ---- Stage 1: dependencies (production-resolvable, cached on lockfile) ------

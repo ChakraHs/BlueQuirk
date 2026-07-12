@@ -20,7 +20,7 @@ Everything else — build, networking, TLS, data persistence — is automatic.
 ## 1. Prerequisites
 
 - An Ubuntu 22.04/24.04 VPS with a public IP and root (or sudo) access.
-- A domain name you control (e.g. `bluequirk.shop`).
+- A domain name you control (e.g. `redquirk.com`).
 - Ports **80** and **443** reachable from the internet.
 
 ## 2. Point DNS at the server
@@ -36,7 +36,7 @@ At your DNS provider create records pointing to the VPS public IP:
 Verify before continuing (TLS issuance needs DNS to resolve):
 
 ```bash
-dig +short bluequirk.shop
+dig +short redquirk.com
 ```
 
 ## 3. Install Docker Engine + Compose plugin

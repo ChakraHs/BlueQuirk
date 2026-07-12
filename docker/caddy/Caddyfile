@@ -18,6 +18,13 @@ www.{$SITE_DOMAIN:localhost} {
 	redir https://{$SITE_DOMAIN:localhost}{uri} permanent
 }
 
+# Legacy domain: permanently redirect the old bluequirk.shop apex + www to the
+# canonical domain (preserves the path/query). Both still get automatic TLS.
+# Safe to remove once the old domain's traffic/SEO has fully migrated.
+bluequirk.shop, www.bluequirk.shop {
+	redir https://{$SITE_DOMAIN:localhost}{uri} permanent
+}
+
 {$SITE_DOMAIN:localhost} {
 	# Compression for text/JSON/HTML responses.
 	encode zstd gzip

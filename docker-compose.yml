@@ -84,8 +84,13 @@ services:
       APP_FRONTEND_BASE_URL: ${PUBLIC_SITE_URL:?PUBLIC_SITE_URL is required}
       # Native-only JWT validation: no external JWKS (legacy Keycloak path off).
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWK_SET_URI: ""
+      # --- Image storage (Cloudflare R2) ---
+      # Without this the backend reports R2 unconfigured and rejects every image
+      # upload (logo, product photos) with 503.
+      R2_API_TOKEN: ${R2_API_TOKEN:-}
       # --- Email (Resend) ---
       RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM: ${RESEND_FROM:-BlueQuirk <orders@contact.redquirk.com>}
       # --- Todify (optional) ---
       TODIFY_ENABLED: ${TODIFY_ENABLED:-false}
       TODIFY_API_TOKEN: ${TODIFY_API_TOKEN:-}
