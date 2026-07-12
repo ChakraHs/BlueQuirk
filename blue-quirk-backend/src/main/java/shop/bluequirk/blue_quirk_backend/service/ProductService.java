@@ -2,9 +2,11 @@ package shop.bluequirk.blue_quirk_backend.service;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -404,17 +406,52 @@ public class ProductService {
                 .orElse(category.getName());
     }
 
-    private void applyTranslations(Product product, Set<ProductTranslation> translations) {
-        product.getTranslations().clear();
-
-        if (translations == null) {
-            return;
+    /**
+     * Reconciles the product's translations with the incoming set, keyed by
+     * language, MUTATING the managed collection in place: existing languages are
+     * UPDATED, languages no longer submitted are removed (orphan-deleted), and
+     * only genuinely new languages are inserted.
+     *
+     * <p>We deliberately avoid the old clear()+re-add() approach: with
+     * orphanRemoval, Hibernate flushed the INSERT of a replacement row before
+     * DELETEing the old one, which violated the {@code (product_id, lang)} unique
+     * constraint whenever a product that already had translations was edited.
+     * Updating same-language rows in place issues a plain UPDATE, so there is no
+     * transient duplicate.
+     */
+    private void applyTranslations(Product product, Set<ProductTranslation> incoming) {
+        if (incoming == null) {
+            return; // caller decides when translations should be left untouched
         }
 
-        translations.forEach(translation -> {
-            translation.setProduct(product);
-            product.getTranslations().add(translation);
+        // Latest submitted value per non-blank language.
+        Map<String, ProductTranslation> byLang = new HashMap<>();
+        for (ProductTranslation t : incoming) {
+            if (t == null || t.getLang() == null || t.getLang().isBlank()) {
+                continue;
+            }
+            byLang.put(t.getLang().trim(), t);
+        }
+
+        Set<ProductTranslation> managed = product.getTranslations();
+
+        // Update languages that already exist; drop those no longer submitted.
+        managed.removeIf(existing -> {
+            ProductTranslation update = byLang.remove(existing.getLang());
+            if (update == null) {
+                return true; // orphanRemoval deletes this row
+            }
+            existing.setName(update.getName());
+            existing.setDescription(update.getDescription());
+            return false;
         });
+
+        // Anything left in byLang is a brand-new language → insert it.
+        for (ProductTranslation added : byLang.values()) {
+            added.setLang(added.getLang().trim());
+            added.setProduct(product);
+            managed.add(added);
+        }
     }
 
     /**
