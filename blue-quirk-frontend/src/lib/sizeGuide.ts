@@ -4,7 +4,8 @@
 // and the "Find My Size" recommender read from them, so the two can never drift
 // apart. The recommender is a continuous scoring model (no coarse height/weight
 // buckets): every centimeter and kilogram nudges the result proportionally, the
-// way an experienced seller would size a customer.
+// way an experienced seller would size a customer — and it deliberately favours
+// the closer, smaller fit instead of defaulting people into oversized shirts.
 
 /** Flat-lay garment measurements, in centimeters. `chest` (A) is pit-to-pit
  *  (half chest); `length` (B) is highest shoulder point → bottom hem. */
@@ -18,56 +19,51 @@ export const SIZE_GUIDE: readonly SizeGuideRow[] = [
   { size: "XXL", chest: 58, length: 78 },
 ] as const;
 
-// --- Body model ------------------------------------------------------------
+// --- Fit model -------------------------------------------------------------
 //
-// We translate each size's guide measurement into the *wearer* body it fits
-// best (a "center"), then score how close a customer is to each center.
+// A t-shirt is chosen mainly by how its CHEST fits the wearer's build, with the
+// LENGTH (driven by height) as a lighter, secondary check. We reason directly
+// from the garment dimensions above rather than from invented height/weight
+// buckets:
 //
-//   • Height drives the shirt LENGTH (B), so it is the primary signal.
-//   • Weight fine-tunes for build via the CHEST (A) — it adjusts, not dominates.
+//   1. Estimate the wearer's body chest circumference from height & weight.
+//   2. Add a moderate regular-fit ease to get the garment chest they want.
+//   3. Read that off the guide's own chest ladder to get a continuous size
+//      position, then blend in a height/length position.
 //
-// The centers are derived straight from the guide by linearly mapping the
-// smallest and largest sizes to real wearer anchors, so if the guide changes
-// the model follows automatically:
-//
-//   size S   (length 68, chest 50 → 100 cm round) fits ≈ 164 cm / 56 kg
-//   size XXL (length 78, chest 58 → 116 cm round) fits ≈ 193 cm / 90 kg
+// Because the ease is moderate (not generous) and the caller biases toward the
+// smaller neighbour, weight raises the size smoothly with real build instead of
+// automatically bumping people up, and XL/XXL only appear when the measurements
+// genuinely reach them.
 
-const WEARER_ANCHORS = {
-  minHeightCm: 164,
-  maxHeightCm: 193,
-  minWeightKg: 56,
-  maxWeightKg: 90,
-} as const;
-
-// Height slightly outweighs weight (length is height-led); together they still
-// both move the result proportionally.
-const HEIGHT_WEIGHT = 0.55;
-const WEIGHT_WEIGHT = 0.45;
-
-/** Linear map of `v` from the [inMin,inMax] range onto [outMin,outMax]. */
-function lerp(inMin: number, inMax: number, v: number, outMin: number, outMax: number): number {
-  if (inMax === inMin) return outMin;
-  return outMin + ((v - inMin) / (inMax - inMin)) * (outMax - outMin);
+/**
+ * Estimated body chest circumference (cm) for a wearer. Weight is the dominant
+ * driver of chest girth; height contributes a small frame adjustment. Calibrated
+ * so typical builds land where a tailor would expect (e.g. 180 cm / 77 kg ≈ 99 cm,
+ * 170 cm / 65 kg ≈ 90 cm, 185 cm / 95 kg ≈ 111 cm).
+ */
+function estimateBodyChestCm(heightCm: number, weightKg: number): number {
+  return 0.62 * weightKg + 0.15 * (heightCm - 170) + 50;
 }
 
-const LENGTHS = SIZE_GUIDE.map((r) => r.length);
-const CHEST_ROUNDS = SIZE_GUIDE.map((r) => r.chest * 2); // flat A → body circumference
+/** Regular-fit chest ease (cm): how much roomier than the body the garment
+ *  chest should sit. Kept moderate so the fit is comfortable, not oversized. */
+const CHEST_EASE_CM = 9;
 
-const MIN_LENGTH = LENGTHS[0];
-const MAX_LENGTH = LENGTHS[LENGTHS.length - 1];
-const MIN_CHEST = CHEST_ROUNDS[0];
-const MAX_CHEST = CHEST_ROUNDS[CHEST_ROUNDS.length - 1];
+/** A t-shirt's length runs roughly 40% of the wearer's height, so a garment
+ *  length maps to the wearer height it suits via height ≈ length / 0.40. */
+const HEIGHT_PER_LENGTH = 2.5;
 
-/** Wearer height (cm) each size fits best — derived from its length (B). */
-const HEIGHT_CENTERS = LENGTHS.map((l) =>
-  lerp(MIN_LENGTH, MAX_LENGTH, l, WEARER_ANCHORS.minHeightCm, WEARER_ANCHORS.maxHeightCm)
-);
+// Chest weighs more than length: for a tee, build decides the fit and height
+// only nudges it (mostly matters for very tall or very short wearers).
+const CHEST_WEIGHT = 0.65;
+const LENGTH_WEIGHT = 0.35;
 
-/** Wearer weight (kg) each size fits best — derived from its chest (A). */
-const WEIGHT_CENTERS = CHEST_ROUNDS.map((c) =>
-  lerp(MIN_CHEST, MAX_CHEST, c, WEARER_ANCHORS.minWeightKg, WEARER_ANCHORS.maxWeightKg)
-);
+/** Garment chest circumference per size (flat A → body round). */
+const CHEST_ROUNDS = SIZE_GUIDE.map((r) => r.chest * 2);
+
+/** Wearer height (cm) each size's length suits best — derived from its length (B). */
+const HEIGHT_CENTERS = SIZE_GUIDE.map((r) => r.length * HEIGHT_PER_LENGTH);
 
 /**
  * Continuous fractional position of `value` on a ladder of `centers`. Returns
@@ -95,11 +91,21 @@ function fractionalIndex(value: number, centers: number[]): number {
 
 /**
  * The customer's ideal position on the SIZE_GUIDE ladder (0 = S … 4 = XXL) as a
- * continuous number. Blends the height- and weight-derived positions, favouring
- * height. Callers can round it, or snap it to the sizes a product offers.
+ * continuous number. Chest (build) leads; height (length) fine-tunes. Callers
+ * can round it, or snap it to the sizes a product offers — and are expected to
+ * apply a small size-down bias so borderline wearers get the closer, smaller fit.
  */
 export function sizeScore(heightCm: number, weightKg: number): number {
-  const hIdx = fractionalIndex(heightCm, HEIGHT_CENTERS);
-  const wIdx = fractionalIndex(weightKg, WEIGHT_CENTERS);
-  return HEIGHT_WEIGHT * hIdx + WEIGHT_WEIGHT * wIdx;
+  const desiredGarmentChest = estimateBodyChestCm(heightCm, weightKg) + CHEST_EASE_CM;
+  const chestIdx = fractionalIndex(desiredGarmentChest, CHEST_ROUNDS);
+  const lengthIdx = fractionalIndex(heightCm, HEIGHT_CENTERS);
+  return CHEST_WEIGHT * chestIdx + LENGTH_WEIGHT * lengthIdx;
 }
+
+/**
+ * How strongly to lean toward the smaller of two neighbouring sizes when the
+ * wearer sits between them. Shifts the ideal position down by a fraction of a
+ * size before snapping, so we only size up when the measurements clearly land
+ * closer to the larger size. Consumed by the recommender in lib/sizePreference.
+ */
+export const SIZE_DOWN_BIAS = 0.2;

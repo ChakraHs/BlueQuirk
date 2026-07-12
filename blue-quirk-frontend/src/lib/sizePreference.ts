@@ -6,7 +6,7 @@
 // customer's purchase history) can be slotted into `recommendSize` later without
 // touching the product UI — the page only calls `recommendSize(...)`.
 
-import { sizeScore } from "@/lib/sizeGuide";
+import { sizeScore, SIZE_DOWN_BIAS } from "@/lib/sizeGuide";
 
 const KEY = "bluequirk_size_pref";
 
@@ -105,8 +105,10 @@ export function recommendSizeFromBody(
 
   // Continuous position on the canonical ladder (fractional, e.g. 3.4 ≈ between
   // L and XL). Kept unrounded so we snap to the *nearest offered* size rather
-  // than pre-rounding and losing the fine distinction near a boundary.
-  const target = GUIDE_BASE_INDEX + sizeScore(heightCm, weightKg);
+  // than pre-rounding and losing the fine distinction near a boundary. We nudge
+  // it down by SIZE_DOWN_BIAS so a wearer between two sizes lands on the smaller,
+  // closer fit — sizing up only when the measurements clearly reach the larger.
+  const target = GUIDE_BASE_INDEX + sizeScore(heightCm, weightKg) - SIZE_DOWN_BIAS;
 
   // Snap to the nearest size the product carries. We scan from smallest to
   // largest and only switch on a strictly-closer size, so a customer sitting
