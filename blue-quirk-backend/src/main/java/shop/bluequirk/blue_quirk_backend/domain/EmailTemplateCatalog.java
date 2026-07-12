@@ -17,7 +17,7 @@ public final class EmailTemplateCatalog {
     public record VariableInfo(String name, String description) {}
 
     public static final List<VariableInfo> VARIABLES = List.of(
-            new VariableInfo("storeName", "Store name (e.g. BlueQuirk)"),
+            new VariableInfo("storeName", "Store name (e.g. RedQuirk)"),
             new VariableInfo("orderRef", "Order reference (e.g. BQ-2026-000001)"),
             new VariableInfo("customerName", "Customer full name"),
             new VariableInfo("customerEmail", "Customer email address"),
@@ -42,7 +42,7 @@ public final class EmailTemplateCatalog {
     /** Realistic placeholder values so the admin preview looks like a real email. */
     public static Map<String, String> sampleVariables() {
         Map<String, String> v = new LinkedHashMap<>();
-        v.put("storeName", "BlueQuirk");
+        v.put("storeName", "RedQuirk");
         v.put("orderRef", "BQ-2026-000042");
         v.put("customerName", "Sara Bennani");
         v.put("customerEmail", "sara@example.com");
