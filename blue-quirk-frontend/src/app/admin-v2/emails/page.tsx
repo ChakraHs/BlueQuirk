@@ -13,7 +13,7 @@ import {
 // EmailTemplateCatalog.sampleVariables). Preview only — real emails are rendered
 // server-side with actual order data.
 const SAMPLE: Record<string, string> = {
-  storeName: "BlueQuirk",
+  storeName: "RedQuirk",
   orderRef: "BQ-2026-000042",
   customerName: "Sara Bennani",
   customerEmail: "sara@example.com",

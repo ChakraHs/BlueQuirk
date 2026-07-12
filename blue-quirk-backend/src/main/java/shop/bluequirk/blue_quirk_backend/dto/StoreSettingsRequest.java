@@ -22,5 +22,17 @@ public record StoreSettingsRequest(
         String heroBtnBgColor,
         String heroBgColor,
         String heroImageUrl,
-        String heroImageMobileUrl
+        String heroImageMobileUrl,
+        // Theme colors (all optional; blank clears back to the frontend defaults).
+        String primaryColor,
+        String primaryHoverColor,
+        String secondaryColor,
+        String accentColor,
+        String backgroundColor,
+        String surfaceColor,
+        String textColor,
+        String borderColor,
+        String successColor,
+        String warningColor,
+        String errorColor
 ) {}

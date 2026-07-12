@@ -123,7 +123,7 @@ export default function AdminDashboard() {
           Dashboard
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Overview of your BlueQuirk store.
+          Overview of your RedQuirk store.
         </p>
       </div>
 

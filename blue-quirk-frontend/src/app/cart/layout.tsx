@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
+import ThemeStyle from "@/components/ThemeStyle";
 import { Providers } from "@/components/Providers";
 
 const geistSans = Geist({
@@ -14,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Cart · BlueQuirk",
-  description: "Your BlueQuirk shopping cart.",
+  title: "Cart · RedQuirk",
+  description: "Your RedQuirk shopping cart.",
 };
 
 export default function CartLayout({
@@ -26,6 +27,7 @@ export default function CartLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeStyle />
         <Providers>{children}</Providers>
       </body>
     </html>

@@ -11,7 +11,7 @@ const SupportPanel = dynamic(() => import("./SupportPanel"), { ssr: false });
 
 export default function SupportWidget({
   lang,
-  storeName = "BlueQuirk",
+  storeName = "RedQuirk",
   logoUrl = null,
   unread = 0,
 }: {

@@ -7,8 +7,29 @@
 
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ---------------------------------------------------------------------------
+     Theme tokens — the single source of truth for the site's colors.
+     Defaults below are RedQuirk's premium-red theme. Every one of these is
+     admin-editable from the dashboard (Settings → Theme colors): the storefront
+     re-injects the customized values as these same CSS variables at runtime (see
+     components/ThemeStyle.tsx), so changing a color re-themes the whole site with
+     no code change. Keep the names in sync with StoreSettings / ShopConfig.
+     --------------------------------------------------------------------------- */
+  --c-primary: #dc2626;         /* main brand — buttons, links, active states */
+  --c-primary-hover: #b91c1c;   /* hover/pressed brand */
+  --c-secondary: #111827;       /* premium near-black secondary */
+  --c-accent: #f59e0b;          /* warm gold accent / highlights */
+  --c-background: #ffffff;      /* page background */
+  --c-surface: #ffffff;         /* cards / panels */
+  --c-text: #171717;            /* primary text */
+  --c-border: #e5e7eb;          /* hairlines / dividers */
+  --c-success: #16a34a;         /* positive / success */
+  --c-warning: #d97706;         /* caution / warning */
+  --c-error: #dc2626;           /* destructive / error */
+
+  /* Body background/text derive from the theme tokens. */
+  --background: var(--c-background);
+  --foreground: var(--c-text);
 }
 
 @theme inline {
@@ -16,9 +37,73 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* ---- Semantic color utilities: bg-primary, text-primary, hover:bg-primary-hover,
+     border-border, bg-surface, text-success, bg-warning, text-error, … ---- */
+  --color-primary: var(--c-primary);
+  --color-primary-hover: var(--c-primary-hover);
+  --color-secondary: var(--c-secondary);
+  --color-accent: var(--c-accent);
+  --color-surface: var(--c-surface);
+  --color-text: var(--c-text);
+  --color-border: var(--c-border);
+  --color-success: var(--c-success);
+  --color-warning: var(--c-warning);
+  --color-error: var(--c-error);
+
+  /* ---- Brand remap: the existing blue-* / indigo-* / sky-* utilities follow the
+     primary color, so the whole storefront + admin theme from Settings without
+     rewriting every component. Tints are derived with color-mix. ---- */
+  --color-blue-50: color-mix(in oklab, var(--c-primary) 7%, white);
+  --color-blue-100: color-mix(in oklab, var(--c-primary) 13%, white);
+  --color-blue-200: color-mix(in oklab, var(--c-primary) 22%, white);
+  --color-blue-300: color-mix(in oklab, var(--c-primary) 40%, white);
+  --color-blue-400: color-mix(in oklab, var(--c-primary) 62%, white);
+  --color-blue-500: var(--c-primary);
+  --color-blue-600: var(--c-primary);
+  --color-blue-700: var(--c-primary-hover);
+  --color-blue-800: color-mix(in oklab, var(--c-primary-hover) 82%, black);
+  --color-blue-900: color-mix(in oklab, var(--c-primary-hover) 66%, black);
+  --color-blue-950: color-mix(in oklab, var(--c-primary-hover) 45%, black);
+  --color-indigo-500: var(--c-primary);
+  --color-indigo-600: var(--c-primary);
+  --color-indigo-700: var(--c-primary-hover);
+  --color-sky-500: var(--c-primary);
+  --color-sky-600: var(--c-primary);
+
+  /* ---- Status remap: green/emerald→success, amber/yellow→warning, red/rose→error.
+     Defaults keep the original hues, so this is visually neutral until an admin
+     customizes the status colors. ---- */
+  --color-green-50: color-mix(in oklab, var(--c-success) 8%, white);
+  --color-green-100: color-mix(in oklab, var(--c-success) 15%, white);
+  --color-green-500: var(--c-success);
+  --color-green-600: var(--c-success);
+  --color-green-700: color-mix(in oklab, var(--c-success) 80%, black);
+  --color-emerald-50: color-mix(in oklab, var(--c-success) 8%, white);
+  --color-emerald-100: color-mix(in oklab, var(--c-success) 15%, white);
+  --color-emerald-500: var(--c-success);
+  --color-emerald-600: var(--c-success);
+  --color-emerald-700: color-mix(in oklab, var(--c-success) 80%, black);
+  --color-amber-50: color-mix(in oklab, var(--c-warning) 9%, white);
+  --color-amber-100: color-mix(in oklab, var(--c-warning) 16%, white);
+  --color-amber-500: var(--c-warning);
+  --color-amber-600: var(--c-warning);
+  --color-amber-700: color-mix(in oklab, var(--c-warning) 82%, black);
+  --color-yellow-500: var(--c-warning);
+  --color-yellow-600: var(--c-warning);
+  --color-red-50: color-mix(in oklab, var(--c-error) 8%, white);
+  --color-red-100: color-mix(in oklab, var(--c-error) 15%, white);
+  --color-red-500: var(--c-error);
+  --color-red-600: var(--c-error);
+  --color-red-700: color-mix(in oklab, var(--c-error) 82%, black);
+  --color-rose-50: color-mix(in oklab, var(--c-error) 8%, white);
+  --color-rose-100: color-mix(in oklab, var(--c-error) 15%, white);
+  --color-rose-500: var(--c-error);
+  --color-rose-600: var(--c-error);
+  --color-rose-700: color-mix(in oklab, var(--c-error) 82%, black);
 }
 
-/* BlueQuirk uses a single light theme (white surfaces, dark text) for both the
+/* RedQuirk uses a single light theme (white surfaces, dark text) for both the
    storefront and the admin dashboard. We deliberately do NOT flip to light text
    under prefers-color-scheme: dark — doing so previously made inherited text
    (e.g. table values on white cards) near-white on white and unreadable. Keeping

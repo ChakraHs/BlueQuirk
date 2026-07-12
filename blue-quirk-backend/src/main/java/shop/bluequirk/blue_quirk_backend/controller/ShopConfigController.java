@@ -45,7 +45,18 @@ public class ShopConfigController {
                 s.getHeroBtnBgColor(),
                 s.getHeroBgColor(),
                 s.getHeroImageUrl(),
-                s.getHeroImageMobileUrl());
+                s.getHeroImageMobileUrl(),
+                s.getPrimaryColor(),
+                s.getPrimaryHoverColor(),
+                s.getSecondaryColor(),
+                s.getAccentColor(),
+                s.getBackgroundColor(),
+                s.getSurfaceColor(),
+                s.getTextColor(),
+                s.getBorderColor(),
+                s.getSuccessColor(),
+                s.getWarningColor(),
+                s.getErrorColor());
     }
 
     public record ShopConfig(
@@ -65,5 +76,17 @@ public class ShopConfigController {
             String heroBtnBgColor,
             String heroBgColor,
             String heroImageUrl,
-            String heroImageMobileUrl) {}
+            String heroImageMobileUrl,
+            // Theme colors — null means "use the storefront's built-in default".
+            String primaryColor,
+            String primaryHoverColor,
+            String secondaryColor,
+            String accentColor,
+            String backgroundColor,
+            String surfaceColor,
+            String textColor,
+            String borderColor,
+            String successColor,
+            String warningColor,
+            String errorColor) {}
 }

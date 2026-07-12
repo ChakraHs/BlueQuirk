@@ -35,7 +35,7 @@ public class StoreSettingsService {
             @Value("${order.shipping-fee:0}") double defaultShippingFee,
             @Value("${order.free-shipping-threshold:0}") double defaultThreshold,
             @Value("${order.currency:DH}") String defaultCurrency,
-            @Value("${store.name:BlueQuirk}") String defaultStoreName,
+            @Value("${store.name:RedQuirk}") String defaultStoreName,
             @Value("${store.default-lang:fr}") String defaultLang) {
         this.repository = repository;
         this.defaultShippingFee = defaultShippingFee;
@@ -118,6 +118,41 @@ public class StoreSettingsService {
         }
         if (req.heroImageMobileUrl() != null) {
             s.setHeroImageMobileUrl(blankToNull(req.heroImageMobileUrl()));
+        }
+        // Theme colors: an empty string clears the value (back to the frontend
+        // default), a value sets it, null leaves it unchanged.
+        if (req.primaryColor() != null) {
+            s.setPrimaryColor(blankToNull(req.primaryColor()));
+        }
+        if (req.primaryHoverColor() != null) {
+            s.setPrimaryHoverColor(blankToNull(req.primaryHoverColor()));
+        }
+        if (req.secondaryColor() != null) {
+            s.setSecondaryColor(blankToNull(req.secondaryColor()));
+        }
+        if (req.accentColor() != null) {
+            s.setAccentColor(blankToNull(req.accentColor()));
+        }
+        if (req.backgroundColor() != null) {
+            s.setBackgroundColor(blankToNull(req.backgroundColor()));
+        }
+        if (req.surfaceColor() != null) {
+            s.setSurfaceColor(blankToNull(req.surfaceColor()));
+        }
+        if (req.textColor() != null) {
+            s.setTextColor(blankToNull(req.textColor()));
+        }
+        if (req.borderColor() != null) {
+            s.setBorderColor(blankToNull(req.borderColor()));
+        }
+        if (req.successColor() != null) {
+            s.setSuccessColor(blankToNull(req.successColor()));
+        }
+        if (req.warningColor() != null) {
+            s.setWarningColor(blankToNull(req.warningColor()));
+        }
+        if (req.errorColor() != null) {
+            s.setErrorColor(blankToNull(req.errorColor()));
         }
         return repository.save(s);
     }

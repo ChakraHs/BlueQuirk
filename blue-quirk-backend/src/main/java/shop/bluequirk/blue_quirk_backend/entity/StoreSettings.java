@@ -84,6 +84,43 @@ public class StoreSettings {
     @Column(name = "hero_image_mobile_url")
     private String heroImageMobileUrl;
 
+    // --- Theme colors (all nullable; blank falls back to the built-in premium-red
+    // defaults defined in the frontend globals.css). Stored as CSS color strings
+    // (hex, e.g. #dc2626). The storefront applies them at runtime as CSS variables,
+    // so changing a color here re-themes the whole site with no code change. ---
+    @Column(name = "primary_color")
+    private String primaryColor;
+
+    @Column(name = "primary_hover_color")
+    private String primaryHoverColor;
+
+    @Column(name = "secondary_color")
+    private String secondaryColor;
+
+    @Column(name = "accent_color")
+    private String accentColor;
+
+    @Column(name = "background_color")
+    private String backgroundColor;
+
+    @Column(name = "surface_color")
+    private String surfaceColor;
+
+    @Column(name = "text_color")
+    private String textColor;
+
+    @Column(name = "border_color")
+    private String borderColor;
+
+    @Column(name = "success_color")
+    private String successColor;
+
+    @Column(name = "warning_color")
+    private String warningColor;
+
+    @Column(name = "error_color")
+    private String errorColor;
+
     public StoreSettings() {}
 
     public Long getId() { return id; }
@@ -141,4 +178,37 @@ public class StoreSettings {
 
     public String getHeroImageMobileUrl() { return heroImageMobileUrl; }
     public void setHeroImageMobileUrl(String heroImageMobileUrl) { this.heroImageMobileUrl = heroImageMobileUrl; }
+
+    public String getPrimaryColor() { return primaryColor; }
+    public void setPrimaryColor(String primaryColor) { this.primaryColor = primaryColor; }
+
+    public String getPrimaryHoverColor() { return primaryHoverColor; }
+    public void setPrimaryHoverColor(String primaryHoverColor) { this.primaryHoverColor = primaryHoverColor; }
+
+    public String getSecondaryColor() { return secondaryColor; }
+    public void setSecondaryColor(String secondaryColor) { this.secondaryColor = secondaryColor; }
+
+    public String getAccentColor() { return accentColor; }
+    public void setAccentColor(String accentColor) { this.accentColor = accentColor; }
+
+    public String getBackgroundColor() { return backgroundColor; }
+    public void setBackgroundColor(String backgroundColor) { this.backgroundColor = backgroundColor; }
+
+    public String getSurfaceColor() { return surfaceColor; }
+    public void setSurfaceColor(String surfaceColor) { this.surfaceColor = surfaceColor; }
+
+    public String getTextColor() { return textColor; }
+    public void setTextColor(String textColor) { this.textColor = textColor; }
+
+    public String getBorderColor() { return borderColor; }
+    public void setBorderColor(String borderColor) { this.borderColor = borderColor; }
+
+    public String getSuccessColor() { return successColor; }
+    public void setSuccessColor(String successColor) { this.successColor = successColor; }
+
+    public String getWarningColor() { return warningColor; }
+    public void setWarningColor(String warningColor) { this.warningColor = warningColor; }
+
+    public String getErrorColor() { return errorColor; }
+    public void setErrorColor(String errorColor) { this.errorColor = errorColor; }
 }

@@ -14,7 +14,41 @@ export interface HeroSettings {
   heroImageMobileUrl: string | null;
 }
 
-export interface StoreSettings extends HeroSettings {
+// Admin-editable theme colors. All optional/nullable: a null value means "use the
+// storefront's built-in default" (see globals.css --c-* tokens). The keys map 1:1
+// to the CSS variables the storefront applies at runtime (ThemeStyle).
+export interface ThemeColors {
+  primaryColor: string | null;
+  primaryHoverColor: string | null;
+  secondaryColor: string | null;
+  accentColor: string | null;
+  backgroundColor: string | null;
+  surfaceColor: string | null;
+  textColor: string | null;
+  borderColor: string | null;
+  successColor: string | null;
+  warningColor: string | null;
+  errorColor: string | null;
+}
+
+// Ordered map of theme-color field -> the CSS variable it drives. Used by both
+// the admin editor (to render the pickers) and ThemeStyle (to emit overrides),
+// so the two never drift apart.
+export const THEME_COLOR_VARS: Record<keyof ThemeColors, string> = {
+  primaryColor: "--c-primary",
+  primaryHoverColor: "--c-primary-hover",
+  secondaryColor: "--c-secondary",
+  accentColor: "--c-accent",
+  backgroundColor: "--c-background",
+  surfaceColor: "--c-surface",
+  textColor: "--c-text",
+  borderColor: "--c-border",
+  successColor: "--c-success",
+  warningColor: "--c-warning",
+  errorColor: "--c-error",
+};
+
+export interface StoreSettings extends HeroSettings, ThemeColors {
   id?: number;
   storeName: string;
   logoUrl: string | null;
@@ -25,8 +59,8 @@ export interface StoreSettings extends HeroSettings {
 }
 
 // Public subset returned by GET /api/shop/config (also includes the shipping
-// economics, see lib/shipping). Used for storefront branding + hero.
-export interface PublicShopConfig extends HeroSettings {
+// economics, see lib/shipping). Used for storefront branding + hero + theme.
+export interface PublicShopConfig extends HeroSettings, ThemeColors {
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;

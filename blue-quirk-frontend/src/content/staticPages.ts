@@ -42,8 +42,8 @@ export function isStaticPageSlug(value: string): value is StaticPageSlug {
 // Contact details surfaced on the Contact page. Placeholder values — update
 // these to your real support channels.
 export const CONTACT = {
-  email: "hello@bluequirk.ma",
-  support: "support@bluequirk.ma",
+  email: "hello@redquirk.com",
+  support: "support@redquirk.com",
   phone: "+212 5 20 00 00 00",
 };
 
@@ -52,14 +52,14 @@ type PageMap = Record<StaticPageSlug, Record<LangCode, StaticPageContent>>;
 const PAGES: PageMap = {
   about: {
     fr: {
-      title: "À propos de BlueQuirk",
+      title: "À propos de RedQuirk",
       subtitle:
         "Un art étrangement parlant, porté par une communauté d'artistes indépendants.",
       blocks: [
         { type: "h", text: "Notre histoire" },
         {
           type: "p",
-          text: "BlueQuirk est né d'une idée simple : faire vivre les créations d'artistes indépendants sur des produits du quotidien, accessibles partout au Maroc. Chaque design raconte une histoire, et chaque commande soutient directement un créateur.",
+          text: "RedQuirk est né d'une idée simple : faire vivre les créations d'artistes indépendants sur des produits du quotidien, accessibles partout au Maroc. Chaque design raconte une histoire, et chaque commande soutient directement un créateur.",
         },
         { type: "h", text: "Notre mission" },
         {
@@ -79,14 +79,14 @@ const PAGES: PageMap = {
       ],
     },
     en: {
-      title: "About BlueQuirk",
+      title: "About RedQuirk",
       subtitle:
         "Weirdly meaningful art, powered by a community of independent artists.",
       blocks: [
         { type: "h", text: "Our story" },
         {
           type: "p",
-          text: "BlueQuirk started from a simple idea: bring the work of independent artists to everyday products, accessible everywhere in Morocco. Every design tells a story, and every order directly supports a creator.",
+          text: "RedQuirk started from a simple idea: bring the work of independent artists to everyday products, accessible everywhere in Morocco. Every design tells a story, and every order directly supports a creator.",
         },
         { type: "h", text: "Our mission" },
         {
@@ -106,13 +106,13 @@ const PAGES: PageMap = {
       ],
     },
     ar: {
-      title: "من نحن — BlueQuirk",
+      title: "من نحن — RedQuirk",
       subtitle: "فنّ ذو معنى مميّز، يقوده مجتمع من الفنانين المستقلين.",
       blocks: [
         { type: "h", text: "قصّتنا" },
         {
           type: "p",
-          text: "وُلدت BlueQuirk من فكرة بسيطة: نقل إبداعات الفنانين المستقلين إلى منتجات يومية، متاحة في كل أنحاء المغرب. كل تصميم يحكي قصّة، وكل طلب يدعم مبدعًا بشكل مباشر.",
+          text: "وُلدت RedQuirk من فكرة بسيطة: نقل إبداعات الفنانين المستقلين إلى منتجات يومية، متاحة في كل أنحاء المغرب. كل تصميم يحكي قصّة، وكل طلب يدعم مبدعًا بشكل مباشر.",
         },
         { type: "h", text: "مهمّتنا" },
         {
@@ -534,7 +534,7 @@ const PAGES: PageMap = {
       title: "Carrières",
       subtitle: "Construisons ensemble la marque créative du Maroc.",
       blocks: [
-        { type: "h", text: "Travailler chez BlueQuirk" },
+        { type: "h", text: "Travailler chez RedQuirk" },
         {
           type: "p",
           text: "Nous sommes une petite équipe passionnée par le design, la technologie et le commerce. Nous valorisons la curiosité, l'autonomie et le soin apporté aux détails.",
@@ -550,7 +550,7 @@ const PAGES: PageMap = {
       title: "Careers",
       subtitle: "Let's build Morocco's creative brand together.",
       blocks: [
-        { type: "h", text: "Working at BlueQuirk" },
+        { type: "h", text: "Working at RedQuirk" },
         {
           type: "p",
           text: "We're a small team passionate about design, technology and commerce. We value curiosity, ownership and care for the details.",
@@ -566,7 +566,7 @@ const PAGES: PageMap = {
       title: "وظائف",
       subtitle: "لنبنِ معًا العلامة الإبداعية للمغرب.",
       blocks: [
-        { type: "h", text: "العمل في BlueQuirk" },
+        { type: "h", text: "العمل في RedQuirk" },
         {
           type: "p",
           text: "نحن فريق صغير شغوف بالتصميم والتكنولوجيا والتجارة. نُقدّر الفضول والمبادرة والعناية بالتفاصيل.",
@@ -630,10 +630,10 @@ const PAGES: PageMap = {
       title: "Presse",
       subtitle: "Ressources et contact pour les médias.",
       blocks: [
-        { type: "h", text: "À propos de BlueQuirk" },
+        { type: "h", text: "À propos de RedQuirk" },
         {
           type: "p",
-          text: "BlueQuirk est une marque marocaine de mode et d'accessoires qui met en avant des créations d'artistes indépendants, avec livraison dans tout le Maroc et paiement à la livraison.",
+          text: "RedQuirk est une marque marocaine de mode et d'accessoires qui met en avant des créations d'artistes indépendants, avec livraison dans tout le Maroc et paiement à la livraison.",
         },
         { type: "h", text: "Contact presse" },
         {
@@ -646,10 +646,10 @@ const PAGES: PageMap = {
       title: "Press",
       subtitle: "Resources and contact for media.",
       blocks: [
-        { type: "h", text: "About BlueQuirk" },
+        { type: "h", text: "About RedQuirk" },
         {
           type: "p",
-          text: "BlueQuirk is a Moroccan fashion and accessories brand showcasing designs from independent artists, with delivery across Morocco and cash on delivery.",
+          text: "RedQuirk is a Moroccan fashion and accessories brand showcasing designs from independent artists, with delivery across Morocco and cash on delivery.",
         },
         { type: "h", text: "Press contact" },
         {
@@ -662,10 +662,10 @@ const PAGES: PageMap = {
       title: "الصحافة",
       subtitle: "موارد ووسيلة تواصل لوسائل الإعلام.",
       blocks: [
-        { type: "h", text: "عن BlueQuirk" },
+        { type: "h", text: "عن RedQuirk" },
         {
           type: "p",
-          text: "BlueQuirk علامة مغربية للأزياء والإكسسوارات تُبرز إبداعات فنانين مستقلين، مع توصيل لكل أنحاء المغرب والدفع عند الاستلام.",
+          text: "RedQuirk علامة مغربية للأزياء والإكسسوارات تُبرز إبداعات فنانين مستقلين، مع توصيل لكل أنحاء المغرب والدفع عند الاستلام.",
         },
         { type: "h", text: "التواصل الصحفي" },
         {
@@ -772,7 +772,7 @@ const PAGES: PageMap = {
         { type: "h", text: "Propriété intellectuelle" },
         {
           type: "p",
-          text: "Tous les designs restent la propriété de leurs artistes et de BlueQuirk. Toute reproduction non autorisée est interdite.",
+          text: "Tous les designs restent la propriété de leurs artistes et de RedQuirk. Toute reproduction non autorisée est interdite.",
         },
       ],
     },
@@ -793,7 +793,7 @@ const PAGES: PageMap = {
         { type: "h", text: "Intellectual property" },
         {
           type: "p",
-          text: "All designs remain the property of their artists and of BlueQuirk. Any unauthorized reproduction is prohibited.",
+          text: "All designs remain the property of their artists and of RedQuirk. Any unauthorized reproduction is prohibited.",
         },
       ],
     },
@@ -814,7 +814,7 @@ const PAGES: PageMap = {
         { type: "h", text: "الملكية الفكرية" },
         {
           type: "p",
-          text: "تبقى جميع التصاميم ملكًا لأصحابها من الفنانين ولـ BlueQuirk. يُمنع أي نسخ غير مصرّح به.",
+          text: "تبقى جميع التصاميم ملكًا لأصحابها من الفنانين ولـ RedQuirk. يُمنع أي نسخ غير مصرّح به.",
         },
       ],
     },

@@ -9,7 +9,7 @@ type SearchPageProps = {
 export async function generateMetadata({ searchParams }: SearchPageProps) {
   const { q } = await searchParams;
   return {
-    title: q ? `Recherche : ${q} | BlueQuirk` : "Recherche | BlueQuirk",
+    title: q ? `Recherche : ${q} | RedQuirk` : "Recherche | RedQuirk",
   };
 }
 

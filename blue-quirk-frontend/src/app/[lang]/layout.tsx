@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { Providers } from "../../components/Providers";
+import ThemeStyle from "@/components/ThemeStyle";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import SupportWidget from "@/components/support/SupportWidget";
@@ -86,6 +87,7 @@ export default async function LangLayout({
   return (
     <html lang={lang} dir={dirOf(lang)}>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            <ThemeStyle />
             {/* <ShopNavbar /> */}
             <Header
               lang={lang}

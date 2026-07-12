@@ -108,7 +108,7 @@ export default function Sidebar({
         <div className="flex items-center justify-between px-6 py-5">
           <div>
             <h1 className="text-lg font-bold tracking-tight text-white">
-              Blue<span className="text-blue-400">Quirk</span>
+              Red<span className="text-blue-400">Quirk</span>
             </h1>
             <p className="text-xs text-gray-500">Admin panel</p>
           </div>
@@ -163,7 +163,7 @@ export default function Sidebar({
           View store
         </Link>
         <p className="px-3 pt-3 text-xs text-gray-600">
-          © {new Date().getFullYear()} BlueQuirk
+          © {new Date().getFullYear()} RedQuirk
         </p>
       </div>
       </aside>

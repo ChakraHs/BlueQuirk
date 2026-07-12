@@ -1,15 +1,37 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
-import { StoreSettings } from "@/types/settings";
+import { StoreSettings, ThemeColors } from "@/types/settings";
 
 const LANGS = [
   { value: "fr", label: "Français" },
   { value: "en", label: "English" },
   { value: "ar", label: "العربية (Arabic)" },
+];
+
+// Theme color fields, in display order. `fallback` mirrors the storefront's
+// built-in default (globals.css --c-* tokens) so an empty field still shows the
+// real applied color in its swatch. Keep in sync with ThemeColors / globals.css.
+const THEME_FIELDS: {
+  key: keyof ThemeColors;
+  label: string;
+  fallback: string;
+  hint?: string;
+}[] = [
+  { key: "primaryColor", label: "Primary", fallback: "#dc2626", hint: "Buttons, links, active states" },
+  { key: "primaryHoverColor", label: "Primary hover", fallback: "#b91c1c", hint: "Hover / pressed state" },
+  { key: "secondaryColor", label: "Secondary", fallback: "#111827" },
+  { key: "accentColor", label: "Accent", fallback: "#f59e0b", hint: "Highlights" },
+  { key: "backgroundColor", label: "Background", fallback: "#ffffff", hint: "Page background" },
+  { key: "surfaceColor", label: "Surface", fallback: "#ffffff", hint: "Cards / panels" },
+  { key: "textColor", label: "Text", fallback: "#171717" },
+  { key: "borderColor", label: "Border", fallback: "#e5e7eb" },
+  { key: "successColor", label: "Success", fallback: "#16a34a" },
+  { key: "warningColor", label: "Warning", fallback: "#d97706" },
+  { key: "errorColor", label: "Error", fallback: "#dc2626" },
 ];
 
 type FormState = {
@@ -30,7 +52,7 @@ type FormState = {
   heroBgColor: string;
   heroImageUrl: string | null;
   heroImageMobileUrl: string | null;
-};
+} & { [K in keyof ThemeColors]: string };
 
 function toForm(s: StoreSettings): FormState {
   return {
@@ -51,6 +73,17 @@ function toForm(s: StoreSettings): FormState {
     heroBgColor: s.heroBgColor ?? "",
     heroImageUrl: s.heroImageUrl ?? null,
     heroImageMobileUrl: s.heroImageMobileUrl ?? null,
+    primaryColor: s.primaryColor ?? "",
+    primaryHoverColor: s.primaryHoverColor ?? "",
+    secondaryColor: s.secondaryColor ?? "",
+    accentColor: s.accentColor ?? "",
+    backgroundColor: s.backgroundColor ?? "",
+    surfaceColor: s.surfaceColor ?? "",
+    textColor: s.textColor ?? "",
+    borderColor: s.borderColor ?? "",
+    successColor: s.successColor ?? "",
+    warningColor: s.warningColor ?? "",
+    errorColor: s.errorColor ?? "",
   };
 }
 
@@ -141,6 +174,18 @@ export default function SettingsPage() {
         heroBgColor: form.heroBgColor.trim(),
         heroImageUrl: form.heroImageUrl ?? "",
         heroImageMobileUrl: form.heroImageMobileUrl ?? "",
+        // Theme colors: send trimmed value, or "" to clear back to the default.
+        primaryColor: form.primaryColor.trim(),
+        primaryHoverColor: form.primaryHoverColor.trim(),
+        secondaryColor: form.secondaryColor.trim(),
+        accentColor: form.accentColor.trim(),
+        backgroundColor: form.backgroundColor.trim(),
+        surfaceColor: form.surfaceColor.trim(),
+        textColor: form.textColor.trim(),
+        borderColor: form.borderColor.trim(),
+        successColor: form.successColor.trim(),
+        warningColor: form.warningColor.trim(),
+        errorColor: form.errorColor.trim(),
       });
       setForm(toForm(updated));
       setSaved(true);
@@ -178,7 +223,7 @@ export default function SettingsPage() {
             <input
               value={form.storeName}
               onChange={(e) => update({ storeName: e.target.value })}
-              placeholder="e.g. BlueQuirk"
+              placeholder="e.g. RedQuirk"
               className="mb-4 w-full max-w-sm rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
 
@@ -233,6 +278,31 @@ export default function SettingsPage() {
             <p className="mt-2 text-xs text-gray-400">
               Transparent PNG recommended. Removing the logo shows the name as text.
             </p>
+          </section>
+
+          {/* Theme colors */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <Palette size={18} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">Theme colors</h2>
+            </div>
+            <p className="mb-4 text-xs text-gray-400">
+              Customize the storefront palette. Changes apply across the whole site —
+              buttons, links, badges and status colors — right after you save. Leave a
+              field empty to use the default.
+            </p>
+            <div className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              {THEME_FIELDS.map((f) => (
+                <ColorField
+                  key={f.key}
+                  label={f.label}
+                  hint={f.hint}
+                  fallback={f.fallback}
+                  value={form[f.key]}
+                  onChange={(v) => update({ [f.key]: v } as Partial<FormState>)}
+                />
+              ))}
+            </div>
           </section>
 
           {/* Hero (home page) */}
@@ -539,6 +609,63 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// A single theme-color control: a native color swatch + hex text input + reset.
+// The swatch shows the effective color (the entered value, else the default),
+// so an empty field still previews the color the storefront actually applies.
+function ColorField({
+  label,
+  hint,
+  value,
+  fallback,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  fallback: string;
+  onChange: (v: string) => void;
+}) {
+  const isHex6 = (v: string) => /^#[0-9a-fA-F]{6}$/.test(v.trim());
+  const swatch = isHex6(value) ? value.trim() : fallback;
+  const isCustom = value.trim().length > 0;
+
+  return (
+    <div>
+      <label className="mb-1 block text-sm font-medium text-gray-700">
+        {label}
+        {hint && <span className="ml-1 font-normal text-gray-400">· {hint}</span>}
+      </label>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={swatch}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-9 w-12 shrink-0 cursor-pointer rounded border border-gray-300"
+          aria-label={`${label} color`}
+        />
+        <input
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={fallback}
+          spellCheck={false}
+          className="w-full max-w-[9rem] rounded-md border border-gray-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
+        {isCustom && (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
+            aria-label={`Reset ${label} to default`}
+            title="Reset to default"
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
+      </div>
     </div>
   );
 }

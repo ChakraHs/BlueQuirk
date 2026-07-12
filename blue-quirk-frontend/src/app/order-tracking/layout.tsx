@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
+import ThemeStyle from "@/components/ThemeStyle";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Suivi de commande · BlueQuirk",
-  description: "Suivez votre commande BlueQuirk avec votre numéro de commande.",
+  title: "Suivi de commande · RedQuirk",
+  description: "Suivez votre commande RedQuirk avec votre numéro de commande.",
 };
 
 export default function OrderTrackingLayout({
@@ -25,6 +26,7 @@ export default function OrderTrackingLayout({
   return (
     <html lang="fr">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeStyle />
         {children}
       </body>
     </html>
