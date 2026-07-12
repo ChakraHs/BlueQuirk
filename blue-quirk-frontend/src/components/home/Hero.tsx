@@ -106,12 +106,14 @@ export default function Hero({
             >
               {t(lang, "hero.shopAll")}
             </Link>
-            <Link
+            {/* "Explore" (Explorer les créations) button temporarily disabled —
+                hidden from the hero for now. Restore this block to bring it back. */}
+            {/* <Link
               href={`/${lang}`}
               className="rounded-full border border-white/40 px-7 py-3 text-base font-semibold text-white transition hover:bg-white/10"
             >
               {t(lang, "hero.explore")}
-            </Link>
+            </Link> */}
           </div>
         </div>
       </div>
