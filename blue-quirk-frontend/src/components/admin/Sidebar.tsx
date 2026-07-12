@@ -19,6 +19,7 @@ import {
   BarChart3,
   Mail,
   BadgePercent,
+  KeyRound,
   type LucideIcon,
 } from "lucide-react";
 
@@ -67,6 +68,7 @@ const groups: Group[] = [
     heading: "Configuration",
     items: [
       { name: "Email templates", href: "/admin-v2/emails", icon: Mail },
+      { name: "Integrations & keys", href: "/admin-v2/integrations", icon: KeyRound },
       { name: "Settings", href: "/admin-v2/settings", icon: Settings },
     ],
   },

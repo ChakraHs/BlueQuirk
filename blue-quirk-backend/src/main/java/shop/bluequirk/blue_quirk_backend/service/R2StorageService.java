@@ -21,9 +21,11 @@ import org.springframework.stereotype.Service;
  * (&lt;account&gt;.r2.cloudflarestorage.com) is blocked on some networks by SNI
  * filtering; the REST host is not, so this works in both dev and deployment.
  *
- * <p>Configured via {@code r2.*} properties. When the API token is absent the
- * service reports itself unconfigured and the caller falls back to local disk,
- * so the app still runs without R2 credentials.
+ * <p>The account/bucket/public-base come from {@code r2.*} properties; the API
+ * token is resolved at call time from {@link IntegrationConfigService} (DB row
+ * with env fallback), so it can be rotated from the admin dashboard without a
+ * restart. When the token is absent the service reports itself unconfigured and
+ * the caller fails loudly (503), so the app still runs without R2 credentials.
  */
 @Service
 public class R2StorageService {
@@ -32,27 +34,32 @@ public class R2StorageService {
 
     private final String accountId;
     private final String bucket;
-    private final String apiToken;
     private final String publicBase;
     private final String keyPrefix;
+    private final IntegrationConfigService configService;
 
     private final HttpClient http = HttpClient.newHttpClient();
 
     public R2StorageService(
             @Value("${r2.account-id:}") String accountId,
             @Value("${r2.bucket:}") String bucket,
-            @Value("${r2.api-token:}") String apiToken,
             @Value("${r2.public-base:}") String publicBase,
-            @Value("${r2.key-prefix:products}") String keyPrefix) {
+            @Value("${r2.key-prefix:products}") String keyPrefix,
+            IntegrationConfigService configService) {
         this.accountId = accountId.trim();
         this.bucket = bucket.trim();
-        this.apiToken = apiToken.trim();
         this.publicBase = publicBase.trim().replaceAll("/+$", "");
         this.keyPrefix = keyPrefix.trim().replaceAll("^/+|/+$", "");
+        this.configService = configService;
+    }
+
+    /** The effective R2 API token (admin-editable DB value, else env default). */
+    private String apiToken() {
+        return configService.effectiveR2ApiToken();
     }
 
     public boolean isConfigured() {
-        return !accountId.isBlank() && !bucket.isBlank() && !apiToken.isBlank() && !publicBase.isBlank();
+        return !accountId.isBlank() && !bucket.isBlank() && !apiToken().isBlank() && !publicBase.isBlank();
     }
 
     /**
@@ -87,7 +94,7 @@ public class R2StorageService {
                 + "/r2/buckets/" + bucket + "/objects/" + encodeKey(key));
 
         HttpRequest request = HttpRequest.newBuilder(uri)
-                .header("Authorization", "Bearer " + apiToken)
+                .header("Authorization", "Bearer " + apiToken())
                 .header("Content-Type", contentType != null ? contentType : "application/octet-stream")
                 .header("Cache-Control", "public, max-age=31536000, immutable")
                 .PUT(HttpRequest.BodyPublishers.ofByteArray(content))
