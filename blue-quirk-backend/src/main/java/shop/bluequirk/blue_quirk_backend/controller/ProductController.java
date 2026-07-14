@@ -72,6 +72,20 @@ public class ProductController {
     }
 
 
+    /**
+     * Storefront "Trending" products, ranked by recent sales → recent views →
+     * newest. Public (products are public reads). {@code days} is the recent
+     * window; both it and {@code limit} fall back to configured defaults when 0.
+     * Declared before {@code /{id}} so the literal path wins over the path var.
+     */
+    @GetMapping("/trending")
+    public ResponseEntity<List<ProductResponse>> getTrendingProducts(
+            @RequestParam(defaultValue = "0") int limit,
+            @RequestParam(defaultValue = "0") int days,
+            @RequestParam(required = false) String lang) {
+        return ResponseEntity.ok(productService.getTrendingProducts(limit, days, lang));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getProductById(
             @PathVariable Long id,

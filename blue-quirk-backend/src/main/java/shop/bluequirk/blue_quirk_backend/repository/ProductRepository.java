@@ -19,7 +19,9 @@ import shop.bluequirk.blue_quirk_backend.entity.Product;
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
 	// status is optional: null returns every status (admin); a value filters to
-	// it (e.g. PUBLISHED for the storefront).
+	// it (e.g. PUBLISHED for the storefront). Ordered newest-first (creation date,
+	// then id as a deterministic tie-break for rows predating created_at) so the
+	// admin list and storefront default to the most recent products at the top.
 	@Query("""
 		    SELECT DISTINCT p
 		    FROM Product p
@@ -28,8 +30,24 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		    LEFT JOIN FETCH p.translations
 		    LEFT JOIN FETCH p.categories
 		    WHERE (:status IS NULL OR p.status = :status)
+		    ORDER BY p.createdAt DESC, p.id DESC
 		""")
 	Page<Product> findAllWithRelations(Pageable pageable, @Param("status") ProductStatus status);
+
+	// Published products for a set of ids, with the relations needed to build a
+	// ProductResponse. Feeds the Trending ranking (candidate set = products with
+	// recent sales/views). Ordering is applied in-memory by the ranking algorithm.
+	@Query("""
+		    SELECT DISTINCT p
+		    FROM Product p
+		    LEFT JOIN FETCH p.selectedValues
+		    LEFT JOIN FETCH p.images
+		    LEFT JOIN FETCH p.translations
+		    LEFT JOIN FETCH p.categories
+		    WHERE p.id IN :ids AND p.status = :status
+		""")
+	List<Product> findByIdInWithRelations(@Param("ids") java.util.Collection<Long> ids,
+			@Param("status") ProductStatus status);
 
 	@Query("""
 		    SELECT DISTINCT p

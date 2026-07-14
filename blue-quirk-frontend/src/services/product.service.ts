@@ -35,6 +35,32 @@ export const ProductService = {
     return res.json();
   },
 
+  // Storefront "Trending" products, ranked server-side by recent sales → recent
+  // views → newest. `days` (recent window) and `limit` fall back to the backend
+  // defaults when omitted. Returns a plain ranked list (not paginated).
+  getTrending: async (
+    limit?: number,
+    lang?: string,
+    days?: number
+  ): Promise<Product[]> => {
+    const params = new URLSearchParams();
+    if (limit) params.set("limit", String(limit));
+    if (days) params.set("days", String(days));
+    if (lang) params.set("lang", lang);
+
+    const query = params.toString();
+    const res = await fetch(
+      `${API_BASE_URL}/products/trending${query ? `?${query}` : ""}`,
+      { cache: "no-store" }
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch trending products: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
   getById: async (id: number, lang?: string): Promise<Product> => {
     const query = lang ? `?lang=${encodeURIComponent(lang)}` : "";
     const res = await fetch(`${API_BASE_URL}/products/${id}${query}`, {

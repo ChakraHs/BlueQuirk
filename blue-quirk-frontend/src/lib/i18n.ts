@@ -53,6 +53,7 @@ const fr: Dict = {
   // featured
   "featured.title": "Tendances du moment",
   "featured.subtitle": "Les nouveautés que notre communauté adore cette semaine.",
+  "featured.viewAll": "Voir tous les produits",
   // product card / detail
   "product.outOfStock": "RUPTURE DE STOCK",
   "product.inStock": "En stock",
@@ -228,6 +229,7 @@ const en: Dict = {
   "categories.subtitle": "Browse the things people love most.",
   "featured.title": "Trending right now",
   "featured.subtitle": "Fresh designs our community is loving this week.",
+  "featured.viewAll": "View all products",
   "product.outOfStock": "OUT OF STOCK",
   "product.inStock": "In stock",
   "product.addToCart": "Add to cart",
@@ -393,6 +395,7 @@ const ar: Dict = {
   "categories.subtitle": "تصفّح أكثر ما يحبّه الناس.",
   "featured.title": "الرائج الآن",
   "featured.subtitle": "تصاميم جديدة يحبّها مجتمعنا هذا الأسبوع.",
+  "featured.viewAll": "عرض كل المنتجات",
   "product.outOfStock": "نفدت الكمية",
   "product.inStock": "متوفّر",
   "product.addToCart": "أضف إلى السلة",

@@ -96,8 +96,20 @@ public class Product {
     @Column(name = "todify_last_sync_at")
     private LocalDateTime todifyLastSyncAt;
 
+    // When this product row was first created. Drives "newest first" ordering
+    // (admin list + Trending tie-break). Nullable so pre-existing rows migrate
+    // cleanly; they predate the column and sort last (oldest), with id as the
+    // deterministic tie-break.
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     // Constructors
     public Product() {}
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 
     public Product(String name, String description, double price, String imageUrl) {
         this.name = name;
@@ -160,4 +172,7 @@ public class Product {
 
     public LocalDateTime getTodifyLastSyncAt() { return todifyLastSyncAt; }
     public void setTodifyLastSyncAt(LocalDateTime todifyLastSyncAt) { this.todifyLastSyncAt = todifyLastSyncAt; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

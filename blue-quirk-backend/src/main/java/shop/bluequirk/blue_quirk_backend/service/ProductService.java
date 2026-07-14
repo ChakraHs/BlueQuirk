@@ -1,21 +1,30 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import shop.bluequirk.blue_quirk_backend.analytics.dto.ProductViewRow;
+import shop.bluequirk.blue_quirk_backend.analytics.repository.AnalyticsOrderStatsRepository;
+import shop.bluequirk.blue_quirk_backend.analytics.repository.AnalyticsPageViewRepository;
 
 import shop.bluequirk.blue_quirk_backend.dto.AdminProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
@@ -46,15 +55,28 @@ public class ProductService {
     private final AttributeRepository attributeRepository;
     private final CategoryRepository categoryRepository;
     private final FinancialCalculationService finance;
+    private final AnalyticsOrderStatsRepository orderStatsRepository;
+    private final AnalyticsPageViewRepository pageViewRepository;
+
+    // Trending defaults (overridable via application properties). The window is
+    // the "recent period" over which sales/views are counted.
+    @Value("${trending.window-days:30}")
+    private int trendingWindowDays;
+    @Value("${trending.limit:8}")
+    private int trendingDefaultLimit;
 
     public ProductService(ProductRepository productRepository, ImageRepository imageRepository,
             AttributeRepository attributeRepository, CategoryRepository categoryRepository,
-            FinancialCalculationService finance) {
+            FinancialCalculationService finance,
+            AnalyticsOrderStatsRepository orderStatsRepository,
+            AnalyticsPageViewRepository pageViewRepository) {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
         this.categoryRepository = categoryRepository;
         this.finance = finance;
+        this.orderStatsRepository = orderStatsRepository;
+        this.pageViewRepository = pageViewRepository;
     }
     
     
@@ -120,7 +142,92 @@ public class ProductService {
     	return products.map(p -> toProductResponse(p, attributes, lang));
     }
 
-    
+    /**
+     * Ranks PUBLISHED products for the storefront "Trending" section. The ranking
+     * priority is:
+     * <ol>
+     *   <li>most units sold within the recent window ({@code windowDays});</li>
+     *   <li>then most product views within the same window;</li>
+     *   <li>then the newest product (creation date, id as a deterministic
+     *       tie-break).</li>
+     * </ol>
+     *
+     * <p>Efficient and scalable: sales and views are computed with indexed
+     * aggregation queries, so the candidate set is bounded by the products that
+     * actually had recent activity — never a full-catalog scan. When recent
+     * activity is thin, the list is back-filled with the newest published
+     * products so the section is never sparse.
+     *
+     * @param limit      how many products to return (0 → configured default)
+     * @param windowDays recent period in days to count sales/views (0 → default)
+     */
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getTrendingProducts(int limit, int windowDays, String lang) {
+        int size = limit > 0 ? limit : trendingDefaultLimit;
+        int days = windowDays > 0 ? windowDays : trendingWindowDays;
+
+        LocalDateTime toLocal = LocalDateTime.now();
+        LocalDateTime fromLocal = toLocal.minusDays(days);
+        Instant toInstant = Instant.now();
+        Instant fromInstant = toInstant.minus(Duration.ofDays(days));
+
+        // Units sold per product (cancelled orders excluded) — row is [pid, orders, units].
+        Map<Long, Long> salesByProduct = new HashMap<>();
+        for (Object[] r : orderStatsRepository.productPurchases(fromLocal, toLocal)) {
+            if (r[0] == null) continue;
+            salesByProduct.put(((Number) r[0]).longValue(), ((Number) r[2]).longValue());
+        }
+        // Views per product from product page views.
+        Map<Long, Long> viewsByProduct = new HashMap<>();
+        for (ProductViewRow v : pageViewRepository.productViews(fromInstant, toInstant)) {
+            if (v.productId() != null) viewsByProduct.put(v.productId(), v.views());
+        }
+
+        // Candidate set = products with recent sales or views (published only).
+        Set<Long> candidateIds = new HashSet<>(salesByProduct.keySet());
+        candidateIds.addAll(viewsByProduct.keySet());
+
+        // Newest-first tie-break: newer createdAt wins; nulls (legacy rows) sort
+        // last; higher id breaks exact ties.
+        Comparator<Product> newestFirst = Comparator
+                .comparing((Product p) -> p.getCreatedAt(),
+                        Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(Product::getId)
+                .reversed();
+
+        List<Product> ranked = new ArrayList<>();
+        if (!candidateIds.isEmpty()) {
+            ranked = productRepository.findByIdInWithRelations(candidateIds, ProductStatus.PUBLISHED);
+            ranked.sort(Comparator
+                    .<Product>comparingLong(p -> salesByProduct.getOrDefault(p.getId(), 0L)).reversed()
+                    .thenComparing(Comparator.<Product>comparingLong(
+                            p -> viewsByProduct.getOrDefault(p.getId(), 0L)).reversed())
+                    .thenComparing(newestFirst));
+        }
+
+        // Assemble exactly `size` products, de-duplicated, back-filling with the
+        // newest published products when recent activity is insufficient.
+        LinkedHashMap<Long, Product> selected = new LinkedHashMap<>();
+        for (Product p : ranked) {
+            if (selected.size() >= size) break;
+            selected.put(p.getId(), p);
+        }
+        if (selected.size() < size) {
+            Page<Product> newest = productRepository.findAllWithRelations(
+                    PageRequest.of(0, size + selected.size()), ProductStatus.PUBLISHED);
+            for (Product p : newest.getContent()) {
+                if (selected.size() >= size) break;
+                selected.putIfAbsent(p.getId(), p);
+            }
+        }
+
+        List<Attribute> attributes = attributeRepository.findAllWithValues();
+        return selected.values().stream()
+                .map(p -> toProductResponse(p, attributes, lang))
+                .collect(Collectors.toList());
+    }
+
+
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id, String lang) {
         Product product = productRepository.findByIdWithRelations(id)
