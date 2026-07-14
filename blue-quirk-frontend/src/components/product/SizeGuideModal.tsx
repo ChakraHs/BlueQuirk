@@ -1,53 +1,64 @@
 "use client";
 
 // Accessible, mobile-friendly size-guide dialog. Opens from a "Size Guide" link
-// next to the Size selector (kept out of the main flow per the spec). Closes on
-// Esc, overlay click, or the close button; locks body scroll and moves focus in
-// on open, restoring it on close.
+// next to the Size selector. Closes on Esc, overlay click, or the close button;
+// locks body scroll and moves focus in on open, restoring it on close.
+//
+// The measurements come from SIZE_GUIDE (the single source of truth shared with
+// the "Find My Size" recommender), and the illustration is the real garment
+// guide image — measurement B (Length) runs from the highest shoulder point to
+// the bottom hem.
 import { useEffect, useRef } from "react";
+import Image from "next/image";
 import { X, Ruler, Lightbulb } from "lucide-react";
-
-const SIZES = ["S", "M", "L", "XL", "XXL"] as const;
-const CHEST = [48, 50, 52, 54, 56];
-const LENGTH = [64, 66, 68, 70, 72];
+import { SIZE_GUIDE } from "@/lib/sizeGuide";
 
 const COPY = {
   fr: {
-    title: "Guide des tailles (centimètres)",
+    title: "Guide des tailles",
+    subtitle: "Mesures du vêtement posé à plat, en centimètres.",
     proTip: "Astuce de pro",
     tipBody:
       "Mesurez l'un de vos t-shirts à la maison et comparez-le à ce guide pour un ajustement parfait.",
     size: "Taille",
     chest: "Poitrine (A)",
     length: "Longueur (B)",
+    chestDesc: "Largeur mesurée d'une aisselle à l'autre (à plat).",
+    lengthDesc: "Du point le plus haut de l'épaule jusqu'au bas du vêtement.",
     disclaimer:
-      "Ce guide indique les mesures du vêtement posé à plat. Les mesures réelles peuvent varier jusqu'à 2 cm.",
+      "Mesures du vêtement posé à plat. Les mesures réelles peuvent varier jusqu'à 2 cm.",
     close: "Fermer",
     diagramAlt: "T-shirt indiquant la mesure A (poitrine) et la mesure B (longueur)",
   },
   ar: {
-    title: "دليل المقاسات (سنتيمتر)",
+    title: "دليل المقاسات",
+    subtitle: "قياسات الملابس وهي مفرودة، بالسنتيمتر.",
     proTip: "نصيحة احترافية",
     tipBody:
       "قِس أحد قمصانك في المنزل وقارنه بهذا الدليل للحصول على أفضل مقاس.",
     size: "المقاس",
     chest: "الصدر (A)",
     length: "الطول (B)",
+    chestDesc: "العرض من الإبط إلى الإبط (مفرود).",
+    lengthDesc: "من أعلى نقطة في الكتف حتى أسفل القميص.",
     disclaimer:
-      "يوضّح هذا الدليل قياسات الملابس وهي مفرودة. قد تختلف القياسات الفعلية حتى 2 سم.",
+      "قياسات الملابس وهي مفرودة. قد تختلف القياسات الفعلية حتى 2 سم.",
     close: "إغلاق",
     diagramAlt: "قميص يوضّح قياس A (الصدر) وقياس B (الطول)",
   },
   en: {
-    title: "Size guide (centimeters)",
+    title: "Size guide",
+    subtitle: "Flat-lay garment measurements, in centimeters.",
     proTip: "Pro tip",
     tipBody:
       "Measure one of your t-shirts at home and compare it to this guide for a perfect fit.",
     size: "Size",
     chest: "Chest (A)",
     length: "Length (B)",
+    chestDesc: "Width measured armpit to armpit (laid flat).",
+    lengthDesc: "From the highest point of the shoulder to the bottom hem.",
     disclaimer:
-      "This guide shows flat-lay garment measurements. Actual measurements may vary by up to 2 cm.",
+      "Flat-lay garment measurements. Actual measurements may vary by up to 2 cm.",
     close: "Close",
     diagramAlt: "T-shirt showing measurement A (chest) and measurement B (length)",
   },
@@ -94,7 +105,7 @@ export default function SizeGuideModal({
         type="button"
         aria-label={t.close}
         onClick={onClose}
-        className="absolute inset-0 bg-black/50 backdrop-blur-[1px]"
+        className="absolute inset-0 bg-gray-900/60 backdrop-blur-sm"
       />
 
       {/* panel */}
@@ -102,82 +113,110 @@ export default function SizeGuideModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="size-guide-title"
-        className="relative flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl animate-[fadeIn_0.2s_ease]"
+        className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl ring-1 ring-black/5 sm:rounded-3xl animate-[fadeIn_0.2s_ease]"
       >
         {/* header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-4">
-          <h2
-            id="size-guide-title"
-            className="flex items-center gap-2 text-lg font-bold text-gray-900"
-          >
-            <Ruler className="size-5 text-blue-600" />
-            {t.title}
-          </h2>
+        <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white px-6 py-5">
+          <div className="min-w-0">
+            <h2
+              id="size-guide-title"
+              className="flex items-center gap-2 text-xl font-bold tracking-tight text-gray-900"
+            >
+              <span className="flex size-9 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                <Ruler className="size-5" />
+              </span>
+              {t.title}
+            </h2>
+            <p className="mt-1 text-sm text-gray-500">{t.subtitle}</p>
+          </div>
           <button
             ref={closeRef}
             type="button"
             onClick={onClose}
             aria-label={t.close}
-            className="flex size-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+            className="-mr-1 flex size-9 shrink-0 items-center justify-center rounded-full text-gray-400 transition hover:bg-gray-100 hover:text-gray-900"
           >
             <X className="size-5" />
           </button>
         </div>
 
         {/* body (scrollable) */}
-        <div className="overflow-y-auto px-5 py-5">
-          {/* pro tip */}
-          <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-            <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-500" />
-            <p>
-              <strong>{t.proTip}.</strong> {t.tipBody}
-            </p>
-          </div>
+        <div className="overflow-y-auto px-6 py-6">
+          <div className="grid gap-6 sm:grid-cols-2">
+            {/* illustration */}
+            <figure className="flex items-center justify-center rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100/60 p-4">
+              <Image
+                src="/size-guide.png"
+                alt={t.diagramAlt}
+                width={400}
+                height={420}
+                priority
+                className="h-auto w-full max-w-[240px] object-contain"
+              />
+            </figure>
 
-          {/* diagram */}
-          <div className="mt-5 flex justify-center">
-            <ShirtDiagram title={t.diagramAlt} />
+            {/* measurement legend */}
+            <div className="flex flex-col justify-center gap-4">
+              <Legend
+                badge="A"
+                badgeClass="bg-blue-600"
+                title={t.chest}
+                desc={t.chestDesc}
+              />
+              <Legend
+                badge="B"
+                badgeClass="bg-emerald-600"
+                title={t.length}
+                desc={t.lengthDesc}
+              />
+
+              {/* pro tip */}
+              <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                <p>
+                  <strong>{t.proTip}.</strong> {t.tipBody}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* table */}
-          <div className="mt-5 overflow-x-auto">
-            <table className="w-full border-collapse text-center text-sm">
+          <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+            <table className="w-full border-collapse text-sm">
               <thead>
-                <tr>
-                  <th className="border border-gray-200 bg-gray-50 px-3 py-2 text-start font-semibold text-gray-700">
-                    {t.size}
+                <tr className="bg-gray-900 text-white">
+                  <th className="px-4 py-3 text-start font-semibold">{t.size}</th>
+                  <th className="px-4 py-3 text-center font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-blue-400" />
+                      {t.chest}
+                    </span>
                   </th>
-                  {SIZES.map((s) => (
-                    <th
-                      key={s}
-                      className="border border-gray-200 bg-gray-50 px-3 py-2 font-semibold text-gray-900"
-                    >
-                      {s}
-                    </th>
-                  ))}
+                  <th className="px-4 py-3 text-center font-semibold">
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="size-2 rounded-full bg-emerald-400" />
+                      {t.length}
+                    </span>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <th className="border border-gray-200 px-3 py-2 text-start font-medium text-gray-600">
-                    {t.chest}
-                  </th>
-                  {CHEST.map((v, i) => (
-                    <td key={i} className="border border-gray-200 px-3 py-2 text-gray-800">
-                      {v}
+                {SIZE_GUIDE.map((row, i) => (
+                  <tr
+                    key={row.size}
+                    className={i % 2 === 0 ? "bg-white" : "bg-gray-50/70"}
+                  >
+                    <td className="px-4 py-3 text-start font-bold text-gray-900">
+                      {row.size}
                     </td>
-                  ))}
-                </tr>
-                <tr>
-                  <th className="border border-gray-200 px-3 py-2 text-start font-medium text-gray-600">
-                    {t.length}
-                  </th>
-                  {LENGTH.map((v, i) => (
-                    <td key={i} className="border border-gray-200 px-3 py-2 text-gray-800">
-                      {v}
+                    <td className="px-4 py-3 text-center tabular-nums text-gray-700">
+                      {row.chest} cm
                     </td>
-                  ))}
-                </tr>
+                    <td className="px-4 py-3 text-center tabular-nums text-gray-700">
+                      {row.length} cm
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -190,43 +229,29 @@ export default function SizeGuideModal({
   );
 }
 
-/** Simple t-shirt schematic with the A (chest, horizontal) and B (length, vertical) measurements. */
-function ShirtDiagram({ title }: { title: string }) {
+/** A single measurement callout (letter badge + label + description). */
+function Legend({
+  badge,
+  badgeClass,
+  title,
+  desc,
+}: {
+  badge: string;
+  badgeClass: string;
+  title: string;
+  desc: string;
+}) {
   return (
-    <svg
-      width="220"
-      height="200"
-      viewBox="0 0 220 200"
-      role="img"
-      aria-label={title}
-      className="text-gray-900"
-    >
-      {/* shirt outline */}
-      <path
-        d="M70 20 L95 20 Q110 32 125 20 L150 20 L185 50 L168 70 L150 56 L150 178 L70 178 L70 56 L52 70 L35 50 Z"
-        fill="#f3f4f6"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
-
-      {/* A — chest width (horizontal) */}
-      <line x1="70" y1="92" x2="150" y2="92" stroke="#2563eb" strokeWidth="2" />
-      <polygon points="70,92 78,88 78,96" fill="#2563eb" />
-      <polygon points="150,92 142,88 142,96" fill="#2563eb" />
-      <circle cx="110" cy="92" r="11" fill="#2563eb" />
-      <text x="110" y="96" textAnchor="middle" fontSize="13" fontWeight="700" fill="#fff">
-        A
-      </text>
-
-      {/* B — body length (vertical) */}
-      <line x1="196" y1="56" x2="196" y2="178" stroke="#059669" strokeWidth="2" />
-      <polygon points="196,56 192,64 200,64" fill="#059669" />
-      <polygon points="196,178 192,170 200,170" fill="#059669" />
-      <circle cx="196" cy="117" r="11" fill="#059669" />
-      <text x="196" y="121" textAnchor="middle" fontSize="13" fontWeight="700" fill="#fff">
-        B
-      </text>
-    </svg>
+    <div className="flex items-start gap-3">
+      <span
+        className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold text-white ${badgeClass}`}
+      >
+        {badge}
+      </span>
+      <div>
+        <p className="text-sm font-semibold text-gray-900">{title}</p>
+        <p className="mt-0.5 text-xs leading-relaxed text-gray-500">{desc}</p>
+      </div>
+    </div>
   );
 }

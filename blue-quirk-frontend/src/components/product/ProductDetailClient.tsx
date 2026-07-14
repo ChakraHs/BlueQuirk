@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Heart, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
+import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
@@ -220,8 +220,11 @@ export default function ProductDetailClient({
         />
       </section>
 
+      {/* On mobile the purchase experience (attributes → quantity/buttons) is
+          promoted above the description via `order-*` utilities; on desktop
+          (md:) the natural DOM order is restored so the layout is unchanged. */}
       <section className="flex flex-col gap-7 text-gray-900">
-        <div className="space-y-3">
+        <div className="order-1 space-y-3">
           <div className="flex flex-wrap items-center gap-3">
             <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-gray-600">
               {product.status}
@@ -272,13 +275,13 @@ export default function ProductDetailClient({
 
         {product.description && (
           <div
-            className="prose prose-sm max-w-none text-gray-600"
+            className="prose prose-sm order-5 max-w-none text-gray-600 md:order-2"
             dangerouslySetInnerHTML={{ __html: product.description }}
           />
         )}
 
         {!!productAttributes.length && (
-          <div className="space-y-5">
+          <div className="order-2 space-y-5 md:order-3">
             {productAttributes.map((attribute) => {
               const isSize = sizeAttribute?.id === attribute.id;
               const isColor = colorAttribute?.id === attribute.id;
@@ -380,7 +383,7 @@ export default function ProductDetailClient({
           </div>
         )}
 
-        <div className="flex flex-col gap-3">
+        <div className="order-3 flex flex-col gap-3 md:order-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-full border border-gray-300 sm:w-36">
               <button
@@ -447,12 +450,55 @@ export default function ProductDetailClient({
         </div>
 
         {added && (
-          <p className="rounded-sm bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
+          <p className="order-4 rounded-sm bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 md:order-5">
             {t(lang, "product.added")}
           </p>
         )}
 
-        <div className="grid gap-3 border-t border-gray-200 pt-6 text-sm text-gray-600 sm:grid-cols-3">
+        {/* Product Highlights — premium value props rendered as clean icon cards. */}
+        <div className="order-6 space-y-3">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+            {t(lang, "product.highlightsTitle")}
+          </h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {[
+              {
+                icon: Leaf,
+                label: product.material || "100% Cotton",
+                caption: t(lang, "product.composition"),
+              },
+              {
+                icon: Award,
+                label: t(lang, "product.premiumQuality"),
+              },
+              {
+                icon: Truck,
+                label: t(lang, "product.fastShipping"),
+              },
+              {
+                icon: RotateCcw,
+                label: t(lang, "product.returns"),
+              },
+            ].map(({ icon: Icon, label, caption }) => (
+              <div
+                key={label}
+                className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 px-3 py-4 text-center transition hover:border-blue-300 hover:bg-white hover:shadow-sm"
+              >
+                <span className="flex size-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                  <Icon className="size-5" />
+                </span>
+                <span className="text-sm font-semibold leading-tight text-gray-800">
+                  {label}
+                </span>
+                {caption && (
+                  <span className="text-xs text-gray-400">{caption}</span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="order-7 grid gap-3 border-t border-gray-200 pt-6 text-sm text-gray-600 sm:grid-cols-3">
           <div className="flex items-start gap-2">
             <Truck className="mt-0.5 size-4 text-gray-900" />
             <span>{t(lang, "product.delivery")}</span>

@@ -42,13 +42,13 @@ public class OrderNotificationService {
             EmailTemplateRepository templateRepository,
             @Value("${order.admin-email:}") String adminEmail,
             @Value("${order.currency:$}") String currency,
-            @Value("${app.store-name:BlueQuirk}") String storeName,
+            @Value("${app.store-name:RedQuirk}") String storeName,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
         this.emailProvider = emailProvider;
         this.templateRepository = templateRepository;
         this.adminEmail = adminEmail == null ? "" : adminEmail.trim();
         this.currency = currency;
-        this.storeName = (storeName == null || storeName.isBlank()) ? "BlueQuirk" : storeName.trim();
+        this.storeName = (storeName == null || storeName.isBlank()) ? "RedQuirk" : storeName.trim();
         this.frontendBaseUrl = (frontendBaseUrl == null ? "" : frontendBaseUrl.trim()).replaceAll("/+$", "");
     }
 
@@ -170,13 +170,12 @@ public class OrderNotificationService {
     private String statusSubject(OrderResponse order, OrderStatus status) {
         String ref = ref(order);
         return switch (status) {
-            case CONFIRMED  -> "Votre commande BlueQuirk " + ref + " est confirmée";
-            case PROCESSING -> "Votre commande BlueQuirk " + ref + " est en préparation";
-            case PACKED     -> "Votre commande BlueQuirk " + ref + " est prête à l'expédition";
-            case SHIPPED    -> "Votre commande BlueQuirk " + ref + " a été expédiée";
-            case DELIVERED  -> "Votre commande BlueQuirk " + ref + " a été livrée";
-            case CANCELLED  -> "Votre commande BlueQuirk " + ref + " a été annulée";
-            default         -> "Mise à jour de votre commande BlueQuirk " + ref;
+            case PROCESSING -> "Votre commande RedQuirk " + ref + " est en préparation";
+            case PACKED     -> "Votre commande RedQuirk " + ref + " est prête à l'expédition";
+            case SHIPPED    -> "Votre commande RedQuirk " + ref + " a été expédiée";
+            case DELIVERED  -> "Votre commande RedQuirk " + ref + " a été livrée";
+            case CANCELLED  -> "Votre commande RedQuirk " + ref + " a été annulée";
+            default         -> "Mise à jour de votre commande RedQuirk " + ref;
         };
     }
 
@@ -185,11 +184,6 @@ public class OrderNotificationService {
         String title;
         String intro;
         switch (status) {
-            case CONFIRMED -> {
-                title = "Commande confirmée";
-                intro = "Bonne nouvelle " + esc(order.customerName()) + " ! Votre commande <strong>" + ref
-                        + "</strong> est confirmée et en cours de préparation.";
-            }
             case PROCESSING -> {
                 title = "Commande en préparation";
                 intro = "Votre commande <strong>" + ref + "</strong> est en cours de préparation dans nos ateliers.";
@@ -208,7 +202,7 @@ public class OrderNotificationService {
             case DELIVERED -> {
                 title = "Commande livrée";
                 intro = "Votre commande <strong>" + ref + "</strong> a bien été livrée. "
-                        + "Merci d'avoir choisi BlueQuirk — à très bientôt !";
+                        + "Merci d'avoir choisi RedQuirk — à très bientôt !";
             }
             case CANCELLED -> {
                 title = "Commande annulée";
@@ -288,13 +282,13 @@ public class OrderNotificationService {
 
     private String wrap(String title, String intro, String inner) {
         return "<div style='font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827'>"
-                + "<div style='font-size:22px;font-weight:800;padding:8px 0'>Blue<span style='color:#2563eb'>Quirk</span></div>"
+                + "<div style='font-size:22px;font-weight:800;padding:8px 0'>Red<span style='color:#dc2626'>Quirk</span></div>"
                 + "<h2 style='font-size:20px;margin:8px 0'>" + esc(title) + "</h2>"
                 + "<p style='color:#374151'>" + intro + "</p>"
                 + "<div style='display:inline-block;background:#eff6ff;color:#1d4ed8;border-radius:999px;"
                 + "padding:6px 12px;font-size:13px;font-weight:600;margin:6px 0'>Paiement à la livraison (Cash on Delivery)</div>"
                 + inner
-                + "<p style='color:#9ca3af;font-size:12px;margin-top:24px'>BlueQuirk — merci pour votre confiance.</p>"
+                + "<p style='color:#9ca3af;font-size:12px;margin-top:24px'>RedQuirk — merci pour votre confiance.</p>"
                 + "</div>";
     }
 

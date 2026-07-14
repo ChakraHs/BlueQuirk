@@ -34,22 +34,22 @@ public class IdentityEmailService {
         String link = frontendBaseUrl + "/verify-email?token=" + rawToken;
         String html = """
                 <p>Hello %s,</p>
-                <p>Welcome to BlueQuirk! Please confirm your email address by clicking the link below:</p>
+                <p>Welcome to RedQuirk! Please confirm your email address by clicking the link below:</p>
                 <p><a href="%s">Verify my email</a></p>
                 <p>This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>
                 """.formatted(escape(name), link);
-        send(to, "Verify your BlueQuirk email", html);
+        send(to, "Verify your RedQuirk email", html);
     }
 
     public void sendPasswordResetEmail(String to, String name, String rawToken) {
         String link = frontendBaseUrl + "/reset-password?token=" + rawToken;
         String html = """
                 <p>Hello %s,</p>
-                <p>We received a request to reset your BlueQuirk password. Click the link below to choose a new one:</p>
+                <p>We received a request to reset your RedQuirk password. Click the link below to choose a new one:</p>
                 <p><a href="%s">Reset my password</a></p>
                 <p>This link expires in 30 minutes. If you didn't request this, no action is needed — your password stays the same.</p>
                 """.formatted(escape(name), link);
-        send(to, "Reset your BlueQuirk password", html);
+        send(to, "Reset your RedQuirk password", html);
     }
 
     private void send(String to, String subject, String html) {

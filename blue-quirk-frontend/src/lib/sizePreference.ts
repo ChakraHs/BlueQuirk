@@ -6,6 +6,8 @@
 // customer's purchase history) can be slotted into `recommendSize` later without
 // touching the product UI — the page only calls `recommendSize(...)`.
 
+import { sizeScore, SIZE_DOWN_BIAS } from "@/lib/sizeGuide";
+
 const KEY = "bluequirk_size_pref";
 
 /** The persisted last-selected size label (e.g. "M"), or null if none yet. */
@@ -78,11 +80,18 @@ function scaleIndex(label: string): number {
 
 export type BodyMeasurements = { heightCm: number; weightKg: number };
 
+// Where size "S" sits on the canonical ladder — the SIZE_GUIDE (S…XXL) is
+// positioned onto SIZE_SCALE so we can snap to sizes outside the guide (XS, 3XL)
+// when a product happens to offer them.
+const GUIDE_BASE_INDEX = scaleIndex("S");
+
 /**
- * Estimates a t-shirt size from height + weight and snaps it to the closest size
- * the product offers. Weight drives the base size; height nudges it up/down (a
- * taller frame at the same weight wants a longer/larger cut). Deliberately a
- * transparent heuristic — easy to tune, and the call site/UI stay unchanged.
+ * Recommends a t-shirt size from height + weight, snapped to the closest size a
+ * product actually offers. Uses the continuous scoring model in lib/sizeGuide
+ * (built from the real garment measurements): height sets the length-driven base
+ * and weight fine-tunes for build, so every centimeter/kilogram shifts the
+ * result gradually instead of falling into a bucket. The call site/UI are
+ * unchanged.
  */
 export function recommendSizeFromBody(
   body: BodyMeasurements,
@@ -94,27 +103,25 @@ export function recommendSizeFromBody(
   const avail = available.map((s) => s.trim()).filter(Boolean);
   if (avail.length === 0) return null;
 
-  let target: number;
-  if (weightKg < 50) target = scaleIndex("XS");
-  else if (weightKg < 60) target = scaleIndex("S");
-  else if (weightKg < 70) target = scaleIndex("M");
-  else if (weightKg < 80) target = scaleIndex("L");
-  else if (weightKg < 92) target = scaleIndex("XL");
-  else if (weightKg < 105) target = scaleIndex("XXL");
-  else target = scaleIndex("XXXL");
+  // Continuous position on the canonical ladder (fractional, e.g. 3.4 ≈ between
+  // L and XL). Kept unrounded so we snap to the *nearest offered* size rather
+  // than pre-rounding and losing the fine distinction near a boundary. We nudge
+  // it down by SIZE_DOWN_BIAS so a wearer between two sizes lands on the smaller,
+  // closer fit — sizing up only when the measurements clearly reach the larger.
+  const target = GUIDE_BASE_INDEX + sizeScore(heightCm, weightKg) - SIZE_DOWN_BIAS;
 
-  // Height adjustment (frame length).
-  if (heightCm >= 190) target += 1;
-  else if (heightCm <= 160) target -= 1;
-
-  // Snap to the nearest size the product actually carries.
-  let best = avail[0];
+  // Snap to the nearest size the product carries. We scan from smallest to
+  // largest and only switch on a strictly-closer size, so a customer sitting
+  // exactly between two offered sizes keeps the smaller one — we never suggest
+  // an oversized shirt unless the measurements land closer to the larger size.
+  const ordered = [...avail].sort((a, b) => scaleIndex(a) - scaleIndex(b));
+  let best = ordered[0];
   let bestDist = Infinity;
-  for (const s of avail) {
+  for (const s of ordered) {
     const si = scaleIndex(s);
     if (si < 0) continue;
     const d = Math.abs(si - target);
-    if (d < bestDist) {
+    if (d < bestDist - 1e-9) {
       bestDist = d;
       best = s;
     }

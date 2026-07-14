@@ -11,12 +11,18 @@ public record ProductResponse(
 	    Double price,
 	    Integer stockQuantity,
 	    String description,
+	    // Materials / composition (e.g. "100% Cotton") shown in the storefront.
+	    String material,
 	    ProductStatus status,
 	    List<Image> images,
 	    List<AttributeDto> attributes,
 	    // Categories this product belongs to (locale-resolved names) — used by the
 	    // storefront search/filter facets.
 	    List<CategoryRef> categories,
+	    // Raw per-language name/description pairs. The storefront ignores these
+	    // (it reads the resolved name/description above); the admin edit form uses
+	    // them to populate the translations editor.
+	    List<ProductTranslationDto> translations,
 	    // --- Todify link info (null/false for normal local products) ---
 	    String todifyTemplateId,
 	    boolean syncedFromTodify

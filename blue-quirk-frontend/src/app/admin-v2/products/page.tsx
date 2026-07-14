@@ -49,7 +49,7 @@ function SortableTh({
 }: {
   label: string;
   col: SortKey;
-  sortKey: SortKey;
+  sortKey: SortKey | null;
   sortDir: "asc" | "desc";
   onSort: (k: SortKey) => void;
   align: "left" | "right";
@@ -80,7 +80,9 @@ export default function ProductsPage() {
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [toDelete, setToDelete] = useState<AdminProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [sortKey, setSortKey] = useState<SortKey>("name");
+  // `null` = no explicit column sort → preserve the server order, which is
+  // newest-created first. A column is only sorted once the user clicks it.
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   const fetchProducts = useCallback(async () => {
@@ -120,6 +122,11 @@ export default function ProductsPage() {
     const rows = products
       .filter((p) => (statusFilter === "ALL" ? true : p.status === statusFilter))
       .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
+
+    // No explicit column sort → keep the server order (newest created first).
+    if (sortKey === null) {
+      return rows;
+    }
 
     const value = (p: AdminProduct): number | string => {
       switch (sortKey) {

@@ -22,11 +22,6 @@ public final class DefaultEmailTemplates {
                     "Hi {{customerName}}, your order <strong>{{orderRef}}</strong> has been registered. "
                     + "Keep this reference to track it. We'll call you to confirm delivery — "
                     + "you pay in cash on delivery.");
-            case ORDER_CONFIRMED -> customer(
-                    "Your {{storeName}} order {{orderRef}} is confirmed",
-                    "Order confirmed",
-                    "Good news {{customerName}}! Your order <strong>{{orderRef}}</strong> is confirmed "
-                    + "and now being prepared.");
             case ORDER_PROCESSING -> customer(
                     "Your {{storeName}} order {{orderRef}} is being prepared",
                     "Order in preparation",
@@ -88,7 +83,7 @@ public final class DefaultEmailTemplates {
     private static String wrapperOpen() {
         return "<div style='font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827'>"
                 + "<div style='font-size:22px;font-weight:800;padding:8px 0'>"
-                + "Blue<span style='color:#2563eb'>Quirk</span></div>";
+                + "Red<span style='color:#dc2626'>Quirk</span></div>";
     }
 
     private static String heading(String title) {

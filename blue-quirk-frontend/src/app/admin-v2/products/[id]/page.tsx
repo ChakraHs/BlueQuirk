@@ -7,6 +7,12 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import PricingFields from "@/components/admin/PricingFields";
+import ProductTranslationsEditor, {
+  TranslationDrafts,
+  emptyTranslationDrafts,
+  draftsFromTranslations,
+  draftsToPayload,
+} from "@/components/admin/ProductTranslationsEditor";
 import { ProductService } from "@/services/product.service";
 import { CategoryService } from "@/services/category.service";
 import { TodifyService } from "@/services/todify.service";
@@ -20,6 +26,7 @@ type FormState = {
   cost: number;
   stockQuantity: number;
   description: string;
+  material: string;
   status: string;
 };
 
@@ -36,6 +43,9 @@ export default function EditProductPage() {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
+  const [translations, setTranslations] = useState<TranslationDrafts>(
+    emptyTranslationDrafts()
+  );
   const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
 
   // Flatten the category tree (roots + children) for the checkbox list.
@@ -54,6 +64,7 @@ export default function EditProductPage() {
     cost: 0,
     stockQuantity: 0,
     description: "",
+    material: "100% Cotton",
     status: "PUBLISHED",
   });
 
@@ -74,11 +85,13 @@ export default function EditProductPage() {
           cost: admin?.cost ?? 0,
           stockQuantity: p.stockQuantity ?? 0,
           description: p.description ?? "",
+          material: p.material ?? "100% Cotton",
           status: p.status ?? "PUBLISHED",
         });
         setAttributes(p.attributes ?? []);
         setImages(p.images ?? []);
         setCategoryIds((p.categories ?? []).map((c) => c.id));
+        setTranslations(draftsFromTranslations(p.translations));
       } catch {
         setError("Product not found.");
       } finally {
@@ -136,6 +149,7 @@ export default function EditProductPage() {
         attributes,
         images,
         categoryIds,
+        translations: draftsToPayload(translations),
       });
       sessionStorage.setItem("success", "Product updated");
       router.push("/admin-v2/products");
@@ -224,6 +238,22 @@ export default function EditProductPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
+              Materials
+            </label>
+            <input
+              name="material"
+              value={form.material}
+              onChange={handleChange}
+              placeholder="e.g. 100% Cotton"
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Shown in the product highlights (composition).
+            </p>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
               Description
             </label>
             <textarea
@@ -234,6 +264,8 @@ export default function EditProductPage() {
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
             />
           </div>
+
+          <ProductTranslationsEditor value={translations} onChange={setTranslations} />
 
           <ProductImageManager value={images} onChange={setImages} colorOptions={colorOptions} />
 

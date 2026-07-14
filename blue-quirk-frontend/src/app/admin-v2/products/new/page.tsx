@@ -9,6 +9,11 @@ import { ProductImage } from "@/types/product";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import PricingFields from "@/components/admin/PricingFields";
 import { colorOptionsFromAttributes } from "@/lib/colorImages";
+import ProductTranslationsEditor, {
+  TranslationDrafts,
+  emptyTranslationDrafts,
+  draftsToPayload,
+} from "@/components/admin/ProductTranslationsEditor";
 
 export default function NewProductPage() {
   const router = useRouter();
@@ -27,18 +32,12 @@ export default function NewProductPage() {
     cost: 0,
     stockQuantity: 0,
     description: "",
+    material: "100% Cotton",
     status: "PUBLISHED",
   });
-  const [translations, setTranslations] = useState({
-    fr: {
-      name: "",
-      description: "",
-    },
-    ar: {
-      name: "",
-      description: "",
-    },
-  });
+  const [translations, setTranslations] = useState<TranslationDrafts>(
+    emptyTranslationDrafts()
+  );
 
   useEffect(() => {
     AttributeService.getAll().then((data) => {
@@ -58,20 +57,6 @@ export default function NewProductPage() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleTranslationChange = (
-    lang: "fr" | "ar",
-    field: "name" | "description",
-    value: string
-  ) => {
-    setTranslations((prev) => ({
-      ...prev,
-      [lang]: {
-        ...prev[lang],
-        [field]: value,
-      },
-    }));
   };
 
   const toggleValue = (attrId: number, valueId: number) => {
@@ -102,13 +87,7 @@ export default function NewProductPage() {
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
-        translations: Object.entries(translations)
-          .filter(([, value]) => value.name.trim() || value.description.trim())
-          .map(([lang, value]) => ({
-            lang,
-            name: value.name,
-            description: value.description,
-          })),
+        translations: draftsToPayload(translations),
       });
 
       sessionStorage.setItem("success", "Product created successfully");
@@ -176,6 +155,25 @@ export default function NewProductPage() {
             />
           </div>
 
+          {/* Materials / composition */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Materials
+            </label>
+            <input
+              name="material"
+              placeholder="e.g. 100% Cotton"
+              value={form.material}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2
+                         text-gray-900 placeholder-gray-400
+                         focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Shown in the product highlights (composition). Defaults to 100% Cotton.
+            </p>
+          </div>
+
           {/* Description */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -196,50 +194,8 @@ export default function NewProductPage() {
             <ProductImageManager value={images} onChange={setImages} colorOptions={colorOptions} />
           </div>
 
-          {/* Translations */}
-          <div className="pt-4">
-            <h2 className="text-sm font-semibold text-gray-800 mb-3">
-              Translations
-            </h2>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {(["fr", "ar"] as const).map((lang) => (
-                <div key={lang} className="bg-gray-50 border rounded-md p-3">
-                  <h3 className="mb-3 text-sm font-medium text-gray-700 uppercase">
-                    {lang}
-                  </h3>
-
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Name
-                  </label>
-                  <input
-                    value={translations[lang].name}
-                    onChange={(e) =>
-                      handleTranslationChange(lang, "name", e.target.value)
-                    }
-                    placeholder={`${lang.toUpperCase()} product name`}
-                    className="mb-3 w-full border border-gray-300 rounded-md px-3 py-2
-                              text-gray-900 placeholder-gray-400
-                              focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-                  />
-
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <textarea
-                    value={translations[lang].description}
-                    onChange={(e) =>
-                      handleTranslationChange(lang, "description", e.target.value)
-                    }
-                    placeholder={`${lang.toUpperCase()} product description`}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2
-                              text-gray-900 placeholder-gray-400
-                              focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Translations (fr / en / ar) */}
+          <ProductTranslationsEditor value={translations} onChange={setTranslations} />
 
           {/* Status */}
           <div>

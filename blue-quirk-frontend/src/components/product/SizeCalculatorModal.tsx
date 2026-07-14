@@ -5,7 +5,7 @@
 // scroll lock, focus on open). The actual sizing logic lives in
 // lib/sizePreference (recommendSizeFromBody) so it stays testable and tunable.
 import { forwardRef, useEffect, useRef, useState } from "react";
-import { X, Sparkles, Ruler, Scale, ArrowRight } from "lucide-react";
+import { X, Sparkles, Ruler, Scale, ArrowRight, Info } from "lucide-react";
 import { recommendSizeFromBody } from "@/lib/sizePreference";
 
 const COPY = {
@@ -21,7 +21,10 @@ const COPY = {
     invalid: "Saisissez une taille (140–220 cm) et un poids (30–200 kg) valides.",
     resultLead: "Votre taille recommandée",
     apply: (s: string) => `Choisir la taille ${s}`,
-    note: "Estimation indicative basée sur votre morphologie. Entre deux tailles, privilégiez la plus grande pour plus d'aisance.",
+    note: "Recommandation personnalisée selon votre morphologie (taille au plus juste). Pour un porter plus ample, prenez la taille au-dessus.",
+    betaTitle: "Recommandation de taille (Bêta)",
+    betaBody:
+      "Notre recommandation de taille est en cours de test et peut ne pas être exacte à 100 %. Pour un ajustement optimal, nous vous conseillons de consulter le Guide des tailles avant de passer commande.",
     close: "Fermer",
   },
   ar: {
@@ -36,7 +39,10 @@ const COPY = {
     invalid: "أدخل طولاً (140–220 سم) ووزناً (30–200 كغ) صحيحين.",
     resultLead: "المقاس الموصى به",
     apply: (s: string) => `اختر المقاس ${s}`,
-    note: "تقدير إرشادي حسب بنية جسمك. بين مقاسين، اختر الأكبر لمزيد من الراحة.",
+    note: "توصية مخصّصة حسب بنية جسمك (مقاس مضبوط). لمظهر أوسع، اختر المقاس الأكبر.",
+    betaTitle: "توصية المقاس (تجريبي)",
+    betaBody:
+      "توصية المقاس قيد الاختبار حاليًا وقد لا تكون دقيقة بنسبة 100%. للحصول على أفضل مقاس، ننصح بمراجعة دليل المقاسات قبل إتمام الطلب.",
     close: "إغلاق",
   },
   en: {
@@ -51,7 +57,10 @@ const COPY = {
     invalid: "Enter a valid height (140–220 cm) and weight (30–200 kg).",
     resultLead: "Your recommended size",
     apply: (s: string) => `Choose size ${s}`,
-    note: "Indicative estimate based on your body type. Between two sizes, pick the larger one for more comfort.",
+    note: "Personalized recommendation based on your body type (true-to-size). For a looser fit, size up.",
+    betaTitle: "Size Recommendation (Beta)",
+    betaBody:
+      "Our size recommendation is currently in testing and may not be 100% accurate. For the best fit, we recommend checking the Size Guide before placing your order.",
     close: "Close",
   },
 } as const;
@@ -201,6 +210,17 @@ export default function SizeCalculatorModal({
                 {t.apply(result)}
                 <ArrowRight className="size-4" />
               </button>
+            </div>
+          )}
+
+          {/* Beta disclaimer — subtle reassurance, shown with a result. */}
+          {result && !error && (
+            <div className="mt-3 flex items-start gap-2 rounded-lg bg-gray-50 px-3 py-2.5 text-start">
+              <Info className="mt-0.5 size-3.5 shrink-0 text-gray-400" aria-hidden="true" />
+              <p className="text-[11px] leading-relaxed text-gray-500">
+                <span className="font-semibold text-gray-600">{t.betaTitle}</span>
+                <span className="block sm:inline sm:before:content-['_—_']">{t.betaBody}</span>
+              </p>
             </div>
           )}
 

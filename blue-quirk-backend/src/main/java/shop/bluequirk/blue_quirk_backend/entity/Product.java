@@ -27,6 +27,13 @@ public class Product {
     @Lob
     private String description; // will store HTML text
 
+    // Materials / composition of the product (e.g. "100% Cotton"). Purely
+    // descriptive (not a variant) — shown in the storefront "Product Highlights"
+    // and editable from the admin product form. Defaults to "100% Cotton" so
+    // pre-existing products and new ones always have a sensible value.
+    @Column(name = "material")
+    private String material = "100% Cotton";
+
     @Column(nullable = false)
     private double price;
 
@@ -89,8 +96,20 @@ public class Product {
     @Column(name = "todify_last_sync_at")
     private LocalDateTime todifyLastSyncAt;
 
+    // When this product row was first created. Drives "newest first" ordering
+    // (admin list + Trending tie-break). Nullable so pre-existing rows migrate
+    // cleanly; they predate the column and sort last (oldest), with id as the
+    // deterministic tie-break.
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+
     // Constructors
     public Product() {}
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 
     public Product(String name, String description, double price, String imageUrl) {
         this.name = name;
@@ -107,6 +126,9 @@ public class Product {
 
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
+
+    public String getMaterial() { return material; }
+    public void setMaterial(String material) { this.material = material; }
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
@@ -150,4 +172,7 @@ public class Product {
 
     public LocalDateTime getTodifyLastSyncAt() { return todifyLastSyncAt; }
     public void setTodifyLastSyncAt(LocalDateTime todifyLastSyncAt) { this.todifyLastSyncAt = todifyLastSyncAt; }
+
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 }

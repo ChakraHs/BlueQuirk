@@ -1,19 +1,30 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
+import java.time.Duration;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import shop.bluequirk.blue_quirk_backend.analytics.dto.ProductViewRow;
+import shop.bluequirk.blue_quirk_backend.analytics.repository.AnalyticsOrderStatsRepository;
+import shop.bluequirk.blue_quirk_backend.analytics.repository.AnalyticsPageViewRepository;
 
 import shop.bluequirk.blue_quirk_backend.dto.AdminProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
@@ -22,6 +33,7 @@ import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
+import shop.bluequirk.blue_quirk_backend.dto.ProductTranslationDto;
 import shop.bluequirk.blue_quirk_backend.finance.service.FinancialCalculationService;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
@@ -43,15 +55,28 @@ public class ProductService {
     private final AttributeRepository attributeRepository;
     private final CategoryRepository categoryRepository;
     private final FinancialCalculationService finance;
+    private final AnalyticsOrderStatsRepository orderStatsRepository;
+    private final AnalyticsPageViewRepository pageViewRepository;
+
+    // Trending defaults (overridable via application properties). The window is
+    // the "recent period" over which sales/views are counted.
+    @Value("${trending.window-days:30}")
+    private int trendingWindowDays;
+    @Value("${trending.limit:8}")
+    private int trendingDefaultLimit;
 
     public ProductService(ProductRepository productRepository, ImageRepository imageRepository,
             AttributeRepository attributeRepository, CategoryRepository categoryRepository,
-            FinancialCalculationService finance) {
+            FinancialCalculationService finance,
+            AnalyticsOrderStatsRepository orderStatsRepository,
+            AnalyticsPageViewRepository pageViewRepository) {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
         this.categoryRepository = categoryRepository;
         this.finance = finance;
+        this.orderStatsRepository = orderStatsRepository;
+        this.pageViewRepository = pageViewRepository;
     }
     
     
@@ -82,6 +107,11 @@ public class ProductService {
             existing.setStockQuantity(dto.getStockQuantity());
         }
     	existing.setDescription(dto.getDescription());
+        // Only overwrite the material when the admin actually submitted one, so a
+        // form that omits it never wipes the stored value.
+        if (dto.getMaterial() != null && !dto.getMaterial().isBlank()) {
+            existing.setMaterial(dto.getMaterial().trim());
+        }
         existing.setStatus(dto.getStatus());
         applyImages(existing, dto.getImages());
         if (dto.getTranslations() != null) {
@@ -112,7 +142,92 @@ public class ProductService {
     	return products.map(p -> toProductResponse(p, attributes, lang));
     }
 
-    
+    /**
+     * Ranks PUBLISHED products for the storefront "Trending" section. The ranking
+     * priority is:
+     * <ol>
+     *   <li>most units sold within the recent window ({@code windowDays});</li>
+     *   <li>then most product views within the same window;</li>
+     *   <li>then the newest product (creation date, id as a deterministic
+     *       tie-break).</li>
+     * </ol>
+     *
+     * <p>Efficient and scalable: sales and views are computed with indexed
+     * aggregation queries, so the candidate set is bounded by the products that
+     * actually had recent activity — never a full-catalog scan. When recent
+     * activity is thin, the list is back-filled with the newest published
+     * products so the section is never sparse.
+     *
+     * @param limit      how many products to return (0 → configured default)
+     * @param windowDays recent period in days to count sales/views (0 → default)
+     */
+    @Transactional(readOnly = true)
+    public List<ProductResponse> getTrendingProducts(int limit, int windowDays, String lang) {
+        int size = limit > 0 ? limit : trendingDefaultLimit;
+        int days = windowDays > 0 ? windowDays : trendingWindowDays;
+
+        LocalDateTime toLocal = LocalDateTime.now();
+        LocalDateTime fromLocal = toLocal.minusDays(days);
+        Instant toInstant = Instant.now();
+        Instant fromInstant = toInstant.minus(Duration.ofDays(days));
+
+        // Units sold per product (cancelled orders excluded) — row is [pid, orders, units].
+        Map<Long, Long> salesByProduct = new HashMap<>();
+        for (Object[] r : orderStatsRepository.productPurchases(fromLocal, toLocal)) {
+            if (r[0] == null) continue;
+            salesByProduct.put(((Number) r[0]).longValue(), ((Number) r[2]).longValue());
+        }
+        // Views per product from product page views.
+        Map<Long, Long> viewsByProduct = new HashMap<>();
+        for (ProductViewRow v : pageViewRepository.productViews(fromInstant, toInstant)) {
+            if (v.productId() != null) viewsByProduct.put(v.productId(), v.views());
+        }
+
+        // Candidate set = products with recent sales or views (published only).
+        Set<Long> candidateIds = new HashSet<>(salesByProduct.keySet());
+        candidateIds.addAll(viewsByProduct.keySet());
+
+        // Newest-first tie-break: newer createdAt wins; nulls (legacy rows) sort
+        // last; higher id breaks exact ties.
+        Comparator<Product> newestFirst = Comparator
+                .comparing((Product p) -> p.getCreatedAt(),
+                        Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(Product::getId)
+                .reversed();
+
+        List<Product> ranked = new ArrayList<>();
+        if (!candidateIds.isEmpty()) {
+            ranked = productRepository.findByIdInWithRelations(candidateIds, ProductStatus.PUBLISHED);
+            ranked.sort(Comparator
+                    .<Product>comparingLong(p -> salesByProduct.getOrDefault(p.getId(), 0L)).reversed()
+                    .thenComparing(Comparator.<Product>comparingLong(
+                            p -> viewsByProduct.getOrDefault(p.getId(), 0L)).reversed())
+                    .thenComparing(newestFirst));
+        }
+
+        // Assemble exactly `size` products, de-duplicated, back-filling with the
+        // newest published products when recent activity is insufficient.
+        LinkedHashMap<Long, Product> selected = new LinkedHashMap<>();
+        for (Product p : ranked) {
+            if (selected.size() >= size) break;
+            selected.put(p.getId(), p);
+        }
+        if (selected.size() < size) {
+            Page<Product> newest = productRepository.findAllWithRelations(
+                    PageRequest.of(0, size + selected.size()), ProductStatus.PUBLISHED);
+            for (Product p : newest.getContent()) {
+                if (selected.size() >= size) break;
+                selected.putIfAbsent(p.getId(), p);
+            }
+        }
+
+        List<Attribute> attributes = attributeRepository.findAllWithValues();
+        return selected.values().stream()
+                .map(p -> toProductResponse(p, attributes, lang))
+                .collect(Collectors.toList());
+    }
+
+
     @Transactional(readOnly = true)
     public ProductResponse getProductById(Long id, String lang) {
         Product product = productRepository.findByIdWithRelations(id)
@@ -169,10 +284,12 @@ public class ProductService {
             product.getPrice(),
             product.getStockQuantity(),
             resolveDescription(product, lang),
+            product.getMaterial(),
             product.getStatus(),
             sortedImages(product),
             attributes,
             toCategoryRefs(product, lang),
+            toTranslationDtos(product),
             product.getTodifyTemplateId(),
             product.isSyncedFromTodify()
         );
@@ -212,6 +329,14 @@ public class ProductService {
                 product.getStatus(),
                 sortedImages(product)
         );
+    }
+
+    /** Default materials value applied to products created without one. */
+    private static final String DEFAULT_MATERIAL = "100% Cotton";
+
+    /** Trims the submitted material, falling back to the default when blank. */
+    private String normalizedMaterial(String material) {
+        return (material == null || material.isBlank()) ? DEFAULT_MATERIAL : material.trim();
     }
 
     /** Rejects a negative cost (400); otherwise returns the value unchanged. */
@@ -282,6 +407,7 @@ public class ProductService {
         product.setCost(dto.getCost() != null ? validatedCost(dto.getCost()) : 0);
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
+        product.setMaterial(normalizedMaterial(dto.getMaterial()));
         product.setStatus(dto.getStatus());
         applyImages(product, dto.getImages());
         applyTranslations(product, dto.getTranslations());
@@ -342,13 +468,27 @@ public class ProductService {
                 product.getPrice(),
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
+                product.getMaterial(),
                 product.getStatus(),
                 sortedImages(product),
                 attributes,
                 toCategoryRefs(product, lang),
+                toTranslationDtos(product),
                 product.getTodifyTemplateId(),
                 product.isSyncedFromTodify()
         );
+    }
+
+    /** Raw per-language translations (for the admin edit form), ordered by lang. */
+    private List<ProductTranslationDto> toTranslationDtos(Product product) {
+        if (product.getTranslations() == null) {
+            return List.of();
+        }
+        return product.getTranslations().stream()
+                .map(t -> new ProductTranslationDto(t.getLang(), t.getName(), t.getDescription()))
+                .sorted(Comparator.comparing(ProductTranslationDto::lang,
+                        Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .collect(Collectors.toList());
     }
 
     /** Locale-resolved category references for the storefront search facets. */
@@ -373,17 +513,52 @@ public class ProductService {
                 .orElse(category.getName());
     }
 
-    private void applyTranslations(Product product, Set<ProductTranslation> translations) {
-        product.getTranslations().clear();
-
-        if (translations == null) {
-            return;
+    /**
+     * Reconciles the product's translations with the incoming set, keyed by
+     * language, MUTATING the managed collection in place: existing languages are
+     * UPDATED, languages no longer submitted are removed (orphan-deleted), and
+     * only genuinely new languages are inserted.
+     *
+     * <p>We deliberately avoid the old clear()+re-add() approach: with
+     * orphanRemoval, Hibernate flushed the INSERT of a replacement row before
+     * DELETEing the old one, which violated the {@code (product_id, lang)} unique
+     * constraint whenever a product that already had translations was edited.
+     * Updating same-language rows in place issues a plain UPDATE, so there is no
+     * transient duplicate.
+     */
+    private void applyTranslations(Product product, Set<ProductTranslation> incoming) {
+        if (incoming == null) {
+            return; // caller decides when translations should be left untouched
         }
 
-        translations.forEach(translation -> {
-            translation.setProduct(product);
-            product.getTranslations().add(translation);
+        // Latest submitted value per non-blank language.
+        Map<String, ProductTranslation> byLang = new HashMap<>();
+        for (ProductTranslation t : incoming) {
+            if (t == null || t.getLang() == null || t.getLang().isBlank()) {
+                continue;
+            }
+            byLang.put(t.getLang().trim(), t);
+        }
+
+        Set<ProductTranslation> managed = product.getTranslations();
+
+        // Update languages that already exist; drop those no longer submitted.
+        managed.removeIf(existing -> {
+            ProductTranslation update = byLang.remove(existing.getLang());
+            if (update == null) {
+                return true; // orphanRemoval deletes this row
+            }
+            existing.setName(update.getName());
+            existing.setDescription(update.getDescription());
+            return false;
         });
+
+        // Anything left in byLang is a brand-new language → insert it.
+        for (ProductTranslation added : byLang.values()) {
+            added.setLang(added.getLang().trim());
+            added.setProduct(product);
+            managed.add(added);
+        }
     }
 
     /**
