@@ -9,6 +9,8 @@ import { formatPrice } from "@/lib/money";
 import { thumbSrc } from "@/lib/productImage";
 import { t } from "@/lib/i18n";
 import { colorSwatch, isLightColor } from "@/lib/colors";
+import { pickDisplayCategory } from "@/lib/productCategory";
+import { useProductCategoryContext } from "./CategoryTreeProvider";
 import WishlistButton from "./WishlistButton";
 
 const FALLBACK_IMAGE =
@@ -31,7 +33,11 @@ export default function ProductCard({
   const touchStartX = useRef<number | null>(null);
 
   const isOutOfStock = product.status === "ARCHIVED";
-  const category = product.categories?.[0]?.name;
+  // Show the category most relevant to the page being browsed (e.g. "Men
+  // T-Shirts" on the Men page, "Women T-Shirts" on the Women page) instead of
+  // whichever category happens to be first. See lib/productCategory.
+  const categoryContext = useProductCategoryContext();
+  const category = pickDisplayCategory(product.categories, categoryContext)?.name;
 
   // Colours actually assigned to this product (COLOR attribute, selected values).
   // Used both to tint the card background (first colour) and to show the
