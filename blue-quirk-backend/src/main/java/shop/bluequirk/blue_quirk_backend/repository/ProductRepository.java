@@ -76,6 +76,12 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		List<Product> findByCategoryIdWithRelations(@Param("categoryId") Long categoryId,
 				@Param("status") ProductStatus status);
 
+	// Every product with its translations eagerly loaded. Feeds the admin catalog
+	// content audit/backfill utility, which inspects each product's description
+	// and its per-language translations to find and fill gaps.
+	@Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.translations ORDER BY p.id")
+	List<Product> findAllWithTranslations();
+
 	// One-time backfill: give every product with no materials value the default.
 	// Existing products predate the `material` column, so Hibernate leaves it NULL
 	// until this runs. Returns the number of rows updated.
