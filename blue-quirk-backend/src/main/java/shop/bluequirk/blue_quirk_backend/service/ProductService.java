@@ -57,6 +57,7 @@ public class ProductService {
     private final FinancialCalculationService finance;
     private final AnalyticsOrderStatsRepository orderStatsRepository;
     private final AnalyticsPageViewRepository pageViewRepository;
+    private final CampaignPricing campaignPricing;
 
     // Trending defaults (overridable via application properties). The window is
     // the "recent period" over which sales/views are counted.
@@ -69,7 +70,8 @@ public class ProductService {
             AttributeRepository attributeRepository, CategoryRepository categoryRepository,
             FinancialCalculationService finance,
             AnalyticsOrderStatsRepository orderStatsRepository,
-            AnalyticsPageViewRepository pageViewRepository) {
+            AnalyticsPageViewRepository pageViewRepository,
+            CampaignPricing campaignPricing) {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
@@ -77,6 +79,7 @@ public class ProductService {
         this.finance = finance;
         this.orderStatsRepository = orderStatsRepository;
         this.pageViewRepository = pageViewRepository;
+        this.campaignPricing = campaignPricing;
     }
     
     
@@ -281,7 +284,7 @@ public class ProductService {
         return new ProductResponse(
             product.getId(),
             resolveName(product, lang),
-            product.getPrice(),
+            campaignPricing.sellingPrice(product.getPrice()),
             product.getStockQuantity(),
             resolveDescription(product, lang),
             product.getMaterial(),
@@ -465,7 +468,7 @@ public class ProductService {
         return new ProductResponse(
                 product.getId(),
                 resolveName(product, lang),
-                product.getPrice(),
+                campaignPricing.sellingPrice(product.getPrice()),
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
                 product.getMaterial(),

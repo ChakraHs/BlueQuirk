@@ -11,7 +11,7 @@ import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
 import { colorSwatch, isLightColor } from "@/lib/colors";
-import { useShippingConfig, freeShippingState } from "@/lib/shipping";
+import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import { t } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
@@ -77,6 +77,9 @@ export default function ProductDetailClient({
   // Shipping economics for the product-page banner (backend-driven; no hardcoding).
   const shippingConfig = useShippingConfig();
   const freeShip = freeShippingState(product.price, shippingConfig);
+  // During the free-shipping campaign we replace the threshold/progress messaging
+  // with a single clean "free shipping across Morocco" reassurance line.
+  const freeShippingCampaign = isFreeShippingCampaign(shippingConfig);
 
   // Color-aware gallery: when a color is selected, show that color's images
   // first then generic ones (falling back to generics when the color has none).
@@ -215,8 +218,21 @@ export default function ProductDetailClient({
   // duplicates no behaviour.
   const shippingBannerInner = (
     <>
-      <Truck className="mt-0.5 size-4 shrink-0 text-blue-600" />
-      {freeShip.qualified ? (
+      <Truck
+        className={`mt-0.5 size-4 shrink-0 ${
+          freeShippingCampaign ? "text-emerald-600" : "text-blue-600"
+        }`}
+      />
+      {freeShippingCampaign ? (
+        <div className="text-sm">
+          <p className="font-semibold text-emerald-700">
+            {t(lang, "product.shipFreeCampaign")}
+          </p>
+          <p className="text-xs text-gray-500">
+            {t(lang, "product.shipFreeCampaignSub")}
+          </p>
+        </div>
+      ) : freeShip.qualified ? (
         <p className="text-sm text-gray-700">
           {t(lang, "product.shipQualified")}
         </p>
@@ -277,7 +293,7 @@ export default function ProductDetailClient({
 
           {/* Shipping info banner (desktop) — kept directly under the price so the
               md: layout is unchanged. The mobile instance lives below the buttons. */}
-          {shippingConfig.freeShippingThreshold > 0 && (
+          {(freeShippingCampaign || shippingConfig.freeShippingThreshold > 0) && (
             <div className="hidden items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 md:flex">
               {shippingBannerInner}
             </div>
@@ -471,7 +487,7 @@ export default function ProductDetailClient({
 
         {/* Shipping info banner (mobile only) — promoted below the purchase
             actions. Hidden on desktop, where the price-block instance is shown. */}
-        {shippingConfig.freeShippingThreshold > 0 && (
+        {(freeShippingCampaign || shippingConfig.freeShippingThreshold > 0) && (
           <div className="order-5 flex items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 md:hidden">
             {shippingBannerInner}
           </div>
