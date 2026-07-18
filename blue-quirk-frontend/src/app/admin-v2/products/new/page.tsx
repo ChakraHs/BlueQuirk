@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { ProductService } from "@/services/product.service";
 import { AttributeService } from "@/services/attribute.service";
 import { Attribute } from "@/types/attribute";
-import { ProductImage } from "@/types/product";
+import { ProductImage, ProductVideo } from "@/types/product";
 import ProductImageManager from "@/components/admin/ProductImageManager";
+import ProductVideoManager from "@/components/admin/ProductVideoManager";
 import PricingFields from "@/components/admin/PricingFields";
 import { colorOptionsFromAttributes } from "@/lib/colorImages";
 import ProductTranslationsEditor, {
@@ -21,6 +22,7 @@ export default function NewProductPage() {
   const [loading, setLoading] = useState(false);
   const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [images, setImages] = useState<ProductImage[]>([]);
+  const [video, setVideo] = useState<ProductVideo | null>(null);
 
   // Colors the admin can link images to (the product's selected colors, or all
   // color values before any selection).
@@ -87,6 +89,7 @@ export default function NewProductPage() {
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
+        video,
         translations: draftsToPayload(translations),
       });
 
@@ -192,6 +195,11 @@ export default function NewProductPage() {
           {/* Images */}
           <div className="pt-2">
             <ProductImageManager value={images} onChange={setImages} colorOptions={colorOptions} />
+          </div>
+
+          {/* Featured video (optional) */}
+          <div className="pt-2">
+            <ProductVideoManager value={video} onChange={setVideo} />
           </div>
 
           {/* Translations (fr / en / ar) */}

@@ -260,6 +260,7 @@ export default function ProductDetailClient({
       <section aria-label="Product images">
         <ProductGallery
           images={galleryImages}
+          video={product.video}
           alt={product.name}
           onActiveChange={setActiveImage}
           bgColor={galleryBg}

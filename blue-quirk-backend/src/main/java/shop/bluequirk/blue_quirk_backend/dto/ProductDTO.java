@@ -5,6 +5,7 @@ import java.util.Set;
 
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
+import shop.bluequirk.blue_quirk_backend.entity.ProductVideo;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
 
 public class ProductDTO {
@@ -23,7 +24,11 @@ public class ProductDTO {
     private String material;
     private ProductStatus status;
     
-    private Set<Image> images; 
+    private Set<Image> images;
+
+    // Optional featured video (videoUrl/posterImageUrl/duration/fileSize). Null or
+    // a blank videoUrl means "no video" / remove the existing one.
+    private ProductVideo video;
 
     private Set<AttributeDto> attributes;
 
@@ -74,6 +79,9 @@ public class ProductDTO {
     
     public Set<Image> getImages() { return images; }
     public void setImages(Set<Image> images) { this.images = images; }
+
+    public ProductVideo getVideo() { return video; }
+    public void setVideo(ProductVideo video) { this.video = video; }
 
     public Set<ProductTranslation> getTranslations() { return translations; }
     public void setTranslations(Set<ProductTranslation> translations) { this.translations = translations; }

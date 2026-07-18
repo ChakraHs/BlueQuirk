@@ -15,6 +15,9 @@ public record ProductResponse(
 	    String material,
 	    ProductStatus status,
 	    List<Image> images,
+	    // Optional featured video — null when the product has none, so existing
+	    // products/clients are unaffected.
+	    ProductVideoResponse video,
 	    List<AttributeDto> attributes,
 	    // Categories this product belongs to (locale-resolved names) — used by the
 	    // storefront search/filter facets.
