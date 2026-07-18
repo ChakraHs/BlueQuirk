@@ -34,12 +34,14 @@ import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.ProductTranslationDto;
+import shop.bluequirk.blue_quirk_backend.dto.ProductVideoResponse;
 import shop.bluequirk.blue_quirk_backend.finance.service.FinancialCalculationService;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
 import shop.bluequirk.blue_quirk_backend.entity.Category;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
+import shop.bluequirk.blue_quirk_backend.entity.ProductVideo;
 import shop.bluequirk.blue_quirk_backend.entity.translation.CategoryTranslation;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
 import shop.bluequirk.blue_quirk_backend.repository.AttributeRepository;
@@ -57,6 +59,7 @@ public class ProductService {
     private final FinancialCalculationService finance;
     private final AnalyticsOrderStatsRepository orderStatsRepository;
     private final AnalyticsPageViewRepository pageViewRepository;
+    private final CampaignPricing campaignPricing;
 
     // Trending defaults (overridable via application properties). The window is
     // the "recent period" over which sales/views are counted.
@@ -69,7 +72,8 @@ public class ProductService {
             AttributeRepository attributeRepository, CategoryRepository categoryRepository,
             FinancialCalculationService finance,
             AnalyticsOrderStatsRepository orderStatsRepository,
-            AnalyticsPageViewRepository pageViewRepository) {
+            AnalyticsPageViewRepository pageViewRepository,
+            CampaignPricing campaignPricing) {
         this.productRepository = productRepository;
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
@@ -77,6 +81,7 @@ public class ProductService {
         this.finance = finance;
         this.orderStatsRepository = orderStatsRepository;
         this.pageViewRepository = pageViewRepository;
+        this.campaignPricing = campaignPricing;
     }
     
     
@@ -114,6 +119,7 @@ public class ProductService {
         }
         existing.setStatus(dto.getStatus());
         applyImages(existing, dto.getImages());
+        applyVideo(existing, dto.getVideo());
         if (dto.getTranslations() != null) {
             applyTranslations(existing, dto.getTranslations());
         }
@@ -281,12 +287,13 @@ public class ProductService {
         return new ProductResponse(
             product.getId(),
             resolveName(product, lang),
-            product.getPrice(),
+            campaignPricing.sellingPrice(product.getPrice()),
             product.getStockQuantity(),
             resolveDescription(product, lang),
             product.getMaterial(),
             product.getStatus(),
             sortedImages(product),
+            ProductVideoResponse.from(product.getVideo()),
             attributes,
             toCategoryRefs(product, lang),
             toTranslationDtos(product),
@@ -410,6 +417,7 @@ public class ProductService {
         product.setMaterial(normalizedMaterial(dto.getMaterial()));
         product.setStatus(dto.getStatus());
         applyImages(product, dto.getImages());
+        applyVideo(product, dto.getVideo());
         applyTranslations(product, dto.getTranslations());
         if (dto.getCategoryIds() != null) {
             applyCategories(product, dto.getCategoryIds());
@@ -465,12 +473,13 @@ public class ProductService {
         return new ProductResponse(
                 product.getId(),
                 resolveName(product, lang),
-                product.getPrice(),
+                campaignPricing.sellingPrice(product.getPrice()),
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
                 product.getMaterial(),
                 product.getStatus(),
                 sortedImages(product),
+                ProductVideoResponse.from(product.getVideo()),
                 attributes,
                 toCategoryRefs(product, lang),
                 toTranslationDtos(product),
@@ -657,6 +666,27 @@ public class ProductService {
                 imageRepository.save(img);
             });
         }
+    }
+
+    /**
+     * Sets (or clears) the product's featured video from the DTO. A submitted
+     * video with a non-blank {@code videoUrl} is stored; a null DTO video or one
+     * with a blank url clears any existing video (delete/replace). Trimming keeps
+     * the stored URLs clean.
+     */
+    private void applyVideo(Product product, ProductVideo dtoVideo) {
+        if (dtoVideo == null || dtoVideo.getVideoUrl() == null || dtoVideo.getVideoUrl().isBlank()) {
+            product.setVideo(null);
+            return;
+        }
+        ProductVideo video = new ProductVideo();
+        video.setVideoUrl(dtoVideo.getVideoUrl().trim());
+        video.setPosterImageUrl(
+                dtoVideo.getPosterImageUrl() != null && !dtoVideo.getPosterImageUrl().isBlank()
+                        ? dtoVideo.getPosterImageUrl().trim() : null);
+        video.setDuration(dtoVideo.getDuration());
+        video.setFileSize(dtoVideo.getFileSize());
+        product.setVideo(video);
     }
 
     /** Gallery ordered primary-first, then by sortOrder — for storefront/cards. */

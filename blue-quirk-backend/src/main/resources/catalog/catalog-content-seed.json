@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-07-16",
+  "note": "Curated premium storefront copy (EN base + FR/AR translations) for products that shipped without descriptions or translations. Applied gap-only by CatalogContentService: existing non-blank content is never overwritten. Safe to re-apply (idempotent).",
+  "items": [
+    {
+      "productId": 24,
+      "name": "Lose Love",
+      "description": "<p>Some stories end so a stronger one can begin. The <strong>Lose Love</strong> tee turns heartbreak into art — a veiled figure rising from a storm of butterflies, framed by raw, honest words about letting go.</p>\n<p>It's made for the ones who feel deeply and wear their scars like armour. More than a graphic tee, it's a quiet statement: closing a chapter without losing yourself.</p>\n<ul>\n<li>🖤 100% premium ring-spun cotton — soft, breathable, everyday comfort</li>\n<li>🎨 High-definition print with rich pinks that stay bold wash after wash</li>\n<li>✂️ Relaxed unisex fit that layers effortlessly, sizes S to XXL</li>\n<li>🧺 Machine washable — turn inside out to protect the design</li>\n</ul>\n<p>Dress it up with denim or down with joggers, for late nights and long walks. <strong>Wear your story — and rise from it.</strong></p>",
+      "translations": [
+        {
+          "lang": "fr",
+          "name": "T-Shirt Premium « Lose Love » en Coton",
+          "description": "<p>Certaines histoires se terminent pour qu'une plus forte puisse commencer. Le t-shirt <strong>Lose Love</strong> transforme le chagrin en art — une silhouette voilée qui s'élève dans une nuée de papillons, entourée de mots bruts et sincères sur l'art de lâcher prise.</p>\n<p>Il est fait pour celles et ceux qui ressentent intensément et portent leurs cicatrices comme une armure. Bien plus qu'un t-shirt graphique, c'est une déclaration discrète : tourner une page sans se perdre soi-même.</p>\n<ul>\n<li>🖤 100 % coton peigné premium — doux, respirant, confort au quotidien</li>\n<li>🎨 Impression haute définition aux roses intenses qui ne se ternissent pas</li>\n<li>✂️ Coupe unisexe décontractée, facile à superposer, du S au XXL</li>\n<li>🧺 Lavable en machine — à l'envers pour préserver le motif</li>\n</ul>\n<p>Portez-le avec un jean ou un jogging, pour les nuits tardives et les longues balades. <strong>Assumez votre histoire — et relevez-vous.</strong></p>"
+        },
+        {
+          "lang": "ar",
+          "name": "تيشيرت بريميوم « Lose Love » من القطن",
+          "description": "<p>بعض القصص تنتهي كي تبدأ قصة أقوى. تيشيرت <strong>Lose Love</strong> يحوّل الألم إلى فنّ — شخصية متشحة تنهض وسط سربٍ من الفراشات، تحيط بها كلمات صادقة عن فنّ المضيّ قُدُماً.</p>\n<p>صُمّم لمن يشعرون بعمق ويحملون ندوبهم كدرع. إنه أكثر من مجرد تيشيرت مطبوع؛ إنه تصريح هادئ: أن تطوي صفحة دون أن تفقد نفسك.</p>\n<ul>\n<li>🖤 قطن مُمشّط بريميوم 100% — ناعم، قابل للتنفس، مريح طوال اليوم</li>\n<li>🎨 طباعة عالية الدقة بألوان وردية غنية تدوم بعد كل غسلة</li>\n<li>✂️ قصّة يونيسكس مريحة تناسب التنسيق بالطبقات، من S إلى XXL</li>\n<li>🧺 قابل للغسل في الغسّالة — اقلبه للداخل للحفاظ على التصميم</li>\n</ul>\n<p>نسّقه مع جينز أو بنطال رياضي، للسهرات الطويلة والمشي الهادئ. <strong>احمل قصتك — وانهض منها.</strong></p>"
+        }
+      ]
+    },
+    {
+      "productId": 25,
+      "name": "Relax",
+      "description": "<p>Less noise, more ease. The <strong>Relax</strong> tee keeps it beautifully simple — a single hand-brushed word, centred in confident black ink on clean cotton.</p>\n<p>It's minimalism with a message: slow down, breathe, take up less and feel more. For the person whose style speaks softly but never goes unnoticed.</p>\n<ul>\n<li>🤍 100% premium ring-spun cotton — smooth, breathable, all-day soft</li>\n<li>🖋️ Crisp, high-definition script print that stays sharp wash after wash</li>\n<li>✂️ Classic unisex fit, easy to layer or wear on its own, sizes S to XXL</li>\n<li>🧺 Machine washable — effortless care for an effortless look</li>\n</ul>\n<p>Pair it with everything from tailored trousers to weekend shorts. <strong>Timeless, versatile and always in season — add it to your cart.</strong></p>",
+      "translations": [
+        {
+          "lang": "fr",
+          "name": "T-Shirt Premium « Relax » en Coton",
+          "description": "<p>Moins de bruit, plus de légèreté. Le t-shirt <strong>Relax</strong> mise sur une simplicité superbe — un seul mot tracé au pinceau, centré dans une encre noire assurée sur un coton épuré.</p>\n<p>Un minimalisme qui a du sens : ralentir, respirer, prendre moins de place et ressentir davantage. Pour celui dont le style parle tout bas mais ne passe jamais inaperçu.</p>\n<ul>\n<li>🤍 100 % coton peigné premium — doux, respirant, agréable toute la journée</li>\n<li>🖋️ Impression nette et haute définition qui reste précise lavage après lavage</li>\n<li>✂️ Coupe unisexe classique, à superposer ou à porter seule, du S au XXL</li>\n<li>🧺 Lavable en machine — un entretien simple pour un look sans effort</li>\n</ul>\n<p>Associez-le aussi bien à un pantalon habillé qu'à un short du week-end. <strong>Intemporel, polyvalent et toujours de saison — ajoutez-le au panier.</strong></p>"
+        },
+        {
+          "lang": "ar",
+          "name": "تيشيرت بريميوم « Relax » من القطن",
+          "description": "<p>ضجيج أقل، وراحة أكثر. تيشيرت <strong>Relax</strong> يحتفي بالبساطة الأنيقة — كلمة واحدة بخطّ الفرشاة، في وسط القميص بحبر أسود واثق على قطن نقيّ.</p>\n<p>إنه تبسيط يحمل رسالة: تمهّل، تنفّس، واشعر أكثر. لمن يتحدّث أسلوبه بهدوء لكنه لا يمرّ دون أن يُلاحَظ.</p>\n<ul>\n<li>🤍 قطن مُمشّط بريميوم 100% — ناعم، قابل للتنفس، مريح طوال اليوم</li>\n<li>🖋️ طباعة واضحة وعالية الدقة تبقى حادّة بعد كل غسلة</li>\n<li>✂️ قصّة يونيسكس كلاسيكية، تُلبس منفردة أو بالطبقات، من S إلى XXL</li>\n<li>🧺 قابل للغسل في الغسّالة — عناية سهلة لإطلالة بلا عناء</li>\n</ul>\n<p>نسّقه مع بنطال أنيق أو شورت لعطلة نهاية الأسبوع. <strong>خالد، عمليّ، ويناسب كل موسم — أضِفه إلى سلّتك.</strong></p>"
+        }
+      ]
+    },
+    {
+      "productId": 27,
+      "name": "Good Things Flowers Premium Cotton T-Shirt",
+      "description": "<p>A little reminder you can wear. The <strong>Good Things</strong> tee blooms with a lush violet-and-blue bouquet and a promise arched above it — <em>good things are just around the corner</em>.</p>\n<p>The soft florals meet a subtle barbed-wire line: beauty that grows through the hard days. It's for the optimist with an edge, the one who finds the light and keeps going.</p>\n<ul>\n<li>🌸 100% premium ring-spun cotton — soft-touch, breathable comfort</li>\n<li>🎨 High-definition floral print with dreamy, fade-resistant colour</li>\n<li>✂️ Flattering unisex fit, great tucked in or oversized, sizes S to XXL</li>\n<li>🧺 Machine washable — wash cold to keep the bloom vivid</li>\n</ul>\n<p>Throw it on for coffee runs, campus days or golden-hour strolls. <strong>Carry the good vibes with you — make it yours today.</strong></p>",
+      "translations": [
+        {
+          "lang": "fr",
+          "name": "T-Shirt Premium « Good Things » en Coton",
+          "description": "<p>Un petit rappel à porter sur soi. Le t-shirt <strong>Good Things</strong> s'épanouit avec un bouquet luxuriant de fleurs violettes et bleues, surmonté d'une promesse en arc de cercle : <em>les bonnes choses arrivent bientôt</em>.</p>\n<p>Les fleurs délicates rencontrent un discret fil barbelé : la beauté qui pousse malgré les jours difficiles. Pour l'optimiste au caractère affirmé, celle qui trouve la lumière et continue d'avancer.</p>\n<ul>\n<li>🌸 100 % coton peigné premium — toucher doux et respirant</li>\n<li>🎨 Impression florale haute définition aux couleurs douces et durables</li>\n<li>✂️ Coupe unisexe flatteuse, superbe rentrée ou oversize, du S au XXL</li>\n<li>🧺 Lavable en machine — à froid pour garder l'éclat des fleurs</li>\n</ul>\n<p>Enfilez-le pour un café, une journée de cours ou une balade à l'heure dorée. <strong>Emportez les bonnes ondes avec vous — adoptez-le dès aujourd'hui.</strong></p>"
+        },
+        {
+          "lang": "ar",
+          "name": "تيشيرت بريميوم « Good Things » من القطن",
+          "description": "<p>تذكيرٌ لطيف ترتديه معك. تيشيرت <strong>Good Things</strong> يتفتّح بباقة غنية من الزهور البنفسجية والزرقاء، تعلوها عبارة على شكل قوس: <em>الأشياء الجميلة قريبة</em>.</p>\n<p>تلتقي الزهور الرقيقة بخيطٍ شائكٍ خفيّ: جمالٌ ينمو رغم الأيام الصعبة. إنه لِلمُتفائلة ذات الطابع الجريء، التي تجد النور وتواصل المسير.</p>\n<ul>\n<li>🌸 قطن مُمشّط بريميوم 100% — ملمس ناعم وقابل للتنفس</li>\n<li>🎨 طباعة زهرية عالية الدقة بألوان حالمة تقاوم البهتان</li>\n<li>✂️ قصّة يونيسكس أنيقة، جميلة داخل البنطال أو واسعة، من S إلى XXL</li>\n<li>🧺 قابل للغسل في الغسّالة — بماء بارد للحفاظ على تألّق الزهور</li>\n</ul>\n<p>ارتديه لاحتساء قهوة، ليوم دراسي، أو لنزهة عند الغروب. <strong>احملي الطاقة الجميلة معك — اقتنيه اليوم.</strong></p>"
+        }
+      ]
+    },
+    {
+      "productId": 29,
+      "name": "THORNBLOOM Premium Cotton T-Shirt",
+      "translations": [
+        {
+          "lang": "fr",
+          "name": "T-Shirt Premium « Thornbloom » en Coton",
+          "description": "<p>Là où l'obscurité fait naître la beauté.</p>\n<p><strong>THORNBLOOM</strong> incarne l'équilibre entre la beauté et le danger. Avec son serpent noir entrelacé de roses blanches en fleurs, ce graphisme premium symbolise la transformation, la résilience et le renouveau. Inspiré du cycle <em>Vie • Mort • Renaissance</em>, il est pensé pour celles qui embrassent le changement et portent leur histoire avec assurance.</p>\n<p>Imprimé en haute définition sur un coton premium doux et respirant, lavable en machine, pour un confort qui dure. <strong>Portez votre métamorphose — offrez-vous THORNBLOOM.</strong></p>"
+        },
+        {
+          "lang": "ar",
+          "name": "تيشيرت بريميوم « Thornbloom » من القطن",
+          "description": "<p>حيث يولد الجمال من قلب الظلام.</p>\n<p>يجسّد <strong>THORNBLOOM</strong> التوازن بين الجمال والخطر. بأفعاه السوداء المتشابكة مع ورودٍ بيضاء متفتّحة، يرمز هذا التصميم الفاخر إلى التحوّل والصمود والتجدّد. مستوحى من دورة <em>الحياة • الموت • الولادة من جديد</em>، صُمّم لِمن يحتضنّ التغيير ويحملن قصّتهنّ بثقة.</p>\n<p>مطبوع بدقة عالية على قطن فاخر ناعم وقابل للتنفس، وقابل للغسل في الغسّالة، لراحة تدوم. <strong>ارتدي تحوّلك — اقتني THORNBLOOM.</strong></p>"
+        }
+      ]
+    },
+    {
+      "productId": 30,
+      "name": "Silent Love Bear Premium Cotton T-Shirt",
+      "description": "<p>Soft heart, street soul. The <strong>Silent Love Bear</strong> tee drops a graffiti-style teddy front and centre — stitched-X eyes, dripping tags and burnt-orange energy that hits like a wall mural.</p>\n<p>It says a lot without a word: love that's felt, not announced. Built for streetwear heads, sneaker fans and anyone who lets their fit do the talking.</p>\n<ul>\n<li>🧡 100% premium ring-spun cotton — heavyweight feel, breathable comfort</li>\n<li>🎨 High-definition graffiti print with bold, crack-resistant colour</li>\n<li>✂️ Modern unisex fit with a clean oversized drape, sizes S to XXL</li>\n<li>🧺 Machine washable — inside out to keep the art crisp</li>\n</ul>\n<p>Style it with cargos, denim and your favourite kicks, day to night. <strong>Say it silently — grab the Silent Love Bear.</strong></p>",
+      "translations": [
+        {
+          "lang": "fr",
+          "name": "T-Shirt Premium « Silent Love Bear » en Coton",
+          "description": "<p>Un cœur tendre, une âme de la rue. Le t-shirt <strong>Silent Love Bear</strong> place un nounours façon graffiti en plein centre — yeux cousus en croix, coulures de bombe et énergie orange brûlé qui frappe comme une fresque murale.</p>\n<p>Il en dit long sans un mot : un amour qui se ressent plutôt qu'il ne s'annonce. Pensé pour les adeptes du streetwear, les fans de sneakers et tous ceux qui laissent leur tenue parler.</p>\n<ul>\n<li>🧡 100 % coton peigné premium — toucher dense et respirant</li>\n<li>🎨 Impression graffiti haute définition aux couleurs franches et résistantes</li>\n<li>✂️ Coupe unisexe moderne, tombé oversize net, du S au XXL</li>\n<li>🧺 Lavable en machine — à l'envers pour garder le motif net</li>\n</ul>\n<p>Portez-le avec un cargo, un jean et vos sneakers préférées, du matin au soir. <strong>Dites-le en silence — offrez-vous le Silent Love Bear.</strong></p>"
+        },
+        {
+          "lang": "ar",
+          "name": "تيشيرت بريميوم « Silent Love Bear » من القطن",
+          "description": "<p>قلبٌ رقيق وروحٌ من الشارع. تيشيرت <strong>Silent Love Bear</strong> يضع دبّاً بأسلوب الغرافيتي في الصدارة — عينان مخيّطتان على شكل X، وقطراتٌ من الطلاء، وطاقةٌ برتقالية محروقة تصدح كجداريةٍ فنية.</p>\n<p>يقول الكثير دون كلمات: حبّ يُحَسّ ولا يُعلَن. صُمّم لعشّاق الستريت وير ومحبّي الأحذية الرياضية وكل من يترك إطلالته تتحدّث عنه.</p>\n<ul>\n<li>🧡 قطن مُمشّط بريميوم 100% — ملمس ثقيل وقابل للتنفس</li>\n<li>🎨 طباعة غرافيتي عالية الدقة بألوان جريئة تقاوم التشقّق</li>\n<li>✂️ قصّة يونيسكس عصرية بانسدال واسع أنيق، من S إلى XXL</li>\n<li>🧺 قابل للغسل في الغسّالة — اقلبه للداخل للحفاظ على وضوح التصميم</li>\n</ul>\n<p>نسّقه مع بنطال كارغو أو جينز وحذائك الرياضي المفضّل، من الصباح إلى المساء. <strong>قُلها بصمت — اقتنِ Silent Love Bear.</strong></p>"
+        }
+      ]
+    },
+    {
+      "productId": 31,
+      "name": "Gothic Angel Art Premium Cotton T-Shirt",
+      "description": "<p>Dark, divine and impossible to ignore. The <strong>Gothic Angel Art</strong> tee crowns a winged guardian in ethereal pink flame — <em>blessed by ethereal light</em> — flanked by kneeling angels and a haunting glow.</p>\n<p>It's dark-romantic art for the bold: equal parts grace and grit. Made for lovers of gothic aesthetics, alt fashion and statement pieces that turn heads.</p>\n<ul>\n<li>🧡 100% premium ring-spun cotton — soft, breathable, made to move</li>\n<li>🎨 High-definition print with luminous pinks that resist fading</li>\n<li>✂️ Flattering unisex fit, striking oversized or fitted, sizes S to XXL</li>\n<li>🧺 Machine washable — wash cold, tumble low</li>\n</ul>\n<p>Layer it under leather or wear it solo for concerts and nights out. <strong>Wear your halo your way — claim the Gothic Angel today.</strong></p>",
+      "translations": [
+        {
+          "lang": "fr",
+          "name": "T-Shirt Premium « Gothic Angel » en Coton",
+          "description": "<p>Sombre, divin et impossible à ignorer. Le t-shirt <strong>Gothic Angel Art</strong> couronne une gardienne ailée d'une flamme rose éthérée — <em>bénie par une lumière céleste</em> — entourée d'anges agenouillés et d'une lueur envoûtante.</p>\n<p>Un art romantique et ténébreux pour les audacieuses : autant de grâce que de caractère. Pour les amoureuses de l'esthétique gothique, de la mode alternative et des pièces qui font tourner les têtes.</p>\n<ul>\n<li>🧡 100 % coton peigné premium — doux, respirant, pensé pour bouger</li>\n<li>🎨 Impression haute définition aux roses lumineux résistants à la décoloration</li>\n<li>✂️ Coupe unisexe flatteuse, saisissante oversize ou ajustée, du S au XXL</li>\n<li>🧺 Lavable en machine — à froid, séchage doux</li>\n</ul>\n<p>Superposez-le sous du cuir ou portez-le seul, pour les concerts et les sorties. <strong>Portez votre auréole à votre façon — adoptez le Gothic Angel dès aujourd'hui.</strong></p>"
+        },
+        {
+          "lang": "ar",
+          "name": "تيشيرت بريميوم « Gothic Angel » من القطن",
+          "description": "<p>مظلمٌ، سماويّ، ويستحيل تجاهله. تيشيرت <strong>Gothic Angel Art</strong> يتوّج حارسةً مجنّحة بلهبٍ ورديّ أثيري — <em>مباركةٌ بنورٍ سماوي</em> — يحيط بها ملائكة راكعون وتوهّجٌ ساحر.</p>\n<p>فنّ رومانسيّ داكن للجريئات: نعمةٌ وقوّة في آنٍ واحد. لعاشقات الطابع القوطي والموضة البديلة والقطع التي تلفت الأنظار.</p>\n<ul>\n<li>🧡 قطن مُمشّط بريميوم 100% — ناعم، قابل للتنفس، مصمّم للحركة</li>\n<li>🎨 طباعة عالية الدقة بألوان وردية متوهّجة تقاوم البهتان</li>\n<li>✂️ قصّة يونيسكس أنيقة، لافتة واسعة أو مضبوطة، من S إلى XXL</li>\n<li>🧺 قابل للغسل في الغسّالة — بماء بارد وتجفيف لطيف</li>\n</ul>\n<p>ارتديه تحت الجلد أو منفرداً، للحفلات والسهرات. <strong>احملي هالتك بأسلوبك — اقتني Gothic Angel اليوم.</strong></p>"
+        }
+      ]
+    }
+  ]
+}

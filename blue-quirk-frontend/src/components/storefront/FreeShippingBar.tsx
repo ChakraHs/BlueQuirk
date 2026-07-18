@@ -4,7 +4,7 @@
 // from the backend-driven shipping config and updates automatically as the
 // subtotal changes (the parent passes a live cart subtotal).
 import { Truck, PartyPopper } from "lucide-react";
-import { useShippingConfig, freeShippingState } from "@/lib/shipping";
+import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
 import { formatPrice } from "@/lib/money";
 
 const COPY = {
@@ -63,9 +63,10 @@ export default function FreeShippingBar({
   const config = useShippingConfig();
   const { qualified, remaining, percent, threshold } = freeShippingState(subtotal, config);
   const t = lang === "ar" ? COPY.ar : lang === "en" ? COPY.en : COPY.fr;
+  const campaign = isFreeShippingCampaign(config);
 
-  // Feature disabled (no threshold configured) → render nothing.
-  if (threshold <= 0) return null;
+  // Feature disabled (no threshold configured) and no active campaign → nothing.
+  if (threshold <= 0 && !campaign) return null;
 
   return (
     <div
@@ -85,18 +86,22 @@ export default function FreeShippingBar({
         </p>
       </div>
 
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
-        <div
-          className={`h-full rounded-full transition-all duration-500 ease-out ${
-            qualified ? "bg-emerald-500" : "bg-blue-600"
-          }`}
-          style={{ width: `${percent}%` }}
-          role="progressbar"
-          aria-valuenow={Math.round(percent)}
-          aria-valuemin={0}
-          aria-valuemax={100}
-        />
-      </div>
+      {/* During the free-shipping campaign every order already ships free, so the
+          "progress toward the threshold" bar is meaningless — hide it. */}
+      {!campaign && (
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className={`h-full rounded-full transition-all duration-500 ease-out ${
+              qualified ? "bg-emerald-500" : "bg-blue-600"
+            }`}
+            style={{ width: `${percent}%` }}
+            role="progressbar"
+            aria-valuenow={Math.round(percent)}
+            aria-valuemin={0}
+            aria-valuemax={100}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -23,11 +23,14 @@ public class PricingService {
 
     private final ProductRepository productRepository;
     private final StoreSettingsService storeSettingsService;
+    private final CampaignPricing campaignPricing;
 
     public PricingService(ProductRepository productRepository,
-                          StoreSettingsService storeSettingsService) {
+                          StoreSettingsService storeSettingsService,
+                          CampaignPricing campaignPricing) {
         this.productRepository = productRepository;
         this.storeSettingsService = storeSettingsService;
+        this.campaignPricing = campaignPricing;
     }
 
     /** A single client cart line — only the product id and quantity are trusted. */
@@ -59,7 +62,9 @@ public class PricingService {
             Product product = productRepository.findById(in.productId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Product " + in.productId() + " no longer exists"));
-            double unitPrice = product.getPrice();
+            // Charge the campaign selling price (base + surcharge) so what the
+            // customer is billed matches what the storefront displayed.
+            double unitPrice = campaignPricing.sellingPrice(product.getPrice());
             double lineTotal = unitPrice * qty;
             subtotal += lineTotal;
             lines.add(new PricedLine(product, unitPrice, qty, lineTotal));
@@ -73,6 +78,11 @@ public class PricingService {
      * (threshold ≤ 0 disables the perk). Mirrors the storefront so totals match.
      */
     public double computeShipping(double subtotal) {
+        // Temporary free-shipping campaign forces every order to 0 while keeping
+        // the configured fee/threshold intact for an easy rollback.
+        if (campaignPricing.isFreeShipping()) {
+            return 0.0;
+        }
         StoreSettings settings = storeSettingsService.getOrCreate();
         double fee = settings.getShippingFee();
         double threshold = settings.getFreeShippingThreshold();

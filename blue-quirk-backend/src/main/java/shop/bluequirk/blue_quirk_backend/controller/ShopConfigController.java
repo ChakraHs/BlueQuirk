@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
+import shop.bluequirk.blue_quirk_backend.service.CampaignPricing;
 import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 
 /**
@@ -20,17 +21,24 @@ import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 public class ShopConfigController {
 
     private final StoreSettingsService settingsService;
+    private final CampaignPricing campaignPricing;
 
-    public ShopConfigController(StoreSettingsService settingsService) {
+    public ShopConfigController(StoreSettingsService settingsService,
+                                CampaignPricing campaignPricing) {
         this.settingsService = settingsService;
+        this.campaignPricing = campaignPricing;
     }
 
     @GetMapping("/config")
     public ShopConfig getConfig() {
         StoreSettings s = settingsService.getOrCreate();
+        // While the free-shipping campaign runs, advertise a 0 fee so the whole
+        // storefront (cart, checkout, product page) shows "free" — the stored fee
+        // is untouched and returns automatically when the campaign ends.
+        double shippingFee = campaignPricing.isFreeShipping() ? 0.0 : s.getShippingFee();
         return new ShopConfig(
                 s.getCurrency(),
-                s.getShippingFee(),
+                shippingFee,
                 s.getFreeShippingThreshold(),
                 s.getStoreName(),
                 s.getLogoUrl(),

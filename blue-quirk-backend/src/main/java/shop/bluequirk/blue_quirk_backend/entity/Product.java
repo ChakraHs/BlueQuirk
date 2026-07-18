@@ -69,6 +69,12 @@ public class Product {
     )
     private Set<Image> images; // initially null
 
+    // One optional featured video (embedded value; all columns nullable). A
+    // product with no video simply leaves videoUrl null — existing rows are
+    // unaffected. Stored/served like images (Cloudflare R2).
+    @Embedded
+    private ProductVideo video;
+
     
     
     @ManyToMany(fetch = FetchType.LAZY)
@@ -144,6 +150,9 @@ public class Product {
     
     public Set<Image> getImages() { return images; }
     public void setImages(Set<Image> images) { this.images = images; }
+
+    public ProductVideo getVideo() { return video; }
+    public void setVideo(ProductVideo video) { this.video = video; }
 
     public Set<Category> getCategories() { return categories; }
     public void setCategories(Set<Category> categories) { this.categories = categories; }

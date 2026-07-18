@@ -11,7 +11,7 @@ import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
 import { colorSwatch, isLightColor } from "@/lib/colors";
-import { useShippingConfig, freeShippingState } from "@/lib/shipping";
+import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import { t } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
@@ -77,6 +77,9 @@ export default function ProductDetailClient({
   // Shipping economics for the product-page banner (backend-driven; no hardcoding).
   const shippingConfig = useShippingConfig();
   const freeShip = freeShippingState(product.price, shippingConfig);
+  // During the free-shipping campaign we replace the threshold/progress messaging
+  // with a single clean "free shipping across Morocco" reassurance line.
+  const freeShippingCampaign = isFreeShippingCampaign(shippingConfig);
 
   // Color-aware gallery: when a color is selected, show that color's images
   // first then generic ones (falling back to generics when the color has none).
@@ -209,11 +212,55 @@ export default function ProductDetailClient({
     router.push(`/${lang}/checkout`);
   };
 
+  // Free-shipping banner content. Rendered in two positions with complementary
+  // visibility: on desktop it sits under the price (unchanged), on mobile it's
+  // promoted below the purchase actions. Pure/stateless, so rendering it twice
+  // duplicates no behaviour.
+  const shippingBannerInner = (
+    <>
+      <Truck
+        className={`mt-0.5 size-4 shrink-0 ${
+          freeShippingCampaign ? "text-emerald-600" : "text-blue-600"
+        }`}
+      />
+      {freeShippingCampaign ? (
+        <div className="text-sm">
+          <p className="font-semibold text-emerald-700">
+            {t(lang, "product.shipFreeCampaign")}
+          </p>
+          <p className="text-xs text-gray-500">
+            {t(lang, "product.shipFreeCampaignSub")}
+          </p>
+        </div>
+      ) : freeShip.qualified ? (
+        <p className="text-sm text-gray-700">
+          {t(lang, "product.shipQualified")}
+        </p>
+      ) : (
+        <div className="text-sm">
+          <p className="font-medium text-gray-800">
+            {t(lang, "product.shipFreeFrom", {
+              amount: Math.round(shippingConfig.freeShippingThreshold),
+              currency: shippingConfig.currency,
+            })}
+          </p>
+          <p className="text-xs text-gray-500">
+            {t(lang, "product.shipOtherwise", {
+              amount: Math.round(shippingConfig.shippingFee),
+              currency: shippingConfig.currency,
+            })}
+          </p>
+        </div>
+      )}
+    </>
+  );
+
   return (
     <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:gap-10 md:px-12 md:py-12">
       <section aria-label="Product images">
         <ProductGallery
           images={galleryImages}
+          video={product.video}
           alt={product.name}
           onActiveChange={setActiveImage}
           bgColor={galleryBg}
@@ -245,48 +292,32 @@ export default function ProductDetailClient({
             {formatPrice(product.price)}
           </p>
 
-          {/* Shipping info banner — threshold/fee come from the backend config. */}
-          {shippingConfig.freeShippingThreshold > 0 && (
-            <div className="flex items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5">
-              <Truck className="mt-0.5 size-4 shrink-0 text-blue-600" />
-              {freeShip.qualified ? (
-                <p className="text-sm text-gray-700">
-                  {t(lang, "product.shipQualified")}
-                </p>
-              ) : (
-                <div className="text-sm">
-                  <p className="font-medium text-gray-800">
-                    {t(lang, "product.shipFreeFrom", {
-                      amount: Math.round(shippingConfig.freeShippingThreshold),
-                      currency: shippingConfig.currency,
-                    })}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {t(lang, "product.shipOtherwise", {
-                      amount: Math.round(shippingConfig.shippingFee),
-                      currency: shippingConfig.currency,
-                    })}
-                  </p>
-                </div>
-              )}
+          {/* Shipping info banner (desktop) — kept directly under the price so the
+              md: layout is unchanged. The mobile instance lives below the buttons. */}
+          {(freeShippingCampaign || shippingConfig.freeShippingThreshold > 0) && (
+            <div className="hidden items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 md:flex">
+              {shippingBannerInner}
             </div>
           )}
         </div>
 
         {product.description && (
           <div
-            className="prose prose-sm order-5 max-w-none text-gray-600 md:order-2"
+            className="prose prose-sm order-7 max-w-none text-gray-600 md:order-2"
             dangerouslySetInnerHTML={{ __html: product.description }}
           />
         )}
 
         {!!productAttributes.length && (
-          <div className="order-2 space-y-5 md:order-3">
+          <div className="order-2 flex flex-col gap-5 md:order-3">
             {productAttributes.map((attribute) => {
               const isSize = sizeAttribute?.id === attribute.id;
               const isColor = colorAttribute?.id === attribute.id;
+              // Mobile only: Color picker above the Size selector (other attributes
+              // after). Desktop restores the natural source order (md:order-none).
+              const mobileOrder = isColor ? "order-1" : isSize ? "order-2" : "order-3";
               return (
-              <fieldset key={attribute.id} className="space-y-3">
+              <fieldset key={attribute.id} className={`${mobileOrder} space-y-3 md:order-none`}>
                 <legend className="flex w-full items-center justify-between gap-3 text-sm font-semibold text-gray-800">
                   <span className="flex flex-wrap items-center gap-2">
                     {attribute.name}
@@ -455,6 +486,14 @@ export default function ProductDetailClient({
           </p>
         )}
 
+        {/* Shipping info banner (mobile only) — promoted below the purchase
+            actions. Hidden on desktop, where the price-block instance is shown. */}
+        {(freeShippingCampaign || shippingConfig.freeShippingThreshold > 0) && (
+          <div className="order-5 flex items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 md:hidden">
+            {shippingBannerInner}
+          </div>
+        )}
+
         {/* Product Highlights — premium value props rendered as clean icon cards. */}
         <div className="order-6 space-y-3">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
@@ -498,7 +537,7 @@ export default function ProductDetailClient({
           </div>
         </div>
 
-        <div className="order-7 grid gap-3 border-t border-gray-200 pt-6 text-sm text-gray-600 sm:grid-cols-3">
+        <div className="order-8 grid gap-3 border-t border-gray-200 pt-6 text-sm text-gray-600 sm:grid-cols-3 md:order-7">
           <div className="flex items-start gap-2">
             <Truck className="mt-0.5 size-4 text-gray-900" />
             <span>{t(lang, "product.delivery")}</span>

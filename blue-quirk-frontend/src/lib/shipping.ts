@@ -72,6 +72,16 @@ export function useShippingConfig(): ShippingConfig {
   return config;
 }
 
+/**
+ * True during the temporary free-shipping campaign: the backend advertises a flat
+ * fee of 0, which means shipping is free regardless of subtotal or threshold. The
+ * storefront uses this to show a clean "free shipping" message instead of the
+ * "spend X more to unlock free shipping" progress UI.
+ */
+export function isFreeShippingCampaign(config: ShippingConfig): boolean {
+  return config.shippingFee <= 0;
+}
+
 /** The shipping charged for a given subtotal (0 once the threshold is reached). */
 export function computeShipping(subtotal: number, config: ShippingConfig): number {
   if (config.freeShippingThreshold > 0 && subtotal >= config.freeShippingThreshold) {
@@ -92,6 +102,11 @@ export type FreeShippingState = {
 };
 
 export function freeShippingState(subtotal: number, config: ShippingConfig): FreeShippingState {
+  // Free-shipping campaign: every order already ships free, so it's always
+  // "qualified" (no remaining amount, full progress).
+  if (isFreeShippingCampaign(config)) {
+    return { qualified: true, remaining: 0, percent: 100, threshold: config.freeShippingThreshold };
+  }
   const threshold = config.freeShippingThreshold;
   if (threshold <= 0) {
     return { qualified: true, remaining: 0, percent: 100, threshold: 0 };

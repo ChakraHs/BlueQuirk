@@ -12,6 +12,10 @@ export interface Product {
 
   images?: ProductImage[];
 
+  // Optional featured video. Present only when the product actually has one, so
+  // products without a video behave exactly as before.
+  video?: ProductVideo | null;
+
   categories?: {
     id: number;
     name: string;
@@ -60,6 +64,18 @@ export interface ProductImage {
   sortOrder?: number;
   // Id of the COLOR AttributeValue this image belongs to; null/undefined = generic.
   colorValueId?: number | null;
+}
+
+/**
+ * One optional featured product video (MP4/H.264 hosted on Cloudflare R2). The
+ * poster is loaded first; the heavy MP4 is only requested when the video slide
+ * becomes active (see ProductGallery). All fields but videoUrl are optional.
+ */
+export interface ProductVideo {
+  videoUrl: string;
+  posterImageUrl?: string | null;
+  duration?: number | null; // seconds
+  fileSize?: number | null; // bytes
 }
 
 export interface ProductAttribute {

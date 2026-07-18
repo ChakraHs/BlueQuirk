@@ -6,6 +6,7 @@ import { Providers } from "../../components/Providers";
 import ThemeStyle from "@/components/ThemeStyle";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
 import SupportWidget from "@/components/support/SupportWidget";
 import { CategoryService } from "@/services/category.service";
 import { getPublicShopConfig } from "@/lib/shopConfig";
@@ -95,7 +96,11 @@ export default async function LangLayout({
               storeName={config.storeName}
               logoUrl={config.logoUrl}
             />
-            <Providers>{children}</Providers>
+            {/* Full tree (not just top categories) so product cards can label
+                themselves by depth and by the page being browsed. */}
+            <CategoryTreeProvider tree={categories}>
+              <Providers>{children}</Providers>
+            </CategoryTreeProvider>
             <Footer
               lang={lang}
               storeName={config.storeName}
