@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Truck, Zap } from "lucide-react";
+import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Star, Truck, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
@@ -108,6 +108,32 @@ export default function ProductDetailClient({
   const router = useRouter();
 
   const canBuy = product.status === "PUBLISHED";
+
+  // --- Mobile sticky purchase bar (Redbubble/Amazon/Gymshark style) ----------
+  // The real Buy Now / Add to Cart section sits below the fold on mobile, so we
+  // surface a fixed bottom bar that reuses the SAME handlers. It is shown from
+  // first paint and hidden only while the real purchase controls are on-screen,
+  // driven purely by an IntersectionObserver (no scroll listeners).
+  const purchaseRef = useRef<HTMLDivElement>(null);
+  // `mounted` flips true one tick after hydration so the bar animates IN
+  // (slide-up + fade) on load; it also keeps SSR/CSR markup identical (both
+  // render it hidden first) → no hydration mismatch.
+  const [mounted, setMounted] = useState(false);
+  const [purchaseVisible, setPurchaseVisible] = useState(false);
+  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const el = purchaseRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setPurchaseVisible(entry.isIntersecting),
+      { threshold: 0 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  // Visible from first paint (controls are below the fold), hidden while the
+  // real controls are in view, shown again once they scroll away.
+  const showSticky = mounted && !purchaseVisible;
 
   // Recommend (and preselect) the customer's usual size when this product offers
   // it. Runs after mount so the server/client initial render stays identical.
@@ -414,7 +440,7 @@ export default function ProductDetailClient({
           </div>
         )}
 
-        <div className="order-3 flex flex-col gap-3 md:order-4">
+        <div ref={purchaseRef} className="order-3 flex flex-col gap-3 md:order-4">
           <div className="flex flex-col gap-3 sm:flex-row">
             <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-full border border-gray-300 sm:w-36">
               <button
@@ -566,6 +592,57 @@ export default function ProductDetailClient({
         availableSizes={sizeAttribute ? sizeAttribute.values.map((v) => v.value) : []}
         lang={lang}
       />
+
+      {/* Mobile sticky purchase bar — mobile only (md:hidden). Always in the DOM
+          (fixed → no layout shift); slides up/fades in when shown and slides
+          down/fades out when the real controls are visible. Its button reuses
+          the exact same handlers/state as the section above. */}
+      <div
+        aria-hidden={!showSticky}
+        style={{
+          boxShadow: "0 -8px 30px rgba(0,0,0,.08)",
+          borderTop: "1px solid #e5e7eb",
+          paddingBottom: "env(safe-area-inset-bottom)",
+        }}
+        className={`fixed inset-x-0 bottom-0 z-40 bg-white transition-all duration-[250ms] ease-out md:hidden ${
+          showSticky
+            ? "translate-y-0 opacity-100"
+            : "pointer-events-none translate-y-full opacity-0"
+        }`}
+      >
+        <div className="flex h-[76px] items-center justify-between gap-3 px-4">
+          <div className="min-w-0">
+            <p className="text-xl font-semibold leading-none text-gray-900">
+              {formatPrice(product.price)}
+            </p>
+            <p className="mt-1 flex items-center gap-1 truncate text-xs text-gray-500">
+              <Star className="size-3 shrink-0 fill-amber-400 text-amber-400" />
+              {product.material || t(lang, "product.premiumQuality")}
+            </p>
+          </div>
+
+          {canBuy ? (
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-black px-8 text-sm font-semibold text-white transition active:scale-[0.98]"
+            >
+              <Zap className="size-4" />
+              {t(lang, "product.buyNow")}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-gray-300 px-8 text-sm font-semibold text-white"
+            >
+              <ShoppingBag className="size-4" />
+              {t(lang, "product.unavailable")}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
