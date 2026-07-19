@@ -64,7 +64,9 @@ public class ShopConfigController {
                 s.getBorderColor(),
                 s.getSuccessColor(),
                 s.getWarningColor(),
-                s.getErrorColor());
+                s.getErrorColor(),
+                s.isClarityEnabled(),
+                s.getClarityProjectId());
     }
 
     public record ShopConfig(
@@ -96,5 +98,9 @@ public class ShopConfigController {
             String borderColor,
             String successColor,
             String warningColor,
-            String errorColor) {}
+            String errorColor,
+            // Microsoft Clarity — public, non-secret (the project id ships to the
+            // browser in the loader tag regardless). Session replay only.
+            boolean clarityEnabled,
+            String clarityProjectId) {}
 }

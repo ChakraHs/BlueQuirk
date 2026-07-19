@@ -48,7 +48,15 @@ export const THEME_COLOR_VARS: Record<keyof ThemeColors, string> = {
   errorColor: "--c-error",
 };
 
-export interface StoreSettings extends HeroSettings, ThemeColors {
+// Microsoft Clarity (session replay / heatmaps only) — admin-controlled toggle
+// and project (tag) id. Not a business-metrics source; the native analytics
+// pipeline stays authoritative for those.
+export interface ClaritySettings {
+  clarityEnabled: boolean;
+  clarityProjectId: string | null;
+}
+
+export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySettings {
   id?: number;
   storeName: string;
   logoUrl: string | null;
@@ -59,8 +67,9 @@ export interface StoreSettings extends HeroSettings, ThemeColors {
 }
 
 // Public subset returned by GET /api/shop/config (also includes the shipping
-// economics, see lib/shipping). Used for storefront branding + hero + theme.
-export interface PublicShopConfig extends HeroSettings, ThemeColors {
+// economics, see lib/shipping). Used for storefront branding + hero + theme +
+// the Clarity runtime toggle.
+export interface PublicShopConfig extends HeroSettings, ThemeColors, ClaritySettings {
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;

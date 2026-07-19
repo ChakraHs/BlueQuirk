@@ -34,5 +34,9 @@ public record StoreSettingsRequest(
         String borderColor,
         String successColor,
         String warningColor,
-        String errorColor
+        String errorColor,
+        // Microsoft Clarity (session replay only). enabled null = leave unchanged;
+        // projectId blank clears it.
+        Boolean clarityEnabled,
+        String clarityProjectId
 ) {}
