@@ -7,7 +7,9 @@ import ThemeStyle from "@/components/ThemeStyle";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
-import SupportWidget from "@/components/support/SupportWidget";
+// Support/chat widget temporarily disabled — re-enable by restoring this import
+// and the <SupportWidget /> render below.
+// import SupportWidget from "@/components/support/SupportWidget";
 import { CategoryService } from "@/services/category.service";
 import { getPublicShopConfig } from "@/lib/shopConfig";
 import { isLang, LANGS, dirOf } from "@/lib/lang";
@@ -106,11 +108,12 @@ export default async function LangLayout({
               storeName={config.storeName}
               logoUrl={config.logoUrl}
             />
+            {/* Support/chat widget temporarily disabled.
             <SupportWidget
               lang={lang}
               storeName={config.storeName}
               logoUrl={config.logoUrl}
-            />
+            /> */}
       </body>
     </html>
   );

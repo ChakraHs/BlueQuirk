@@ -244,8 +244,15 @@ export default function ProductGallery({
           onMouseLeave={() => setZoomPos(null)}
           onClick={openLightbox}
         >
-          {/* sliding track (slide order) */}
-          <div className="flex h-full w-full" style={trackStyle}>
+          {/* sliding track (slide order). Forced dir="ltr": this is a physical
+              horizontal carousel driven by translateX(-index*100%). Under RTL
+              (Arabic) the flex children would otherwise lay out right-to-left and
+              the transform would move the wrong way, leaving the stage blank for
+              every slide after the first (the video is always slide 2). Keeping
+              the track LTR makes navigation correct in both locales; the images/
+              video inside are direction-agnostic, and thumbnails/arrows/dots live
+              outside the track. */}
+          <div dir="ltr" className="flex h-full w-full" style={trackStyle}>
             {slides.map((slide) =>
               slide.kind === "video" && video ? (
                 <div key="video-slide" className="relative h-full w-full shrink-0">

@@ -23,6 +23,9 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   heroBgColor: string | null;
   heroImageUrl: string | null;
   heroImageMobileUrl: string | null;
+  // Microsoft Clarity (session replay only).
+  clarityEnabled: boolean;
+  clarityProjectId: string; // "" clears it
 };
 
 export const SettingsService = {

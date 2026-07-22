@@ -38,6 +38,9 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   successColor: null,
   warningColor: null,
   errorColor: null,
+  // Clarity off by default until an admin enables it.
+  clarityEnabled: false,
+  clarityProjectId: null,
 };
 
 export async function getPublicShopConfig(): Promise<PublicShopConfig> {
@@ -80,6 +83,8 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
       successColor: data.successColor ?? null,
       warningColor: data.warningColor ?? null,
       errorColor: data.errorColor ?? null,
+      clarityEnabled: data.clarityEnabled === true,
+      clarityProjectId: data.clarityProjectId ?? null,
     };
   } catch {
     return SHOP_CONFIG_DEFAULTS;

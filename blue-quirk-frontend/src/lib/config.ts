@@ -27,3 +27,49 @@ export const API_BASE_URL = resolveApiBaseUrl();
 export const SITE_URL = (
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 ).replace(/\/+$/, "");
+
+// --- Microsoft Clarity --------------------------------------------------------
+// Clarity is used STRICTLY for session replay, heatmaps and UX diagnostics. It
+// is NOT a source of business metrics — the native analytics pipeline
+// (src/lib/analytics/*) remains the single source of truth for those.
+//
+// The enable toggle + project id are primarily controlled at RUNTIME from the
+// admin dashboard (persisted in StoreSettings, read via /api/shop/config). The
+// build-time env vars below only act as a fallback (e.g. when the config request
+// fails) and as the development gate:
+//
+//   NEXT_PUBLIC_CLARITY_ENABLED               fallback enable flag
+//   NEXT_PUBLIC_CLARITY_PROJECT_ID            fallback project id (tag id)
+//   NEXT_PUBLIC_CLARITY_TRACK_IN_DEVELOPMENT  "true" to allow loading in dev builds
+function envFlag(value: string | undefined): boolean {
+  return value === "true" || value === "1";
+}
+
+export const clarityConfig = {
+  enabled: envFlag(process.env.NEXT_PUBLIC_CLARITY_ENABLED),
+  projectId: (process.env.NEXT_PUBLIC_CLARITY_PROJECT_ID || "").trim(),
+  trackInDevelopment: envFlag(process.env.NEXT_PUBLIC_CLARITY_TRACK_IN_DEVELOPMENT),
+};
+
+/** Runtime Clarity settings sourced from the admin dashboard (/api/shop/config). */
+export type ClarityRuntime = { enabled?: boolean; projectId?: string | null };
+
+/**
+ * Resolve whether Clarity should load and with which project id. Fails closed:
+ *
+ *   • In non-production builds it stays OFF unless trackInDevelopment is set,
+ *     regardless of the admin toggle — so local dev never records by accident.
+ *   • The admin runtime toggle (when provided) is authoritative for enable/id;
+ *     the env vars fill in only when no runtime value is available.
+ *   • Requires BOTH an enable flag and a non-empty project id to be active.
+ *
+ * When it returns { active:false }, nothing Clarity-related is rendered/loaded.
+ */
+export function resolveClarity(runtime?: ClarityRuntime): { active: boolean; projectId: string } {
+  if (process.env.NODE_ENV !== "production" && !clarityConfig.trackInDevelopment) {
+    return { active: false, projectId: "" };
+  }
+  const enabled = runtime ? runtime.enabled === true : clarityConfig.enabled;
+  const projectId = ((runtime?.projectId ?? "").trim() || clarityConfig.projectId).trim();
+  return { active: enabled && projectId.length > 0, projectId };
+}

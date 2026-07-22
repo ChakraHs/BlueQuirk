@@ -121,6 +121,17 @@ public class StoreSettings {
     @Column(name = "error_color")
     private String errorColor;
 
+    // --- Microsoft Clarity (session replay / heatmaps / UX diagnostics only) ---
+    // Admin-controlled runtime toggle + project (tag) id. This is the single
+    // source of truth for whether the storefront loads Clarity; the frontend env
+    // vars only act as a fallback / dev gate. Clarity is NOT a business-metrics
+    // source — the native analytics pipeline remains authoritative for those.
+    @Column(name = "clarity_enabled", nullable = false)
+    private boolean clarityEnabled = false;
+
+    @Column(name = "clarity_project_id")
+    private String clarityProjectId;
+
     public StoreSettings() {}
 
     public Long getId() { return id; }
@@ -211,4 +222,10 @@ public class StoreSettings {
 
     public String getErrorColor() { return errorColor; }
     public void setErrorColor(String errorColor) { this.errorColor = errorColor; }
+
+    public boolean isClarityEnabled() { return clarityEnabled; }
+    public void setClarityEnabled(boolean clarityEnabled) { this.clarityEnabled = clarityEnabled; }
+
+    public String getClarityProjectId() { return clarityProjectId; }
+    public void setClarityProjectId(String clarityProjectId) { this.clarityProjectId = clarityProjectId; }
 }

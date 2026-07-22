@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
 import { StoreSettings, ThemeColors } from "@/types/settings";
@@ -52,6 +52,8 @@ type FormState = {
   heroBgColor: string;
   heroImageUrl: string | null;
   heroImageMobileUrl: string | null;
+  clarityEnabled: boolean;
+  clarityProjectId: string;
 } & { [K in keyof ThemeColors]: string };
 
 function toForm(s: StoreSettings): FormState {
@@ -73,6 +75,8 @@ function toForm(s: StoreSettings): FormState {
     heroBgColor: s.heroBgColor ?? "",
     heroImageUrl: s.heroImageUrl ?? null,
     heroImageMobileUrl: s.heroImageMobileUrl ?? null,
+    clarityEnabled: s.clarityEnabled ?? false,
+    clarityProjectId: s.clarityProjectId ?? "",
     primaryColor: s.primaryColor ?? "",
     primaryHoverColor: s.primaryHoverColor ?? "",
     secondaryColor: s.secondaryColor ?? "",
@@ -174,6 +178,9 @@ export default function SettingsPage() {
         heroBgColor: form.heroBgColor.trim(),
         heroImageUrl: form.heroImageUrl ?? "",
         heroImageMobileUrl: form.heroImageMobileUrl ?? "",
+        // Microsoft Clarity: toggle + project id ("" clears it).
+        clarityEnabled: form.clarityEnabled,
+        clarityProjectId: form.clarityProjectId.trim(),
         // Theme colors: send trimmed value, or "" to clear back to the default.
         primaryColor: form.primaryColor.trim(),
         primaryHoverColor: form.primaryHoverColor.trim(),
@@ -588,6 +595,61 @@ export default function SettingsPage() {
             <p className="mt-2 text-xs text-gray-400">
               Language shown to new visitors (with no saved preference).
             </p>
+          </section>
+
+          {/* Session replay — Microsoft Clarity */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <Eye size={18} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">
+                Session replay &amp; heatmaps (Microsoft Clarity)
+              </h2>
+            </div>
+            <p className="mb-4 text-xs text-gray-400">
+              Records anonymized session replays and heatmaps for UX diagnostics only.
+              This does <span className="font-medium">not</span> affect your analytics
+              dashboard — those metrics come from the built-in analytics and stay the
+              source of truth. Only an internal user id is shared for logged-in visitors;
+              never email, phone, address or payment data.
+            </p>
+
+            <label className="flex cursor-pointer items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.clarityEnabled}
+                onClick={() => update({ clarityEnabled: !form.clarityEnabled })}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+                  form.clarityEnabled ? "bg-blue-600" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                    form.clarityEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+              <span className="text-sm font-medium text-gray-700">
+                {form.clarityEnabled ? "Enabled" : "Disabled"}
+              </span>
+            </label>
+
+            <div className="mt-4">
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Project ID
+              </label>
+              <input
+                value={form.clarityProjectId}
+                onChange={(e) => update({ clarityProjectId: e.target.value })}
+                placeholder="e.g. xoycfvzkqg"
+                spellCheck={false}
+                className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 font-mono text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+              <p className="mt-1 text-xs text-gray-400">
+                From clarity.microsoft.com → Settings → Overview (the tag id). Required
+                for replay to load. Leave the toggle off to disable Clarity entirely.
+              </p>
+            </div>
           </section>
 
           {error && <p className="text-sm text-rose-600">{error}</p>}

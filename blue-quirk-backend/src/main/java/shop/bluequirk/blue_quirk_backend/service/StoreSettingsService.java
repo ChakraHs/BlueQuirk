@@ -154,6 +154,13 @@ public class StoreSettingsService {
         if (req.errorColor() != null) {
             s.setErrorColor(blankToNull(req.errorColor()));
         }
+        // Microsoft Clarity: enabled null = unchanged; project id blank = cleared.
+        if (req.clarityEnabled() != null) {
+            s.setClarityEnabled(req.clarityEnabled());
+        }
+        if (req.clarityProjectId() != null) {
+            s.setClarityProjectId(blankToNull(req.clarityProjectId()));
+        }
         return repository.save(s);
     }
 

@@ -39,7 +39,22 @@ function ProductVideoSlideImpl({
   const [shouldLoad, setShouldLoad] = useState(false);
   const [visible, setVisible] = useState(false);
 
-  // Observe visibility; mount the <video> only after the first intersection.
+  // When the user navigates TO the video slide, mount it and treat it as visible.
+  // This can't rely on the IntersectionObserver below: the slide is moved into the
+  // stage by a CSS transform on the carousel track, and IntersectionObserver does
+  // not re-fire for transform-driven position changes — so without this the
+  // <video> would never mount and the stage would stay blank (the reported bug).
+  // `active` is a deliberate user action (thumbnail/arrow/swipe), which implies the
+  // gallery is already on-screen, so this stays gentle on Core Web Vitals.
+  useEffect(() => {
+    if (active) {
+      setShouldLoad(true);
+      setVisible(true);
+    }
+  }, [active]);
+
+  // Observe visibility; lazy-mount the <video> when the gallery is scrolled into
+  // view, and pause when it scrolls away (vertical scroll DOES fire the observer).
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
