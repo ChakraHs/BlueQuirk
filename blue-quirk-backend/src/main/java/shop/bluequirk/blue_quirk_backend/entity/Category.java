@@ -19,6 +19,9 @@ public class Category {
 
     private String slug; // URL-friendly (e.g. "t-shirts")
 
+    // Long-form category blurb — map to TEXT so it isn't capped at VARCHAR(255)
+    // (mirrors ProductTranslation.description). Descriptions routinely exceed 255.
+    @Lob
     private String description;
 
     // Optional: hierarchical categories (Men > T-Shirts)

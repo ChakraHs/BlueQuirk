@@ -57,6 +57,30 @@ public class TodifyScheduler {
         LOG.info("Todify retry job processed {} order(s)", Math.min(count, BATCH));
     }
 
+    /**
+     * Resend cancellation requests for orders stuck in CANCELLATION_PENDING (Todify
+     * was down / errored when the order was cancelled). Distinct from the submit
+     * retry above so a cancelled order is never re-submitted. Every 2 minutes.
+     */
+    @Scheduled(fixedDelayString = "${todify.retry.interval-ms:120000}", initialDelay = 45000)
+    public void retryPendingCancellations() {
+        if (!todifyService.isConfigured()) return;
+        List<Order> due = orderRepository.findByTodifySyncStateInAndTodifySyncAttemptsLessThan(
+                List.of(TodifySyncState.CANCELLATION_PENDING), todifyService.getMaxAttempts());
+        if (due.isEmpty()) return;
+
+        int count = 0;
+        for (Order order : due) {
+            if (count++ >= BATCH) break;
+            try {
+                todifyService.cancelOrder(order.getId());
+            } catch (Exception e) {
+                LOG.warn("Retry cancellation failed for order {}: {}", order.getId(), e.getMessage());
+            }
+        }
+        LOG.info("Todify cancellation-retry job processed {} order(s)", Math.min(count, BATCH));
+    }
+
     /** Reconcile status of sent, non-terminal orders. Every 15 minutes by default. */
     @Scheduled(fixedDelayString = "${todify.poll.interval-ms:900000}", initialDelay = 60000)
     public void pollOrderStatuses() {

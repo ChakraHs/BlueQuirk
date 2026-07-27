@@ -28,10 +28,11 @@ const PERIOD_LABELS: Record<Period, string> = {
 };
 
 /**
- * Business performance header for the admin dashboard: Revenue, Gross Profit,
- * Margin %, Orders, Average Order Value and Products Sold for Today / This Month
- * / This Year, plus a profit-over-time chart. All figures come from the
- * admin-only finance API (confidential — never on the storefront).
+ * Business performance header for the admin dashboard: Revenue, Net Profit
+ * (order total − product cost − real shipping cost), Margin %, Orders, Average
+ * Order Value and Products Sold for Today / This Month / This Year, plus a
+ * profit-over-time chart. All figures come from the admin-only finance API
+ * (confidential — never on the storefront).
  */
 export default function FinanceKpis() {
   const [overview, setOverview] = useState<FinanceOverview | null>(null);
@@ -62,7 +63,7 @@ export default function FinanceKpis() {
   const current: FinanceSummary | null = overview ? overview[period] : null;
 
   const revenueSeries: ChartPoint[] = useMemo(
-    () => series.map((p) => ({ label: p.period, value: p.revenue })),
+    () => series.map((p) => ({ label: p.period, value: p.collected })),
     [series]
   );
   const profitSeries: ChartPoint[] = useMemo(
@@ -114,17 +115,17 @@ export default function FinanceKpis() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           <StatCard
             label="Revenue"
-            value={formatPrice(current.revenue)}
+            value={formatPrice(current.collected)}
             icon={DollarSign}
             accent="green"
-            hint={`Net sales ${formatPrice(current.netSales)}`}
+            hint={`Incl. shipping · goods ${formatPrice(current.revenue)}`}
           />
           <StatCard
-            label="Gross Profit"
-            value={formatPrice(current.grossProfit)}
+            label="Net Profit"
+            value={formatPrice(current.netProfit)}
             icon={TrendingUp}
             accent="blue"
-            hint={`Cost ${formatPrice(current.cost)}`}
+            hint={`Cost ${formatPrice(current.cost)} · Real shipping ${formatPrice(current.realShippingCost)}`}
           />
           <StatCard
             label="Profit Margin"

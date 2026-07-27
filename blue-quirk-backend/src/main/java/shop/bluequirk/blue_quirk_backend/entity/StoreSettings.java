@@ -28,8 +28,16 @@ public class StoreSettings {
     // Public URL of the store logo (R2). Null = show the text name only.
     private String logoUrl;
 
+    // Customer Shipping Price — the delivery fee shown to customers everywhere on
+    // the storefront (product page, cart, checkout, emails). 0 = free shipping.
     @Column(nullable = false)
     private double shippingFee;
+
+    // Real Shipping Cost — the store's actual internal logistics cost. NEVER shown
+    // to customers; used only for profit calculations. Independent of what the
+    // customer is charged (shippingFee), which may be 0 while this stays > 0.
+    @Column(name = "real_shipping_cost", nullable = false)
+    private double realShippingCost;
 
     @Column(nullable = false)
     private double freeShippingThreshold;
@@ -145,6 +153,9 @@ public class StoreSettings {
 
     public double getShippingFee() { return shippingFee; }
     public void setShippingFee(double shippingFee) { this.shippingFee = shippingFee; }
+
+    public double getRealShippingCost() { return realShippingCost; }
+    public void setRealShippingCost(double realShippingCost) { this.realShippingCost = realShippingCost; }
 
     public double getFreeShippingThreshold() { return freeShippingThreshold; }
     public void setFreeShippingThreshold(double freeShippingThreshold) {

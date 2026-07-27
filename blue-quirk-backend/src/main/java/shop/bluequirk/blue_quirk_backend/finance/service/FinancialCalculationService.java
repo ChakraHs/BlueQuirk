@@ -13,12 +13,15 @@ import org.springframework.stereotype.Service;
  * <ul>
  *   <li><b>Revenue</b> — value of products sold (the goods/selling total, before
  *       discounts). Shipping is excluded.</li>
- *   <li><b>Gross Profit</b> = Revenue − Product Cost.</li>
+ *   <li><b>Gross Profit</b> = Revenue − Product Cost (goods only).</li>
+ *   <li><b>Net Profit</b> = Order Total − Product Cost − Real Shipping Cost (the
+ *       true bottom line, incl. the customer shipping price via the total and the
+ *       store's internal logistics cost).</li>
  *   <li><b>Net Sales</b> = Revenue − Discounts.</li>
  *   <li><b>Operational Revenue</b> = Revenue + Shipping Fees.</li>
  * </ul>
- * Shipping is deliberately NOT subtracted from profit yet (that is a future
- * expense-accounting concern), so gross profit here is purely goods-based.
+ * Gross profit is purely goods-based; net profit additionally deducts the
+ * internal Real Shipping Cost (never the customer-facing shipping price).
  *
  * <p>All monetary results are rounded to 2 decimals (MAD) and percentages to 2
  * decimals. Division guards return 0 rather than NaN/Infinity.
@@ -57,6 +60,19 @@ public class FinancialCalculationService {
     /** Gross profit: Revenue − Product Cost. */
     public double grossProfit(double revenue, double cost) {
         return round(revenue - cost);
+    }
+
+    /**
+     * Net profit: what the customer actually paid (order total, incl. the customer
+     * shipping price and any discount) minus the product cost and the store's
+     * internal Real Shipping Cost. This is the true bottom line:
+     * {@code total − cost − realShippingCost}. The customer shipping price is part
+     * of {@code total} (revenue); the Real Shipping Cost is the actual expense — the
+     * two are independent, so free shipping (customer price 0) still deducts the
+     * real logistics cost here.
+     */
+    public double netProfit(double total, double cost, double realShippingCost) {
+        return round(total - cost - realShippingCost);
     }
 
     /** Net sales: Revenue − Discounts. */

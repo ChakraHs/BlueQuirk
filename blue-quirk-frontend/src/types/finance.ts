@@ -8,11 +8,13 @@ export interface FinanceSummary {
   revenue: number;
   cost: number;
   grossProfit: number;
+  netProfit: number; // collected − cost − realShippingCost (bottom line)
   marginPercent: number;
   netSales: number;
   operationalRevenue: number;
   discount: number;
-  shipping: number;
+  shipping: number; // customer shipping price charged
+  realShippingCost: number; // internal logistics cost (never shown to customers)
   collected: number;
   orders: number;
   productsSold: number;
@@ -28,7 +30,8 @@ export interface FinanceOverview {
 export interface FinanceTimePoint {
   period: string; // "YYYY-MM-DD" or "YYYY-MM"
   orders: number;
-  revenue: number;
+  revenue: number; // goods subtotal (pre-shipping)
+  collected: number; // order total incl. customer shipping — the amount collected
   cost: number;
   profit: number;
   marginPercent: number;
@@ -52,7 +55,9 @@ export interface OrderFinancials {
   discount: number;
   shipping: number;
   finalTotal: number;
-  grossProfit: number;
+  realShippingCost: number; // internal logistics cost (never shown to customer)
+  grossProfit: number; // sellingTotal − costTotal (goods only)
+  netProfit: number; // finalTotal − costTotal − realShippingCost (bottom line)
   marginPercent: number;
   netSales: number;
   operationalRevenue: number;

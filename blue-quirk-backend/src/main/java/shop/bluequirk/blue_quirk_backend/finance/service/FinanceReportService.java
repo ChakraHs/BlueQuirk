@@ -47,7 +47,7 @@ public class FinanceReportService {
     @Transactional(readOnly = true)
     public FinanceSummary summary(LocalDateTime from, LocalDateTime to) {
         List<Object[]> rows = repository.summaryRow(from, to);
-        Object[] r = rows.isEmpty() ? new Object[6] : rows.get(0);
+        Object[] r = rows.isEmpty() ? new Object[7] : rows.get(0);
 
         long orders = lng(r[0]);
         double revenue = finance.round(num(r[1]));
@@ -55,6 +55,7 @@ public class FinanceReportService {
         double discount = finance.round(num(r[3]));
         double shipping = finance.round(num(r[4]));
         double collected = finance.round(num(r[5]));
+        double realShippingCost = finance.round(num(r[6]));
         long units = repository.sumUnits(from, to);
 
         return new FinanceSummary(
@@ -63,11 +64,13 @@ public class FinanceReportService {
                 revenue,
                 cost,
                 finance.grossProfit(revenue, cost),
+                finance.netProfit(collected, cost, realShippingCost),
                 finance.marginPercent(revenue, cost),
                 finance.netSales(revenue, discount),
                 finance.operationalRevenue(revenue, shipping),
                 discount,
                 shipping,
+                realShippingCost,
                 collected,
                 orders,
                 units,
@@ -87,9 +90,13 @@ public class FinanceReportService {
         for (Object[] r : rows) {
             double revenue = finance.round(num(r[2]));
             double cost = finance.round(num(r[3]));
+            double collected = finance.round(num(r[4]));
+            double realShipping = finance.round(num(r[5]));
             String period = str(r[0]);
-            byPeriod.put(period, new FinanceTimePoint(period, lng(r[1]), revenue, cost,
-                    finance.grossProfit(revenue, cost), finance.marginPercent(revenue, cost)));
+            // The series "profit" line is the bottom line (net profit): what was
+            // collected minus product cost and the internal real shipping cost.
+            byPeriod.put(period, new FinanceTimePoint(period, lng(r[1]), revenue, collected, cost,
+                    finance.netProfit(collected, cost, realShipping), finance.marginPercent(revenue, cost)));
         }
 
         // Emit a CONTINUOUS series: every bucket in [from, to], zero-filled where
@@ -102,7 +109,7 @@ public class FinanceReportService {
             YearMonth end = YearMonth.from(to);
             while (!cursor.isAfter(end)) {
                 String key = cursor.format(fmt);
-                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0)));
+                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0, 0.0)));
                 cursor = cursor.plusMonths(1);
             }
         } else {
@@ -111,7 +118,7 @@ public class FinanceReportService {
             LocalDate end = to.toLocalDate();
             while (!cursor.isAfter(end)) {
                 String key = cursor.format(fmt);
-                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0)));
+                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0, 0.0)));
                 cursor = cursor.plusDays(1);
             }
         }

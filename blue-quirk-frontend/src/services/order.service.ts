@@ -50,6 +50,8 @@ export type OrderResponse = {
   paymentStatus?: string;
   paymentMethod: string;
   cancellationReason?: string;
+  cancelledAt?: string;
+  cancelledBy?: string;
   trackingNumber?: string;
   estimatedDelivery?: string;
   customerId?: number;
@@ -86,6 +88,33 @@ export type FulfillmentPayload = {
   paymentStatus?: string;
   trackingNumber?: string;
   estimatedDelivery?: string; // YYYY-MM-DD
+};
+
+// Durable order-lifecycle audit entry (cancel / Todify cancel / delete).
+export type OrderAuditLog = {
+  id: number;
+  orderId?: number;
+  orderNumber?: string;
+  action: string;
+  performedBy?: string;
+  reason?: string;
+  httpStatus?: number;
+  detail?: string;
+  createdAt: string;
+};
+
+// Raw Todify sync log (request/response/error) for one order.
+export type TodifySyncLog = {
+  id: number;
+  type: string;
+  event?: string;
+  direction?: string;
+  orderId?: number;
+  httpStatus?: number;
+  requestBody?: string;
+  responseBody?: string;
+  errorMessage?: string;
+  createdAt: string;
 };
 
 /** Convert cart lines into the order payload, flattening variant attributes. */
@@ -173,5 +202,25 @@ export const OrderService = {
 
   delete: async (id: number): Promise<void> => {
     await api.delete(`/orders/${id}`);
+  },
+
+  /** Retry the Todify cancellation for a cancelled order. Returns the updated order. */
+  retryTodifyCancel: async (id: number): Promise<OrderResponse> => {
+    const { data } = await api.post<OrderResponse>(
+      `/admin/todify/orders/${id}/cancel`
+    );
+    return data;
+  },
+
+  /** Full lifecycle audit trail for one order (admin). */
+  getAudit: async (id: number): Promise<OrderAuditLog[]> => {
+    const { data } = await api.get<OrderAuditLog[]>(`/orders/${id}/audit`);
+    return data;
+  },
+
+  /** Raw Todify synchronization logs for one order (admin). */
+  getTodifyLogs: async (id: number): Promise<TodifySyncLog[]> => {
+    const { data } = await api.get<TodifySyncLog[]>(`/orders/${id}/todify/logs`);
+    return data;
   },
 };

@@ -60,6 +60,21 @@ class FinancialCalculationServiceTest {
     }
 
     @Test
+    void netProfitSubtractsCostAndRealShippingFromOrderTotal() {
+        // Spec example: total 199 − product cost 85 − real shipping 32 = 82.
+        assertThat(finance.netProfit(199.0, 85.0, 32.0)).isEqualTo(82.0);
+    }
+
+    @Test
+    void netProfitUsesRealShippingNotTheCustomerShippingPrice() {
+        // Free shipping (customer pays 0 for delivery) still deducts the real
+        // logistics cost: total 199 − cost 85 − real shipping 32 = 82, not 114.
+        assertThat(finance.netProfit(199.0, 85.0, 32.0)).isEqualTo(82.0);
+        // A real shipping cost of 0 leaves the full goods margin intact.
+        assertThat(finance.netProfit(199.0, 85.0, 0.0)).isEqualTo(114.0);
+    }
+
+    @Test
     void operationalRevenueAddsShipping() {
         assertThat(finance.operationalRevenue(1000.0, 29.0)).isEqualTo(1029.0);
     }

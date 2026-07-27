@@ -25,17 +25,20 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import shop.bluequirk.blue_quirk_backend.domain.AttributeType;
+import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.domain.TodifySyncState;
 import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 import shop.bluequirk.blue_quirk_backend.entity.Order;
+import shop.bluequirk.blue_quirk_backend.entity.OrderAuditLog;
 import shop.bluequirk.blue_quirk_backend.entity.OrderItem;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.TodifySyncLog;
 import shop.bluequirk.blue_quirk_backend.repository.AttributeRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ImageRepository;
+import shop.bluequirk.blue_quirk_backend.repository.OrderAuditLogRepository;
 import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
 import shop.bluequirk.blue_quirk_backend.repository.TodifySyncLogRepository;
@@ -62,6 +65,7 @@ public class TodifyService {
     private final R2StorageService r2StorageService;
     private final ProductImageService productImageService;
     private final TodifySyncLogRepository logRepository;
+    private final OrderAuditLogRepository auditRepository;
     private final OrderService orderService;
 
     private final String defaultCountry;
@@ -78,6 +82,7 @@ public class TodifyService {
                          R2StorageService r2StorageService,
                          ProductImageService productImageService,
                          TodifySyncLogRepository logRepository,
+                         OrderAuditLogRepository auditRepository,
                          OrderService orderService,
                          @Value("${todify.default-country:MA}") String defaultCountry,
                          @Value("${todify.retry.max-attempts:5}") int maxAttempts) {
@@ -89,6 +94,7 @@ public class TodifyService {
         this.r2StorageService = r2StorageService;
         this.productImageService = productImageService;
         this.logRepository = logRepository;
+        this.auditRepository = auditRepository;
         this.orderService = orderService;
         this.defaultCountry = defaultCountry;
         this.maxAttempts = maxAttempts;
@@ -178,6 +184,142 @@ public class TodifyService {
             log(TodifySyncLog.Type.ERROR, "submitOrder", "OUTBOUND", orderId, null,
                     e.getStatus(), payload != null ? payload.toString() : null, e.getBody(), e.getMessage(), null);
             LOG.warn("Order {} sync to Todify FAILED: {}", orderId, e.getMessage());
+        }
+    }
+
+    // =====================================================================
+    // Order cancellation (outbound)
+    // =====================================================================
+
+    /**
+     * Sends a cancellation request to Todify for an order that was already sent
+     * (has a {@code todifyOrderId}). Fully idempotent and never throws:
+     * <ul>
+     *   <li>Already {@code CANCELLED} → no-op (never a duplicate request).</li>
+     *   <li>No {@code todifyOrderId} → nothing exists in Todify; nothing to do.</li>
+     *   <li>Todify confirms (2xx) or reports the order already gone (404) →
+     *       {@code CANCELLED}.</li>
+     *   <li>Todify errors / is unreachable → {@code CANCELLATION_PENDING} with the
+     *       error, so the scheduler and the admin "Retry" action can try again.</li>
+     * </ul>
+     * Safe to call from the async after-commit listener, the scheduled retry, and
+     * the manual admin retry endpoint. Records both a raw {@link TodifySyncLog}
+     * (request/response) and an {@link OrderAuditLog} entry.
+     */
+    @Transactional
+    public void cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) return;
+
+        // Idempotency guard: Todify already confirmed — never send a duplicate.
+        if (order.getTodifySyncState() == TodifySyncState.CANCELLED) return;
+
+        // Nothing was ever sent to Todify → nothing to cancel there.
+        if (order.getTodifyOrderId() == null || order.getTodifyOrderId().isBlank()) return;
+
+        if (!isConfigured()) {
+            order.setTodifySyncState(TodifySyncState.CANCELLATION_PENDING);
+            order.setTodifyErrorMessage("Todify not configured — cancellation queued. Add an API token in Admin → Todify → Settings.");
+            orderRepository.save(order);
+            audit(order, OrderAuditLog.Action.TODIFY_CANCEL_FAILED, "system", null,
+                    "Todify not configured; cancellation pending.");
+            return;
+        }
+
+        String todifyId = order.getTodifyOrderId();
+        order.setTodifySyncAttempts(order.getTodifySyncAttempts() + 1);
+        order.setTodifyLastSyncAt(LocalDateTime.now());
+        audit(order, OrderAuditLog.Action.TODIFY_CANCEL_REQUESTED, "system", null,
+                "Cancellation request sent to Todify order " + todifyId
+                        + " (attempt " + order.getTodifySyncAttempts() + ").");
+
+        try {
+            JsonNode root = client.cancelOrder(todifyId);
+            order.setTodifyStatus("cancelled");
+            order.setTodifySyncState(TodifySyncState.CANCELLED);
+            order.setTodifyErrorMessage(null);
+            orderRepository.save(order);
+            log(TodifySyncLog.Type.RESPONSE, "cancelOrder", "OUTBOUND", orderId, null,
+                    200, null, root.toString(), null, null);
+            audit(order, OrderAuditLog.Action.TODIFY_CANCEL_CONFIRMED, "system", 200,
+                    "Todify confirmed cancellation of order " + todifyId + ".");
+            LOG.info("Order {} cancellation confirmed by Todify ({})", orderId, todifyId);
+        } catch (TodifyApiException e) {
+            // A 404 means the order no longer exists in Todify — treat as already
+            // cancelled (idempotent success) rather than blocking deletion forever.
+            if (isAlreadyGone(e)) {
+                order.setTodifyStatus("cancelled");
+                order.setTodifySyncState(TodifySyncState.CANCELLED);
+                order.setTodifyErrorMessage(null);
+                orderRepository.save(order);
+                log(TodifySyncLog.Type.RESPONSE, "cancelOrder", "OUTBOUND", orderId, null,
+                        e.getStatus(), null, e.getBody(), "Order not found in Todify — treated as cancelled.", null);
+                audit(order, OrderAuditLog.Action.TODIFY_CANCEL_CONFIRMED, "system", e.getStatus(),
+                        "Order not found in Todify (HTTP " + e.getStatus() + ") — treated as already cancelled.");
+                LOG.info("Order {} not present in Todify ({}) — marked cancelled", orderId, todifyId);
+                return;
+            }
+            // The write cancel endpoint was unavailable (e.g. HTTP 405 — Todify's
+            // order API is read-only) or a transient failure. Reconcile by reading
+            // the order back: if Todify already reports it cancelled/returned, the
+            // cancellation is effectively synchronized.
+            if (reconcileCancelled(order, todifyId, e)) return;
+
+            order.setTodifySyncState(TodifySyncState.CANCELLATION_PENDING);
+            order.setTodifyErrorMessage(truncate("Cancellation failed: HTTP " + e.getStatus() + " " + e.getBody(), 4000));
+            orderRepository.save(order);
+            log(TodifySyncLog.Type.ERROR, "cancelOrder", "OUTBOUND", orderId, null,
+                    e.getStatus(), null, e.getBody(), e.getMessage(), null);
+            audit(order, OrderAuditLog.Action.TODIFY_CANCEL_FAILED, "system", e.getStatus(),
+                    "Todify cancellation failed: " + e.getMessage());
+            LOG.warn("Order {} cancellation to Todify FAILED: {}", orderId, e.getMessage());
+        }
+    }
+
+    /**
+     * Reconciles a cancellation by reading the order back from Todify: if Todify
+     * already reports it cancelled/returned, mark the local order CANCELLED
+     * (synchronized). Covers providers/tokens where orders are read-only (no write
+     * cancel endpoint) — the cancellation is done in the Todify dashboard and we
+     * simply confirm it here. Returns false when Todify still shows the order
+     * active (or the read failed), leaving the caller to mark CANCELLATION_PENDING.
+     */
+    private boolean reconcileCancelled(Order order, String todifyId, TodifyApiException cause) {
+        try {
+            JsonNode root = client.getOrder(todifyId);
+            String status = text(root.path("data"), "status");
+            if (TodifyStatusMapper.toOrderStatus(status) == OrderStatus.CANCELLED) {
+                order.setTodifyStatus(status);
+                order.setTodifySyncState(TodifySyncState.CANCELLED);
+                order.setTodifyErrorMessage(null);
+                orderRepository.save(order);
+                log(TodifySyncLog.Type.RESPONSE, "cancelOrder.reconcile", "OUTBOUND", order.getId(), null,
+                        200, null, root.toString(), null, null);
+                audit(order, OrderAuditLog.Action.TODIFY_CANCEL_CONFIRMED, "system", 200,
+                        "Todify already reports the order \"" + status + "\" — cancellation synchronized"
+                        + " (write endpoint returned HTTP " + cause.getStatus() + ").");
+                LOG.info("Order {} reconciled as cancelled in Todify ({})", order.getId(), todifyId);
+                return true;
+            }
+        } catch (TodifyApiException readError) {
+            LOG.warn("Order {} cancellation reconcile read failed: {}", order.getId(), readError.getMessage());
+        }
+        return false;
+    }
+
+    /** A 404 (or an explicit "not found"/"already cancelled") is idempotently a success. */
+    private static boolean isAlreadyGone(TodifyApiException e) {
+        if (e.getStatus() == 404) return true;
+        String body = e.getBody() == null ? "" : e.getBody().toLowerCase(java.util.Locale.ROOT);
+        return body.contains("already cancelled") || body.contains("already canceled");
+    }
+
+    private void audit(Order order, OrderAuditLog.Action action, String actor, Integer httpStatus, String detail) {
+        try {
+            auditRepository.save(new OrderAuditLog(
+                    order.getId(), order.getOrderNumber(), action, actor, null, httpStatus, detail));
+        } catch (Exception e) {
+            LOG.warn("Failed to write order audit log ({}) for order {}: {}", action, order.getId(), e.getMessage());
         }
     }
 

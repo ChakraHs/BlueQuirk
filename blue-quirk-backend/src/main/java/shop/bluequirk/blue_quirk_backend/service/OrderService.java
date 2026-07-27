@@ -16,16 +16,21 @@ import shop.bluequirk.blue_quirk_backend.dto.OrderFinancialsResponse;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Customer;
 import shop.bluequirk.blue_quirk_backend.entity.Order;
+import shop.bluequirk.blue_quirk_backend.entity.OrderAuditLog;
 import shop.bluequirk.blue_quirk_backend.entity.OrderItem;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.User;
 import shop.bluequirk.blue_quirk_backend.finance.service.FinancialCalculationService;
+import shop.bluequirk.blue_quirk_backend.identity.user.CurrentUserService;
+import shop.bluequirk.blue_quirk_backend.integration.todify.OrderCancelledEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
 import shop.bluequirk.blue_quirk_backend.promotion.service.AppliedPromotion;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService.CustomerRef;
+import shop.bluequirk.blue_quirk_backend.repository.OrderAuditLogRepository;
 import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
+import shop.bluequirk.blue_quirk_backend.repository.TodifySyncLogRepository;
 import shop.bluequirk.blue_quirk_backend.service.PricingService.LineInput;
 import shop.bluequirk.blue_quirk_backend.service.PricingService.PricedCart;
 import shop.bluequirk.blue_quirk_backend.service.PricingService.PricedLine;
@@ -46,6 +51,10 @@ public class OrderService {
     private final PricingService pricingService;
     private final PromotionRedemptionService promotionRedemptionService;
     private final FinancialCalculationService finance;
+    private final StoreSettingsService storeSettingsService;
+    private final CurrentUserService currentUserService;
+    private final OrderAuditLogRepository auditRepository;
+    private final TodifySyncLogRepository todifyLogRepository;
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -55,7 +64,11 @@ public class OrderService {
                         ApplicationEventPublisher events,
                         PricingService pricingService,
                         PromotionRedemptionService promotionRedemptionService,
-                        FinancialCalculationService finance) {
+                        FinancialCalculationService finance,
+                        StoreSettingsService storeSettingsService,
+                        CurrentUserService currentUserService,
+                        OrderAuditLogRepository auditRepository,
+                        TodifySyncLogRepository todifyLogRepository) {
         this.orderRepository = orderRepository;
         this.notificationService = notificationService;
         this.customerService = customerService;
@@ -63,6 +76,10 @@ public class OrderService {
         this.pricingService = pricingService;
         this.promotionRedemptionService = promotionRedemptionService;
         this.finance = finance;
+        this.storeSettingsService = storeSettingsService;
+        this.currentUserService = currentUserService;
+        this.auditRepository = auditRepository;
+        this.todifyLogRepository = todifyLogRepository;
     }
 
     /**
@@ -180,6 +197,9 @@ public class OrderService {
         order.setSubtotal(subtotal);
         order.setShippingFee(shippingFee);
         order.setCostTotal(round(costTotal));
+        // Snapshot the internal Real Shipping Cost so this order's profit is frozen
+        // and immune to later changes of the admin setting. Internal only.
+        order.setRealShippingCost(Math.max(0, storeSettingsService.getOrCreate().getRealShippingCost()));
         order.setOriginalTotal(originalTotal);
         order.setDiscountAmount(discount);
         order.setDiscountPercentage(discountPercentage);
@@ -259,6 +279,7 @@ public class OrderService {
 
             double selling = order.getSubtotal();
             double cost = order.getCostTotal();
+            double realShipping = order.getRealShippingCost();
             return new OrderFinancialsResponse(
                     order.getId(),
                     order.getOrderNumber(),
@@ -267,7 +288,9 @@ public class OrderService {
                     order.getDiscountAmount(),
                     order.getShippingFee(),
                     order.getTotal(),
+                    realShipping,
                     finance.grossProfit(selling, cost),
+                    finance.netProfit(order.getTotal(), cost, realShipping),
                     finance.marginPercent(selling, cost),
                     finance.netSales(selling, order.getDiscountAmount()),
                     finance.operationalRevenue(selling, order.getShippingFee()),
@@ -301,17 +324,103 @@ public class OrderService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
 
         OrderStatus previous = order.getStatus();
+        boolean cancelling = status == OrderStatus.CANCELLED && previous != OrderStatus.CANCELLED;
         order.setStatus(status);
+
+        boolean triggerTodifyCancel = false;
         if (status == OrderStatus.CANCELLED) {
             order.setCancellationReason(trimToNull(reason));
         }
+        if (cancelling) {
+            // Record who/when, log the action, and decide whether Todify must be told.
+            String actor = currentActor();
+            order.setCancelledAt(LocalDateTime.now());
+            order.setCancelledBy(actor);
+            triggerTodifyCancel = prepareTodifyCancellation(order);
+            audit(order, OrderAuditLog.Action.CANCELLED, actor, trimToNull(reason),
+                    "Order cancelled." + (triggerTodifyCancel ? " Todify cancellation requested." : ""));
+        }
+
         Order saved = orderRepository.save(order);
         OrderResponse response = OrderResponse.from(saved);
 
         if (previous != status) {
             notificationService.sendStatusUpdate(response, status);
         }
+        // Send the Todify cancellation off-thread, AFTER this transaction commits.
+        if (triggerTodifyCancel) {
+            events.publishEvent(new OrderCancelledEvent(saved.getId()));
+        }
         return response;
+    }
+
+    /**
+     * Prepares the Todify sync state when an order is cancelled and returns whether
+     * an outbound Todify cancellation must be sent. When the order was already
+     * accepted by Todify (has a todifyOrderId) → CANCELLATION_PENDING + true. When
+     * it was only queued/failed (never sent) → mark CANCELLED so the submit-retry
+     * never re-sends it, and no outbound call is needed.
+     */
+    private boolean prepareTodifyCancellation(Order order) {
+        if (order.getTodifyOrderId() != null && !order.getTodifyOrderId().isBlank()) {
+            order.setTodifySyncState(TodifySyncState.CANCELLATION_PENDING);
+            return true;
+        }
+        TodifySyncState state = order.getTodifySyncState();
+        if (state == TodifySyncState.PENDING || state == TodifySyncState.FAILED
+                || state == TodifySyncState.RETRYING) {
+            order.setTodifySyncState(TodifySyncState.CANCELLED);
+        }
+        return false;
+    }
+
+    /**
+     * Admin action backing "Retry Todify Cancellation": validates the order is
+     * cancelled and exists in Todify, and records the retry in the audit log. The
+     * actual (synchronous) Todify call is made by the caller (Todify admin
+     * controller) so the order service stays decoupled from the integration layer.
+     */
+    @Transactional
+    public void recordCancellationRetry(Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+        require(order.getStatus() == OrderStatus.CANCELLED,
+                "Only cancelled orders can retry a Todify cancellation.");
+        require(order.getTodifyOrderId() != null && !order.getTodifyOrderId().isBlank(),
+                "This order was never sent to Todify — there is nothing to cancel.");
+        audit(order, OrderAuditLog.Action.TODIFY_CANCEL_RETRIED, currentActor(), null,
+                "Manual Todify cancellation retry requested.");
+    }
+
+    /** The email of the authenticated admin, or "system" for automated actions. */
+    private String currentActor() {
+        try {
+            return currentUserService.require().getEmail();
+        } catch (Exception e) {
+            return "system";
+        }
+    }
+
+    /** Best-effort audit entry — never breaks the business action it records. */
+    private void audit(Order order, OrderAuditLog.Action action, String actor, String reason, String detail) {
+        try {
+            auditRepository.save(new OrderAuditLog(
+                    order.getId(), order.getOrderNumber(), action, actor, reason, null, detail));
+        } catch (Exception ignored) {
+            // audit must never fail the operation
+        }
+    }
+
+    /** Full lifecycle audit trail for one order (cancel / Todify / delete). */
+    @Transactional(readOnly = true)
+    public List<OrderAuditLog> getOrderAudit(Long id) {
+        return auditRepository.findByOrderIdOrderByCreatedAtDesc(id);
+    }
+
+    /** Raw Todify sync logs for one order ("View Synchronization Logs"). */
+    @Transactional(readOnly = true)
+    public List<shop.bluequirk.blue_quirk_backend.entity.TodifySyncLog> getTodifyLogs(Long id) {
+        return todifyLogRepository.findByOrderIdOrderByCreatedAtDesc(id);
     }
 
     /**
@@ -352,6 +461,18 @@ public class OrderService {
         boolean statusChanged = mapped != null && mapped != order.getStatus();
         if (statusChanged) {
             order.setStatus(mapped);
+            // Todify itself cancelled/returned the order → record who/when and mark
+            // the Todify cancellation already synchronized (it came from Todify).
+            if (mapped == OrderStatus.CANCELLED) {
+                order.setCancelledAt(LocalDateTime.now());
+                order.setCancelledBy("todify");
+                order.setTodifySyncState(TodifySyncState.CANCELLED);
+                if (order.getCancellationReason() == null || order.getCancellationReason().isBlank()) {
+                    order.setCancellationReason("Cancelled in Todify");
+                }
+                audit(order, OrderAuditLog.Action.CANCELLED, "todify", order.getCancellationReason(),
+                        "Order cancelled by Todify (status \"" + todifyStatus + "\").");
+            }
         }
 
         Order saved = orderRepository.save(order);
@@ -360,8 +481,51 @@ public class OrderService {
         }
     }
 
+    /**
+     * Permanently deletes a CANCELLED order and all its order-scoped data inside a
+     * single transaction (rolls back entirely on any failure). Guards:
+     * <ul>
+     *   <li>only orders in {@code CANCELLED} status may be deleted;</li>
+     *   <li>if the order exists in Todify, its cancellation must already be
+     *       synchronized ({@code todifySyncState == CANCELLED}).</li>
+     * </ul>
+     * Cleanup: order + order items (cascade/orphanRemoval), the shipping/address/
+     * payment snapshots (columns on the order row), and the order's Todify sync
+     * logs. A durable {@link OrderAuditLog} DELETED entry is written first (it has
+     * no FK to the order, so it survives). Promotion-usage rows are intentionally
+     * retained (append-only analytics history, decoupled by design) so reporting
+     * stays intact — they are not order-owned and never orphaned.
+     */
+    @Transactional
     public void deleteOrder(Long id) {
-        orderRepository.deleteById(id);
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        if (order.getStatus() != OrderStatus.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Only cancelled orders can be permanently deleted.");
+        }
+
+        boolean inTodify = order.getTodifyOrderId() != null && !order.getTodifyOrderId().isBlank();
+        if (inTodify && order.getTodifySyncState() != TodifySyncState.CANCELLED) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "This order cannot be deleted until the cancellation has been successfully "
+                    + "synchronized with Todify.");
+        }
+
+        String actor = currentActor();
+        // Durable audit BEFORE deletion (separate table, no FK — survives the order).
+        auditRepository.save(new OrderAuditLog(order.getId(), order.getOrderNumber(),
+                OrderAuditLog.Action.DELETED, actor, order.getCancellationReason(), null,
+                "Order permanently deleted (Todify sync: "
+                        + (order.getTodifySyncState() == null ? "N/A" : order.getTodifySyncState().name()) + ")."));
+
+        // Order-scoped Todify debug logs are removed with the order.
+        todifyLogRepository.deleteByOrderId(order.getId());
+
+        // Removes the order and, via cascade + orphanRemoval, its order_items. The
+        // customer/address/payment snapshots live on the order row itself.
+        orderRepository.delete(order);
     }
 
     private void require(boolean condition, String message) {

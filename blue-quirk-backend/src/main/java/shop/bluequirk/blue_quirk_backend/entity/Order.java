@@ -79,6 +79,14 @@ public class Order {
     @Column(length = 500)
     private String cancellationReason;
 
+    // When the order was cancelled, and who performed it (admin email, or "todify"
+    // / "system" for an inbound Todify-driven cancellation). Null until cancelled.
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancelled_by", length = 320)
+    private String cancelledBy;
+
     // Carrier tracking number, set once the order ships.
     private String trackingNumber;
 
@@ -96,6 +104,13 @@ public class Order {
     // rather than stored, keeping a single source of truth.
     @Column(name = "cost_total", nullable = false)
     private double costTotal = 0;
+
+    // The store's actual internal shipping cost, snapshotted from the Real Shipping
+    // Cost setting at order time so historical profit stays stable even if the
+    // setting changes later. Internal only — never shown to the customer. Net
+    // profit = total − costTotal − realShippingCost.
+    @Column(name = "real_shipping_cost", nullable = false)
+    private double realShippingCost = 0;
 
     // --- Promotion / coupon (all backend-computed; persisted for invoices + analytics) ---
     // Pre-discount grand total (subtotal + shipping) at order time.
@@ -209,6 +224,12 @@ public class Order {
     public String getCancellationReason() { return cancellationReason; }
     public void setCancellationReason(String cancellationReason) { this.cancellationReason = cancellationReason; }
 
+    public LocalDateTime getCancelledAt() { return cancelledAt; }
+    public void setCancelledAt(LocalDateTime cancelledAt) { this.cancelledAt = cancelledAt; }
+
+    public String getCancelledBy() { return cancelledBy; }
+    public void setCancelledBy(String cancelledBy) { this.cancelledBy = cancelledBy; }
+
     public String getTrackingNumber() { return trackingNumber; }
     public void setTrackingNumber(String trackingNumber) { this.trackingNumber = trackingNumber; }
 
@@ -226,6 +247,9 @@ public class Order {
 
     public double getCostTotal() { return costTotal; }
     public void setCostTotal(double costTotal) { this.costTotal = costTotal; }
+
+    public double getRealShippingCost() { return realShippingCost; }
+    public void setRealShippingCost(double realShippingCost) { this.realShippingCost = realShippingCost; }
 
     public double getOriginalTotal() { return originalTotal; }
     public void setOriginalTotal(double originalTotal) { this.originalTotal = originalTotal; }

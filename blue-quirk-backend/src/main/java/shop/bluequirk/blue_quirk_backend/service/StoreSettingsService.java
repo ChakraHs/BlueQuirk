@@ -25,6 +25,7 @@ public class StoreSettingsService {
 
     // Seed defaults — only used to create the row the very first time.
     private final double defaultShippingFee;
+    private final double defaultRealShippingCost;
     private final double defaultThreshold;
     private final String defaultCurrency;
     private final String defaultStoreName;
@@ -33,12 +34,14 @@ public class StoreSettingsService {
     public StoreSettingsService(
             StoreSettingsRepository repository,
             @Value("${order.shipping-fee:0}") double defaultShippingFee,
+            @Value("${order.real-shipping-cost:0}") double defaultRealShippingCost,
             @Value("${order.free-shipping-threshold:0}") double defaultThreshold,
             @Value("${order.currency:DH}") String defaultCurrency,
             @Value("${store.name:RedQuirk}") String defaultStoreName,
             @Value("${store.default-lang:fr}") String defaultLang) {
         this.repository = repository;
         this.defaultShippingFee = defaultShippingFee;
+        this.defaultRealShippingCost = defaultRealShippingCost;
         this.defaultThreshold = defaultThreshold;
         this.defaultCurrency = defaultCurrency;
         this.defaultStoreName = defaultStoreName;
@@ -54,6 +57,7 @@ public class StoreSettingsService {
             s.setStoreName(defaultStoreName);
             s.setLogoUrl(null);
             s.setShippingFee(defaultShippingFee);
+            s.setRealShippingCost(defaultRealShippingCost);
             s.setFreeShippingThreshold(defaultThreshold);
             s.setCurrency(defaultCurrency);
             s.setDefaultLang(defaultLang);
@@ -74,6 +78,9 @@ public class StoreSettingsService {
         }
         if (req.shippingFee() != null) {
             s.setShippingFee(Math.max(0, req.shippingFee()));
+        }
+        if (req.realShippingCost() != null) {
+            s.setRealShippingCost(Math.max(0, req.realShippingCost()));
         }
         if (req.freeShippingThreshold() != null) {
             s.setFreeShippingThreshold(Math.max(0, req.freeShippingThreshold()));

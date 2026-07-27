@@ -13,15 +13,17 @@ import shop.bluequirk.blue_quirk_backend.entity.Order;
  * Read-only financial aggregation over the {@code orders} / {@code order_items}
  * tables. Every figure is sourced from the immutable order snapshots (subtotal,
  * cost_total, line_cost, line_profit) so reports never depend on the live
- * catalog and historical numbers stay stable. Cancelled orders are always
- * excluded. Bound to {@link Order} only so Spring Data can host these native
- * queries — no writes are performed.
+ * catalog and historical numbers stay stable. Only DELIVERED orders are counted
+ * — revenue and profit are recognized once the order is actually delivered (COD:
+ * pending/unshipped orders are not yet realized money). Bound to {@link Order}
+ * only so Spring Data can host these native queries — no writes are performed.
  */
 public interface FinanceReportRepository extends JpaRepository<Order, Long> {
 
     /**
      * One aggregate row for the window. Columns:
-     * [orders, revenue(subtotal), cost(cost_total), discount, shipping, collected(total)].
+     * [orders, revenue(subtotal), cost(cost_total), discount, shipping, collected(total),
+     *  realShipping(real_shipping_cost)].
      */
     @Query(nativeQuery = true, value =
             "SELECT COUNT(*) AS orders, "
@@ -29,37 +31,40 @@ public interface FinanceReportRepository extends JpaRepository<Order, Long> {
             + "COALESCE(SUM(cost_total), 0) AS cost, "
             + "COALESCE(SUM(discount_amount), 0) AS discount, "
             + "COALESCE(SUM(shipping_fee), 0) AS shipping, "
-            + "COALESCE(SUM(total), 0) AS collected "
+            + "COALESCE(SUM(total), 0) AS collected, "
+            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping "
             + "FROM orders "
-            + "WHERE order_date >= :from AND order_date < :to AND status <> 'CANCELLED'")
+            + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED'")
     List<Object[]> summaryRow(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
     /** Total units sold in the window (sum of order-item quantities). */
     @Query(nativeQuery = true, value =
             "SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi "
             + "JOIN orders o ON oi.order_id = o.id "
-            + "WHERE o.order_date >= :from AND o.order_date < :to AND o.status <> 'CANCELLED'")
+            + "WHERE o.order_date >= :from AND o.order_date < :to AND o.status = 'DELIVERED'")
     long sumUnits(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Per-day series. Row = [day 'YYYY-MM-DD', orders, revenue, cost, profit]. */
+    /** Per-day series. Row = [day 'YYYY-MM-DD', orders, revenue, cost, collected, realShipping]. */
     @Query(nativeQuery = true, value =
             "SELECT DATE_FORMAT(order_date, '%Y-%m-%d') AS period, COUNT(*) AS orders, "
             + "COALESCE(SUM(subtotal), 0) AS revenue, "
             + "COALESCE(SUM(cost_total), 0) AS cost, "
-            + "COALESCE(SUM(subtotal - cost_total), 0) AS profit "
+            + "COALESCE(SUM(total), 0) AS collected, "
+            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping "
             + "FROM orders "
-            + "WHERE order_date >= :from AND order_date < :to AND status <> 'CANCELLED' "
+            + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED' "
             + "GROUP BY period ORDER BY period")
     List<Object[]> dailyFinancials(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Per-month series. Row = [month 'YYYY-MM', orders, revenue, cost, profit]. */
+    /** Per-month series. Row = [month 'YYYY-MM', orders, revenue, cost, collected, realShipping]. */
     @Query(nativeQuery = true, value =
             "SELECT DATE_FORMAT(order_date, '%Y-%m') AS period, COUNT(*) AS orders, "
             + "COALESCE(SUM(subtotal), 0) AS revenue, "
             + "COALESCE(SUM(cost_total), 0) AS cost, "
-            + "COALESCE(SUM(subtotal - cost_total), 0) AS profit "
+            + "COALESCE(SUM(total), 0) AS collected, "
+            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping "
             + "FROM orders "
-            + "WHERE order_date >= :from AND order_date < :to AND status <> 'CANCELLED' "
+            + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED' "
             + "GROUP BY period ORDER BY period")
     List<Object[]> monthlyFinancials(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
@@ -75,7 +80,7 @@ public interface FinanceReportRepository extends JpaRepository<Order, Long> {
             + "COALESCE(SUM(oi.line_cost), 0) AS cost, "
             + "COALESCE(SUM(oi.line_profit), 0) AS profit "
             + "FROM order_items oi JOIN orders o ON oi.order_id = o.id "
-            + "WHERE o.order_date >= :from AND o.order_date < :to AND o.status <> 'CANCELLED' "
+            + "WHERE o.order_date >= :from AND o.order_date < :to AND o.status = 'DELIVERED' "
             + "AND oi.product_id IS NOT NULL "
             + "GROUP BY oi.product_id")
     List<Object[]> productFinancials(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
