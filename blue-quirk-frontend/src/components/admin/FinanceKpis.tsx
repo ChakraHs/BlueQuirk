@@ -10,7 +10,7 @@ import {
   Boxes,
 } from "lucide-react";
 import StatCard from "@/components/admin/ui/StatCard";
-import MiniLineChart, { type ChartPoint } from "@/components/admin/ui/MiniLineChart";
+import TrendChart, { type TrendPoint } from "@/components/admin/ui/TrendChart";
 import { FinanceService } from "@/services/finance.service";
 import type {
   FinanceOverview,
@@ -62,12 +62,12 @@ export default function FinanceKpis() {
 
   const current: FinanceSummary | null = overview ? overview[period] : null;
 
-  const revenueSeries: ChartPoint[] = useMemo(
-    () => series.map((p) => ({ label: p.period, value: p.collected })),
+  const revenueSeries: TrendPoint[] = useMemo(
+    () => series.map((p) => ({ period: p.period, value: p.collected })),
     [series]
   );
-  const profitSeries: ChartPoint[] = useMemo(
-    () => series.map((p) => ({ label: p.period, value: p.profit })),
+  const profitSeries: TrendPoint[] = useMemo(
+    () => series.map((p) => ({ period: p.period, value: p.profit })),
     [series]
   );
 
@@ -161,13 +161,13 @@ export default function FinanceKpis() {
           <h3 className="mb-4 text-sm font-semibold text-gray-700">
             Revenue over time (this year)
           </h3>
-          <MiniLineChart data={revenueSeries} color="#2563eb" />
+          <TrendChart data={revenueSeries} color="#2563eb" />
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-gray-700">
             Profit over time (this year)
           </h3>
-          <MiniLineChart data={profitSeries} color="#059669" />
+          <TrendChart data={profitSeries} color="#059669" />
         </div>
       </div>
     </div>
