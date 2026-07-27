@@ -60,7 +60,8 @@ export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySetting
   id?: number;
   storeName: string;
   logoUrl: string | null;
-  shippingFee: number;
+  shippingFee: number; // Customer Shipping Price (shown to customers; 0 = free)
+  realShippingCost: number; // internal only — profit calculations, never shown
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string; // "fr" | "ar" | "en"

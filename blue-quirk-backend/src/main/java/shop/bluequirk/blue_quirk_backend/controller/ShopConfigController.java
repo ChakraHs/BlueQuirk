@@ -5,7 +5,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
-import shop.bluequirk.blue_quirk_backend.service.CampaignPricing;
 import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 
 /**
@@ -21,24 +20,22 @@ import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 public class ShopConfigController {
 
     private final StoreSettingsService settingsService;
-    private final CampaignPricing campaignPricing;
 
-    public ShopConfigController(StoreSettingsService settingsService,
-                                CampaignPricing campaignPricing) {
+    public ShopConfigController(StoreSettingsService settingsService) {
         this.settingsService = settingsService;
-        this.campaignPricing = campaignPricing;
     }
 
     @GetMapping("/config")
     public ShopConfig getConfig() {
         StoreSettings s = settingsService.getOrCreate();
-        // While the free-shipping campaign runs, advertise a 0 fee so the whole
-        // storefront (cart, checkout, product page) shows "free" — the stored fee
-        // is untouched and returns automatically when the campaign ends.
-        double shippingFee = campaignPricing.isFreeShipping() ? 0.0 : s.getShippingFee();
+        // The customer shipping price is the admin setting, verbatim — the single
+        // source of truth. When it is 0 the whole storefront (cart, checkout,
+        // product page) shows "free shipping"; set it above 0 to charge again, with
+        // no code change. The internal Real Shipping Cost is deliberately NOT
+        // exposed here — it never reaches the customer.
         return new ShopConfig(
                 s.getCurrency(),
-                shippingFee,
+                s.getShippingFee(),
                 s.getFreeShippingThreshold(),
                 s.getStoreName(),
                 s.getLogoUrl(),

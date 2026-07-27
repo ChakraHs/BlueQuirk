@@ -166,6 +166,26 @@ public class OrderController {
 
     public record UpdateFulfillmentRequest(String paymentStatus, String trackingNumber, String estimatedDelivery) {}
 
+    /**
+     * Admin: full lifecycle audit trail for an order (cancellation, Todify
+     * cancellation request/response/retry, deletion). Confidential — admin-locked.
+     */
+    @GetMapping("/{id}/audit")
+    public List<shop.bluequirk.blue_quirk_backend.entity.OrderAuditLog> getAudit(@PathVariable Long id) {
+        return orderService.getOrderAudit(id);
+    }
+
+    /** Admin: raw Todify sync logs for one order ("View Synchronization Logs"). */
+    @GetMapping("/{id}/todify/logs")
+    public List<shop.bluequirk.blue_quirk_backend.entity.TodifySyncLog> getTodifyLogs(@PathVariable Long id) {
+        return orderService.getTodifyLogs(id);
+    }
+
+    /**
+     * Admin: permanently delete a CANCELLED order. The service enforces the guards
+     * (only cancelled orders; Todify cancellation must be synchronized first) and
+     * returns 409 with a message otherwise.
+     */
     @DeleteMapping("/{id}")
     public void deleteOrder(@PathVariable Long id) {
         orderService.deleteOrder(id);

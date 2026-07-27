@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -27,7 +28,9 @@ public class CategoryTranslation {
     private String lang; // fr | ar
 
     private String name;
-    
+
+    // TEXT, not VARCHAR(255): translated blurbs routinely exceed 255 chars.
+    @Lob
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)

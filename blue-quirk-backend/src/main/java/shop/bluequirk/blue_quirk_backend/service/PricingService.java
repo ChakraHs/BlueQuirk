@@ -78,11 +78,9 @@ public class PricingService {
      * (threshold ≤ 0 disables the perk). Mirrors the storefront so totals match.
      */
     public double computeShipping(double subtotal) {
-        // Temporary free-shipping campaign forces every order to 0 while keeping
-        // the configured fee/threshold intact for an easy rollback.
-        if (campaignPricing.isFreeShipping()) {
-            return 0.0;
-        }
+        // The customer shipping price is the admin setting (single source of truth).
+        // A fee of 0 means free shipping is charged everywhere; the threshold still
+        // waives a non-zero fee once the subtotal qualifies.
         StoreSettings settings = storeSettingsService.getOrCreate();
         double fee = settings.getShippingFee();
         double threshold = settings.getFreeShippingThreshold();

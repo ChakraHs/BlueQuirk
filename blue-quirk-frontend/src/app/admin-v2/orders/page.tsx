@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, ShoppingBag, Eye, XCircle, Loader2 } from "lucide-react";
+import { Search, ShoppingBag, Eye, XCircle, Loader2, Trash2, RefreshCw } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import CancelOrderDialog from "@/components/admin/CancelOrderDialog";
+import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 import { formatPrice } from "@/lib/money";
@@ -37,6 +38,8 @@ export default function OrdersPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [cancelTarget, setCancelTarget] = useState<OrderResponse | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<OrderResponse | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -86,6 +89,47 @@ export default function OrdersPage() {
       setError("Failed to cancel the order.");
     } finally {
       setCancelling(false);
+    }
+  };
+
+  const errMessage = (e: unknown, fallback: string) =>
+    (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+    fallback;
+
+  const retrySync = async (order: OrderResponse) => {
+    setBusyId(order.id);
+    setNotice(null);
+    setError(null);
+    try {
+      patchOrder(await OrderService.retryTodifyCancel(order.id));
+      setNotice(
+        `Order ${order.orderNumber || `#${order.id}`}: Todify cancellation re-sent.`
+      );
+    } catch (e) {
+      setError(errMessage(e, "Failed to retry the Todify cancellation."));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    setNotice(null);
+    setError(null);
+    try {
+      await OrderService.delete(deleteTarget.id);
+      setOrders((prev) => prev.filter((o) => o.id !== deleteTarget.id));
+      setNotice(
+        `Order ${deleteTarget.orderNumber || `#${deleteTarget.id}`} permanently deleted.`
+      );
+      setDeleteTarget(null);
+    } catch (e) {
+      // Surfaces the backend guard message (e.g. Todify cancellation still pending).
+      setError(errMessage(e, "Failed to delete the order."));
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -222,32 +266,53 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      <select
-                        value={o.status}
-                        disabled={busyId === o.id || o.status === "CANCELLED"}
-                        onChange={(e) => changeStatus(o, e.target.value)}
-                        title="Change status"
-                        className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-500 disabled:opacity-60"
-                      >
-                        {o.status === "CANCELLED" && (
-                          <option value="CANCELLED">
-                            {ORDER_STATUS_LABELS.CANCELLED}
-                          </option>
-                        )}
-                        {PROGRESS_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {ORDER_STATUS_LABELS[s]}
-                          </option>
-                        ))}
-                      </select>
-                      <button
-                        onClick={() => setCancelTarget(o)}
-                        disabled={busyId === o.id || o.status === "CANCELLED"}
-                        title="Cancel order"
-                        className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
-                      >
-                        <XCircle size={13} /> Cancel
-                      </button>
+                      {o.status === "CANCELLED" ? (
+                        <>
+                          {/* Retry Todify sync — only when a cancellation is still pending. */}
+                          {o.todifySyncState === "CANCELLATION_PENDING" && (
+                            <button
+                              onClick={() => retrySync(o)}
+                              disabled={busyId === o.id}
+                              title="Retry Todify cancellation"
+                              className="inline-flex items-center gap-1 rounded-md border border-amber-200 px-2 py-1.5 text-xs font-medium text-amber-700 hover:bg-amber-50 disabled:opacity-40"
+                            >
+                              <RefreshCw size={13} /> Retry sync
+                            </button>
+                          )}
+                          <button
+                            onClick={() => setDeleteTarget(o)}
+                            disabled={busyId === o.id}
+                            title="Permanently delete this cancelled order"
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
+                          >
+                            <Trash2 size={13} /> Delete
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <select
+                            value={o.status}
+                            disabled={busyId === o.id}
+                            onChange={(e) => changeStatus(o, e.target.value)}
+                            title="Change status"
+                            className="rounded-md border border-gray-300 bg-white px-2 py-1.5 text-xs outline-none focus:border-blue-500 disabled:opacity-60"
+                          >
+                            {PROGRESS_STATUSES.map((s) => (
+                              <option key={s} value={s}>
+                                {ORDER_STATUS_LABELS[s]}
+                              </option>
+                            ))}
+                          </select>
+                          <button
+                            onClick={() => setCancelTarget(o)}
+                            disabled={busyId === o.id}
+                            title="Cancel order"
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
+                          >
+                            <XCircle size={13} /> Cancel
+                          </button>
+                        </>
+                      )}
                       <Link
                         href={`/admin-v2/orders/${o.id}`}
                         title="View details"
@@ -275,6 +340,16 @@ export default function OrdersPage() {
           onClose={() => setCancelTarget(null)}
         />
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete cancelled order"
+        message="Are you sure you want to permanently delete this cancelled order? This action cannot be undone."
+        confirmLabel="Delete permanently"
+        busy={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -10,12 +10,14 @@ public record FinanceSummary(
         String to,                 // ISO date-time window end (exclusive)
         double revenue,            // Σ goods revenue (subtotal, pre-discount)
         double cost,               // Σ product cost
-        double grossProfit,        // revenue − cost
+        double grossProfit,        // revenue − cost (goods only)
+        double netProfit,          // collected − cost − realShippingCost (bottom line)
         double marginPercent,      // grossProfit / revenue
         double netSales,           // revenue − discounts
         double operationalRevenue, // revenue + shipping
         double discount,
-        double shipping,
+        double shipping,           // Σ customer shipping price charged
+        double realShippingCost,   // Σ internal shipping cost (never shown to customers)
         double collected,          // Σ amount customers paid (final total)
         long orders,
         long productsSold,         // Σ units

@@ -8,6 +8,7 @@ import java.time.Duration;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -30,13 +31,23 @@ public class TodifyClient {
 
     private final TodifyConfigService config;
 
+    // Todify's cancellation endpoint is configurable so it can be aligned with the
+    // provider's official API without a code change: "{id}" is replaced with the
+    // external Todify order id. Defaults to POST /orders/{id}/cancel.
+    private final String cancelPath;
+    private final String cancelMethod;
+
     private final HttpClient http = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .build();
     private final ObjectMapper mapper = new ObjectMapper();
 
-    public TodifyClient(TodifyConfigService config) {
+    public TodifyClient(TodifyConfigService config,
+                        @Value("${todify.cancel.path:/orders/{id}/cancel}") String cancelPath,
+                        @Value("${todify.cancel.method:POST}") String cancelMethod) {
         this.config = config;
+        this.cancelPath = cancelPath;
+        this.cancelMethod = cancelMethod == null || cancelMethod.isBlank() ? "POST" : cancelMethod.trim().toUpperCase();
     }
 
     public boolean isConfigured() {
@@ -64,6 +75,18 @@ public class TodifyClient {
 
     public JsonNode getOrder(String id) {
         return get("/orders/" + enc(id));
+    }
+
+    /**
+     * Requests cancellation of a Todify order by its external id. Uses the
+     * configured {@code todify.cancel.path} / {@code todify.cancel.method}. A
+     * non-2xx throws {@link TodifyApiException} (so the caller can persist
+     * CANCELLATION_PENDING and retry); a 404 typically means the order is already
+     * gone/cancelled in Todify, which the service treats as idempotent success.
+     */
+    public JsonNode cancelOrder(String id) {
+        String path = cancelPath.replace("{id}", enc(id));
+        return send(cancelMethod, path, null);
     }
 
     public JsonNode listOrders(int page) {

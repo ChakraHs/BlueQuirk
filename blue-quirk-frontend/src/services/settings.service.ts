@@ -8,7 +8,8 @@ export type ThemeColorsPayload = { [K in keyof ThemeColors]: string };
 export type StoreSettingsPayload = ThemeColorsPayload & {
   storeName: string;
   logoUrl: string | null;
-  shippingFee: number;
+  shippingFee: number; // Customer Shipping Price (0 = free shipping)
+  realShippingCost: number; // internal only — never shown to customers
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string;

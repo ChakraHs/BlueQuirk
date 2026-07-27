@@ -14,6 +14,8 @@ public record OrderResponse(
         String paymentStatus,
         String paymentMethod,
         String cancellationReason,
+        String cancelledAt,
+        String cancelledBy,
         String trackingNumber,
         String estimatedDelivery,
         Long customerId,
@@ -71,6 +73,9 @@ public record OrderResponse(
                 order.getPaymentStatus() != null ? order.getPaymentStatus().name() : null,
                 order.getPaymentMethod(),
                 order.getCancellationReason(),
+                order.getCancelledAt() != null
+                        ? order.getCancelledAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,
+                order.getCancelledBy(),
                 order.getTrackingNumber(),
                 order.getEstimatedDelivery() != null
                         ? order.getEstimatedDelivery().format(DateTimeFormatter.ISO_LOCAL_DATE) : null,

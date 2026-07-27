@@ -8,6 +8,9 @@ public record StoreSettingsRequest(
         String storeName,
         String logoUrl,
         Double shippingFee,
+        // Real Shipping Cost — internal only (profit calculations); never shown to
+        // customers. Null leaves it unchanged.
+        Double realShippingCost,
         Double freeShippingThreshold,
         String currency,
         String defaultLang,

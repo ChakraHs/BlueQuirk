@@ -34,4 +34,19 @@ public class TodifyOrderEventListener {
             LOG.warn("Todify sync after commit failed for order {}: {}", event.orderId(), e.getMessage());
         }
     }
+
+    /**
+     * Immediately (after commit, off-thread) sends the cancellation to Todify when
+     * a synced order is cancelled. cancelOrder already persists CANCELLATION_PENDING
+     * on failure, so the scheduled retry job then takes over.
+     */
+    @Async
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onOrderCancelled(OrderCancelledEvent event) {
+        try {
+            todifyService.cancelOrder(event.orderId());
+        } catch (Exception e) {
+            LOG.warn("Todify cancellation after commit failed for order {}: {}", event.orderId(), e.getMessage());
+        }
+    }
 }

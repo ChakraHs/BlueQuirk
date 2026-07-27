@@ -135,6 +135,22 @@ public class TodifyAdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Retry the Todify cancellation for a cancelled order ("Retry Todify
+     * Cancellation"). The order service validates state + records the retry in the
+     * audit log; the cancellation call runs synchronously here so the admin sees
+     * the updated sync state immediately. Idempotent — a duplicate confirmed
+     * cancellation is a no-op.
+     */
+    @PostMapping("/orders/{id}/cancel")
+    public ResponseEntity<OrderResponse> retryCancellation(@PathVariable Long id) {
+        orderService.recordCancellationRetry(id);
+        todifyService.cancelOrder(id);
+        return orderService.getOrderById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     // --- sync logs ---
     @GetMapping("/logs")
     public Page<TodifySyncLog> logs(@RequestParam(defaultValue = "0") int page,

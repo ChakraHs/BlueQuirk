@@ -16,5 +16,14 @@ public enum TodifySyncState {
     /** Send failed; kept locally with an error, awaiting retry/manual action. */
     FAILED,
     /** A scheduled retry is in progress / has been attempted again. */
-    RETRYING
+    RETRYING,
+    /**
+     * The order was cancelled locally and the cancellation request to Todify is
+     * still pending — Todify errored, was unreachable, or has not confirmed yet.
+     * Retryable (scheduler + manual admin retry). Deletion is blocked in this
+     * state for orders that exist in Todify.
+     */
+    CANCELLATION_PENDING,
+    /** Todify has confirmed the cancellation — terminal. Safe to delete. */
+    CANCELLED
 }
