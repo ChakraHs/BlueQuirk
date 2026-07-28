@@ -173,13 +173,17 @@ public class OrderNotificationService {
             case PROCESSING -> "Votre commande RedQuirk " + ref + " est en préparation";
             case PACKED     -> "Votre commande RedQuirk " + ref + " est prête à l'expédition";
             case SHIPPED    -> "Votre commande RedQuirk " + ref + " a été expédiée";
-            case DELIVERED  -> "Votre commande RedQuirk " + ref + " a été livrée";
+            case DELIVERED  -> "Votre commande RedQuirk " + ref + " a bien été livrée";
             case CANCELLED  -> "Votre commande RedQuirk " + ref + " a été annulée";
             default         -> "Mise à jour de votre commande RedQuirk " + ref;
         };
     }
 
     private String statusHtml(OrderResponse order, OrderStatus status) {
+        // Delivered is a premium closing email, not a generic status notice.
+        if (status == OrderStatus.DELIVERED) {
+            return deliveredHtml(order);
+        }
         String ref = ref(order);
         String title;
         String intro;
@@ -198,11 +202,6 @@ public class OrderNotificationService {
                         ? " Numéro de suivi : <strong>" + esc(order.trackingNumber()) + "</strong>." : "";
                 intro = "Votre commande <strong>" + ref + "</strong> est en route. "
                         + "Notre livreur vous contactera au " + esc(order.phone()) + " pour la livraison." + tracking;
-            }
-            case DELIVERED -> {
-                title = "Commande livrée";
-                intro = "Votre commande <strong>" + ref + "</strong> a bien été livrée. "
-                        + "Merci d'avoir choisi RedQuirk — à très bientôt !";
             }
             case CANCELLED -> {
                 title = "Commande annulée";
@@ -290,6 +289,45 @@ public class OrderNotificationService {
                 + inner
                 + "<p style='color:#9ca3af;font-size:12px;margin-top:24px'>RedQuirk — merci pour votre confiance.</p>"
                 + "</div>";
+    }
+
+    /**
+     * Premium "order delivered" email — mirrors the seeded ORDER_DELIVERED
+     * template. A warm closing message: delivery-confirmation hero, thank-you,
+     * item recap and paid total, plus a support/feedback block. No COD badge,
+     * tracking button, or "amount to pay" (the order is delivered and paid).
+     */
+    private String deliveredHtml(OrderResponse o) {
+        return "<div style='background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif'>"
+                + "<div style='max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;"
+                + "border:1px solid #ececf0;overflow:hidden'>"
+                + "<div style='padding:22px 28px;border-bottom:1px solid #f1f2f4;font-size:22px;"
+                + "font-weight:800;color:#111827'>Red<span style='color:#dc2626'>Quirk</span></div>"
+                + "<div style='padding:36px 28px 4px;text-align:center'>"
+                + "<div style='width:66px;height:66px;margin:0 auto 18px;border-radius:50%;background:#ecfdf5'>"
+                + "<span style='font-size:34px;line-height:66px;color:#059669'>&#10003;</span></div>"
+                + "<h1 style='margin:0;font-size:23px;color:#111827'>Votre commande est arrivée</h1>"
+                + "<p style='margin:10px 0 0;color:#6b7280;font-size:15px'>La commande "
+                + "<strong style='color:#111827'>" + esc(ref(o)) + "</strong> a été livrée avec succès.</p></div>"
+                + "<div style='padding:22px 28px 4px'>"
+                + "<p style='margin:0 0 20px;color:#374151;font-size:15px;line-height:1.65'>"
+                + "Bonjour " + esc(o.customerName()) + ", merci d'avoir choisi " + esc(storeName) + ". "
+                + "Nous espérons que votre commande vous plaît et nous vous remercions de votre confiance.</p>"
+                + "<p style='margin:0 0 8px;color:#111827;font-size:13px;font-weight:700;"
+                + "text-transform:uppercase;letter-spacing:.04em'>Votre commande</p>"
+                + itemsTable(o)
+                + "<div style='text-align:right;margin-top:12px;color:#111827;font-size:15px'>"
+                + "Total payé&nbsp;: <strong>" + money(o.total()) + "</strong></div>"
+                + "<div style='background:#f9fafb;border:1px solid #f0f1f3;border-radius:12px;"
+                + "padding:16px 18px;margin:24px 0 6px'>"
+                + "<p style='margin:0 0 4px;color:#111827;font-weight:700;font-size:14px'>"
+                + "Une question sur votre commande&nbsp;?</p>"
+                + "<p style='margin:0;color:#6b7280;font-size:13px;line-height:1.6'>"
+                + "Répondez simplement à cet e-mail — notre équipe vous répond rapidement. "
+                + "Votre avis compte énormément pour nous.</p></div></div>"
+                + "<div style='padding:18px 28px 26px;border-top:1px solid #f1f2f4;text-align:center'>"
+                + "<p style='margin:0;color:#9ca3af;font-size:12px'>" + esc(storeName)
+                + " — merci pour votre confiance.</p></div></div></div>";
     }
 
     private String customerHtml(OrderResponse o) {
