@@ -303,14 +303,17 @@ export default function OrdersPage() {
                               </option>
                             ))}
                           </select>
-                          <button
-                            onClick={() => setCancelTarget(o)}
-                            disabled={busyId === o.id}
-                            title="Cancel order"
-                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
-                          >
-                            <XCircle size={13} /> Cancel
-                          </button>
+                          {/* A delivered order can no longer be cancelled. */}
+                          {o.status !== "DELIVERED" && (
+                            <button
+                              onClick={() => setCancelTarget(o)}
+                              disabled={busyId === o.id}
+                              title="Cancel order"
+                              className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-2 py-1.5 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-40"
+                            >
+                              <XCircle size={13} /> Cancel
+                            </button>
+                          )}
                         </>
                       )}
                       <Link

@@ -301,7 +301,10 @@ export default function OrderDetailPage() {
           Advance the status
         </h2>
         <div className="flex flex-wrap gap-2">
-          {ORDER_STATUSES.map((s) => {
+          {ORDER_STATUSES
+            // A delivered order can no longer be cancelled — hide the button.
+            .filter((s) => !(s === "CANCELLED" && order.status === "DELIVERED"))
+            .map((s) => {
             const active = order.status === s;
             const isCancel = s === "CANCELLED";
             return (
