@@ -473,7 +473,7 @@ export default function SearchClient({
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10" dir={l === "ar" ? "rtl" : "ltr"}>
+    <main className="mx-auto max-w-7xl px-3 py-8 sm:px-4 lg:py-10" dir={l === "ar" ? "rtl" : "ltr"}>
       {/* breadcrumb + heading */}
       <div className="mb-6">
         <p className="text-sm text-gray-500">
@@ -576,7 +576,7 @@ export default function SearchClient({
         </div>
       )}
 
-      <div className="flex gap-8">
+      <div className="flex gap-6 lg:gap-8">
         {/* desktop sidebar */}
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24">{sidebar}</div>
@@ -592,10 +592,10 @@ export default function SearchClient({
               href={`/${lang}`}
             />
           ) : loading ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="aspect-square rounded-xl bg-gray-100" />
+                  <div className="aspect-[4/5] rounded-2xl bg-gray-100" />
                   <div className="mt-3 h-3 w-3/4 rounded bg-gray-100" />
                   <div className="mt-2 h-3 w-1/3 rounded bg-gray-100" />
                 </div>
@@ -612,7 +612,7 @@ export default function SearchClient({
               />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
               {results.map((p) => (
                 <ProductCard key={p.id} product={p} lang={lang} />
               ))}

@@ -74,12 +74,16 @@ export default function ProductCard({
   return (
     <Link
       href={`/${lang}/product/${product.id}`}
-      className="group block overflow-hidden rounded-2xl border border-gray-200/70 bg-surface shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl"
+      className="group block overflow-hidden rounded-2xl bg-surface transition-all duration-300 hover:-translate-y-1"
     >
-      {/* IMAGE / carousel */}
+      {/* IMAGE / carousel — the printed artwork is the hero, so it takes the
+          lion's share of the card. `object-contain` keeps the whole tee visible
+          (no crop) while the product-colour tint absorbs any surrounding space. */}
       <div
         style={cardBg ? { backgroundColor: cardBg } : undefined}
-        className={`relative aspect-square overflow-hidden ${cardBg ? "" : "bg-gray-100"}`}
+        className={`relative aspect-[4/5] overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-xl ${
+          cardBg ? "" : "bg-gray-100"
+        }`}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -95,14 +99,11 @@ export default function ProductCard({
                 alt={product.name}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-cover transition-transform duration-500 ease-out group-hover:scale-105"
+                className="object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
               />
             </div>
           ))}
         </div>
-
-        {/* subtle gradient at the bottom for depth on hover */}
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/5 to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
 
         {isOutOfStock && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50">
@@ -112,95 +113,99 @@ export default function ProductCard({
           </div>
         )}
 
-        {/* prev / next arrows — only when there are multiple images */}
+        {/* prev / next arrows — deliberately understated: small, translucent and
+            desktop-hover only. On mobile the shopper swipes instead. */}
         {hasMultiple && (
           <>
             <button
               type="button"
               onClick={go(-1)}
               aria-label="Image précédente"
-              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-gray-800 shadow-sm backdrop-blur transition hover:bg-surface md:opacity-0 md:group-hover:opacity-100"
+              className="absolute left-2 top-1/2 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-surface/70 text-gray-700 opacity-0 shadow-sm backdrop-blur transition hover:bg-surface md:flex md:group-hover:opacity-100"
             >
-              <ChevronLeft size={18} />
+              <ChevronLeft size={16} />
             </button>
             <button
               type="button"
               onClick={go(1)}
               aria-label="Image suivante"
-              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-gray-800 shadow-sm backdrop-blur transition hover:bg-surface md:opacity-0 md:group-hover:opacity-100"
+              className="absolute right-2 top-1/2 hidden h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-surface/70 text-gray-700 opacity-0 shadow-sm backdrop-blur transition hover:bg-surface md:flex md:group-hover:opacity-100"
             >
-              <ChevronRight size={18} />
+              <ChevronRight size={16} />
             </button>
-
-            {/* dots */}
-            <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1.5">
-              {images.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIndex(i);
-                  }}
-                  aria-label={`Image ${i + 1}`}
-                  className={`h-1.5 rounded-full transition-all ${
-                    i === index ? "w-4 bg-surface" : "w-1.5 bg-surface/60 hover:bg-surface/80"
-                  }`}
-                />
-              ))}
-            </div>
           </>
         )}
 
-        {/* wishlist toggle */}
+        {/* wishlist toggle — floats in the top-right corner */}
         <WishlistButton
           item={{ id: product.id, name: product.name, price: product.price, image: images[0], lang }}
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-gray-700 shadow-sm backdrop-blur transition hover:text-blue-600"
+          className="absolute right-2.5 top-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-gray-700 shadow-sm backdrop-blur transition hover:text-blue-600"
         />
       </div>
 
-      {/* INFO */}
-      <div className="p-3.5">
+      {/* INFO — compact, 8px rhythm, strong price-first hierarchy */}
+      <div className="px-1 pt-2 pb-1">
+        {/* image pagination dots */}
+        {hasMultiple && (
+          <div className="mb-2 flex justify-center gap-1">
+            {images.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setIndex(i);
+                }}
+                aria-label={`Image ${i + 1}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === index ? "w-3.5 bg-gray-800" : "w-1.5 bg-gray-300 hover:bg-gray-400"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* brand */}
         {category && (
-          <p className="mb-1 line-clamp-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
+          <p className="line-clamp-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-gray-400">
             {category}
           </p>
         )}
 
-        <h3 className="line-clamp-1 text-sm font-semibold text-gray-900 transition-colors group-hover:text-blue-600">
+        {/* title — single line, ellipsis */}
+        <h3 className="mt-0.5 truncate text-[13px] font-medium text-gray-500 transition-colors group-hover:text-gray-800">
           {product.name}
         </h3>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <p className="text-[15px] font-bold text-gray-900">
-            {formatPrice(product.price)}
-          </p>
+        {/* price — the most prominent element */}
+        <p className="mt-1 text-base font-bold text-gray-900">
+          {formatPrice(product.price)}
+        </p>
 
-          {/* available colourways */}
-          {colors.length > 0 && (
-            <div className="flex items-center gap-1">
-              {colors.slice(0, 4).map((c, i) => {
-                const hex = colorSwatch(c);
-                return (
-                  <span
-                    key={i}
-                    title={c}
-                    style={{ backgroundColor: hex }}
-                    className={`h-3.5 w-3.5 rounded-full ${
-                      isLightColor(hex) ? "ring-1 ring-inset ring-gray-300" : ""
-                    }`}
-                  />
-                );
-              })}
-              {colors.length > 4 && (
-                <span className="text-[11px] font-medium text-gray-400">
-                  +{colors.length - 4}
-                </span>
-              )}
-            </div>
-          )}
-        </div>
+        {/* color selector */}
+        {colors.length > 0 && (
+          <div className="mt-2 flex items-center gap-1.5">
+            {colors.slice(0, 4).map((c, i) => {
+              const hex = colorSwatch(c);
+              return (
+                <span
+                  key={i}
+                  title={c}
+                  style={{ backgroundColor: hex }}
+                  className={`h-3.5 w-3.5 rounded-full ${
+                    isLightColor(hex) ? "ring-1 ring-inset ring-gray-300" : ""
+                  }`}
+                />
+              );
+            })}
+            {colors.length > 4 && (
+              <span className="text-[11px] font-medium text-gray-400">
+                +{colors.length - 4}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </Link>
   );

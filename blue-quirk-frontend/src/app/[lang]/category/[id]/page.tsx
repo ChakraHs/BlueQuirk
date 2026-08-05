@@ -73,7 +73,7 @@ export default async function CategoryPage({
   const category = await getCategory(id, lang);
 
   return (
-    <div className="mx-auto max-w-7xl px-6 py-8 md:px-12 md:py-10 text-gray-600">
+    <div className="mx-auto max-w-7xl px-3 py-8 sm:px-4 md:px-8 md:py-10 text-gray-600">
 
       {/* Breadcrumb */}
       <nav className="mb-6 flex items-center gap-2 text-sm text-gray-500">
