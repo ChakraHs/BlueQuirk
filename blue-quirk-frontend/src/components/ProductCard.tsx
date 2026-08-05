@@ -39,18 +39,13 @@ export default function ProductCard({
   const categoryContext = useProductCategoryContext();
   const category = pickDisplayCategory(product.categories, categoryContext)?.name;
 
-  // Colours actually assigned to this product (COLOR attribute, selected values).
-  // Used both to tint the card background (first colour) and to show the
-  // available colourways as swatch dots — a familiar pro-storefront cue.
+  // Colours actually assigned to this product (COLOR attribute, selected values),
+  // shown as swatch dots — a familiar pro-storefront cue.
   const colors = (product.attributes ?? [])
     .filter((a) => (a.type || "").toUpperCase() === "COLOR")
     .flatMap((a) => a.values)
     .filter((v) => v.selected)
     .map((v) => v.value);
-
-  // Tint the card with the product's first colour so the transparent product
-  // PNG shows on a matching background.
-  const cardBg = colors[0] ? colorSwatch(colors[0]) : undefined;
 
   // Arrows/dots live inside the card's <Link>, so stop them from navigating.
   const go = (dir: number) => (e: React.MouseEvent) => {
@@ -77,13 +72,12 @@ export default function ProductCard({
       className="group block overflow-hidden rounded-2xl bg-surface transition-all duration-300 hover:-translate-y-1"
     >
       {/* IMAGE / carousel — the printed artwork is the hero, so it takes the
-          lion's share of the card. `object-contain` keeps the whole tee visible
-          (no crop) while the product-colour tint absorbs any surrounding space. */}
+          lion's share of the card. A single fixed neutral background is used for
+          every product (never tied to the shirt colour) for a consistent catalog;
+          the image is zoomed slightly so the tee fills the frame — the source
+          padding already gives us room to crop into. */}
       <div
-        style={cardBg ? { backgroundColor: cardBg } : undefined}
-        className={`relative aspect-[4/5] overflow-hidden rounded-2xl shadow-sm transition-shadow duration-300 group-hover:shadow-xl ${
-          cardBg ? "" : "bg-gray-100"
-        }`}
+        className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-xl"
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -99,7 +93,7 @@ export default function ProductCard({
                 alt={product.name}
                 fill
                 sizes="(max-width: 768px) 50vw, 25vw"
-                className="object-contain transition-transform duration-500 ease-out group-hover:scale-[1.04]"
+                className="scale-[1.15] object-contain transition-transform duration-500 ease-out group-hover:scale-[1.2]"
               />
             </div>
           ))}
