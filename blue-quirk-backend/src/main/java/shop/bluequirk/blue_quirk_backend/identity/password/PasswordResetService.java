@@ -53,7 +53,7 @@ public class PasswordResetService {
      * regardless of outcome to avoid account enumeration.
      */
     @Transactional
-    public void requestReset(String email, String ip, String userAgent) {
+    public void requestReset(String email, String lang, String ip, String userAgent) {
         userRepository.findByEmail(email.trim().toLowerCase()).ifPresent(user -> {
             tokenRepository.invalidateAllForUser(user);
             String raw = tokenGenerator.generateRawToken();
@@ -63,7 +63,7 @@ public class PasswordResetService {
             token.setExpiresAt(Instant.now().plus(props.getTokens().getResetTtl()));
             tokenRepository.save(token);
 
-            emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), raw);
+            emailService.sendPasswordResetEmail(user.getEmail(), user.getName(), raw, lang);
             auditService.record(AuditAction.PASSWORD_RESET_REQUESTED, user.getId(), user.getEmail(),
                     null, ip, userAgent);
         });

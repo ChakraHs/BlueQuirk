@@ -24,8 +24,21 @@ export async function login(email: string, password: string, rememberMe = false)
   return data;
 }
 
+// Current storefront language from the `lang` cookie (set by middleware), so the
+// verification/reset emails go out in the language the user is browsing in.
+export function currentLang(): string {
+  if (typeof document === "undefined") return "fr";
+  const m = document.cookie.match(/(?:^|;\s*)lang=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : "fr";
+}
+
 export async function register(email: string, password: string, name: string) {
-  const { data } = await api.post<TokenResponse>("/auth/register", { email, password, name });
+  const { data } = await api.post<TokenResponse>("/auth/register", {
+    email,
+    password,
+    name,
+    lang: currentLang(),
+  });
   storeTokens(data.accessToken, data.refreshToken);
   return data;
 }

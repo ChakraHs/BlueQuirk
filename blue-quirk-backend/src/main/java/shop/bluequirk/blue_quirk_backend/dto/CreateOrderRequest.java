@@ -23,6 +23,9 @@ public record CreateOrderRequest(
         // Optional coupon code. The server re-validates it and recomputes the
         // discount from catalog prices — the client's discount/total is ignored.
         String couponCode,
+        // Storefront language at checkout ("fr" default, or "ar"). Determines the
+        // language of the emails this customer receives. Normalized server-side.
+        String lang,
         List<Item> items
 ) {
     public record Item(

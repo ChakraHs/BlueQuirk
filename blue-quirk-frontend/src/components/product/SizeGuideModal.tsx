@@ -113,7 +113,7 @@ export default function SizeGuideModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="size-guide-title"
-        className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-white shadow-2xl ring-1 ring-black/5 sm:rounded-3xl animate-[fadeIn_0.2s_ease]"
+        className="relative flex max-h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl ring-1 ring-black/5 sm:rounded-3xl animate-[fadeIn_0.2s_ease]"
       >
         {/* header */}
         <div className="flex items-start justify-between gap-4 border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white px-6 py-5">
@@ -184,7 +184,7 @@ export default function SizeGuideModal({
           <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
             <table className="w-full border-collapse text-sm">
               <thead>
-                <tr className="bg-gray-900 text-white">
+                <tr className="bg-gray-900 text-gray-50">
                   <th className="px-4 py-3 text-start font-semibold">{t.size}</th>
                   <th className="px-4 py-3 text-center font-semibold">
                     <span className="inline-flex items-center gap-1.5">
@@ -204,7 +204,7 @@ export default function SizeGuideModal({
                 {SIZE_GUIDE.map((row, i) => (
                   <tr
                     key={row.size}
-                    className={i % 2 === 0 ? "bg-white" : "bg-gray-50/70"}
+                    className={i % 2 === 0 ? "bg-surface" : "bg-gray-50/70"}
                   >
                     <td className="px-4 py-3 text-start font-bold text-gray-900">
                       {row.size}

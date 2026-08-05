@@ -63,6 +63,12 @@ public class Order {
     // Snapshot of the customer's email at order time (for confirmation mail).
     private String email;
 
+    // Storefront language at checkout ("fr" default, or "ar"). Drives the language
+    // of the confirmation and status emails sent to this customer. The DB default
+    // lets the column be added non-destructively to the existing orders table.
+    @Column(nullable = false, length = 8, columnDefinition = "varchar(8) default 'fr'")
+    private String lang = "fr";
+
     @Column(nullable = false)
     private String paymentMethod = "COD";
 
@@ -211,6 +217,9 @@ public class Order {
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+
+    public String getLang() { return lang; }
+    public void setLang(String lang) { this.lang = lang; }
 
     public String getPaymentMethod() { return paymentMethod; }
     public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }

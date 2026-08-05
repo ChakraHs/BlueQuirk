@@ -27,9 +27,77 @@
   --c-warning: #d97706;         /* caution / warning */
   --c-error: #dc2626;           /* destructive / error */
 
+  /* ---------------------------------------------------------------------------
+     Tint mixing bases. The brand/status utilities below are derived by mixing a
+     hue with a light base (for the pale *-50/-100 chip backgrounds) or a dark
+     base (for the deep *-800/-900 shades). Routing those literals through these
+     two variables is what lets dark mode re-derive every tint correctly: in the
+     dark theme we simply swap the bases (light chips mix into the dark surface,
+     deep shades mix toward white) — see `html.dark` below.
+     --------------------------------------------------------------------------- */
+  --tint-base: #ffffff;         /* pale backgrounds mix toward this */
+  --shade-base: #000000;        /* deep shades mix toward this */
+
+  /* ---------------------------------------------------------------------------
+     Neutral gray ramp — Tailwind's default values, re-exposed as variables so
+     the whole app's hardcoded `text-gray-900 / bg-gray-100 / border-gray-200`
+     utilities become theme-aware. Light mode is pixel-identical to stock
+     Tailwind; `html.dark` inverts the ramp so neutrals flip automatically.
+     --------------------------------------------------------------------------- */
+  --gray-50:  oklch(0.985 0.002 247.839);
+  --gray-100: oklch(0.967 0.003 264.542);
+  --gray-200: oklch(0.928 0.006 264.531);
+  --gray-300: oklch(0.872 0.01 258.338);
+  --gray-400: oklch(0.707 0.022 261.325);
+  --gray-500: oklch(0.551 0.027 264.364);
+  --gray-600: oklch(0.446 0.03 256.802);
+  --gray-700: oklch(0.373 0.034 259.733);
+  --gray-800: oklch(0.278 0.033 256.848);
+  --gray-900: oklch(0.21 0.034 264.665);
+  --gray-950: oklch(0.13 0.028 261.692);
+
   /* Body background/text derive from the theme tokens. */
   --background: var(--c-background);
   --foreground: var(--c-text);
+}
+
+/* ---------------------------------------------------------------------------
+   DARK THEME
+   Class-driven (applied to <html> by the theme runtime — NEVER via
+   prefers-color-scheme, which previously made inherited text unreadable). Only
+   the base tokens change; every derived utility (grays, brand/status tints,
+   bg-surface, borders, body bg/text) recomputes from them, so the entire
+   storefront re-themes with no per-component dark: classes. `html.dark` also
+   outranks `:root`, guaranteeing the override regardless of source order.
+   --------------------------------------------------------------------------- */
+html.dark {
+  color-scheme: dark;
+
+  /* Core surfaces & text — a premium near-black, faintly cool. */
+  --c-background: #0d0e11;      /* page background */
+  --c-surface: #17181c;         /* cards / header / panels */
+  --c-secondary: #f2f3f5;       /* was near-black; flips to near-white on dark */
+  --c-text: #f2f3f5;            /* primary text */
+  --c-border: #2a2c31;          /* hairlines / dividers */
+
+  /* Swap the mixing bases: pale chips melt into the dark surface, deep shades
+     brighten toward white — keeping badges/banners legible in the dark theme. */
+  --tint-base: #17181c;
+  --shade-base: #ffffff;
+
+  /* Inverted neutral ramp: low numbers become dark surfaces, high numbers
+     become light text. Kept slightly cool to match the surfaces above. */
+  --gray-50:  #17181c;
+  --gray-100: #1e2024;
+  --gray-200: #2a2c31;
+  --gray-300: #3a3d44;
+  --gray-400: #8b8f98;
+  --gray-500: #9ea3ac;
+  --gray-600: #b4b9c1;
+  --gray-700: #ccd0d7;
+  --gray-800: #e3e5ea;
+  --gray-900: #f2f3f5;
+  --gray-950: #fbfbfc;
 }
 
 @theme inline {
@@ -51,20 +119,36 @@
   --color-warning: var(--c-warning);
   --color-error: var(--c-error);
 
+  /* ---- Neutral ramp remap: drive gray-* off the variables defined in :root /
+     html.dark so every hardcoded neutral utility (text, surface, border) is
+     theme-aware and flips in dark mode automatically. ---- */
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+  --color-gray-950: var(--gray-950);
+
   /* ---- Brand remap: the existing blue-* / indigo-* / sky-* utilities follow the
      primary color, so the whole storefront + admin theme from Settings without
-     rewriting every component. Tints are derived with color-mix. ---- */
-  --color-blue-50: color-mix(in oklab, var(--c-primary) 7%, white);
-  --color-blue-100: color-mix(in oklab, var(--c-primary) 13%, white);
-  --color-blue-200: color-mix(in oklab, var(--c-primary) 22%, white);
-  --color-blue-300: color-mix(in oklab, var(--c-primary) 40%, white);
-  --color-blue-400: color-mix(in oklab, var(--c-primary) 62%, white);
+     rewriting every component. Tints are derived with color-mix against the
+     theme's mixing bases (--tint-base / --shade-base) so they re-derive in dark. ---- */
+  --color-blue-50: color-mix(in oklab, var(--c-primary) 7%, var(--tint-base));
+  --color-blue-100: color-mix(in oklab, var(--c-primary) 13%, var(--tint-base));
+  --color-blue-200: color-mix(in oklab, var(--c-primary) 22%, var(--tint-base));
+  --color-blue-300: color-mix(in oklab, var(--c-primary) 40%, var(--tint-base));
+  --color-blue-400: color-mix(in oklab, var(--c-primary) 62%, var(--tint-base));
   --color-blue-500: var(--c-primary);
   --color-blue-600: var(--c-primary);
   --color-blue-700: var(--c-primary-hover);
-  --color-blue-800: color-mix(in oklab, var(--c-primary-hover) 82%, black);
-  --color-blue-900: color-mix(in oklab, var(--c-primary-hover) 66%, black);
-  --color-blue-950: color-mix(in oklab, var(--c-primary-hover) 45%, black);
+  --color-blue-800: color-mix(in oklab, var(--c-primary-hover) 82%, var(--shade-base));
+  --color-blue-900: color-mix(in oklab, var(--c-primary-hover) 66%, var(--shade-base));
+  --color-blue-950: color-mix(in oklab, var(--c-primary-hover) 45%, var(--shade-base));
   --color-indigo-500: var(--c-primary);
   --color-indigo-600: var(--c-primary);
   --color-indigo-700: var(--c-primary-hover);
@@ -74,33 +158,36 @@
   /* ---- Status remap: green/emerald→success, amber/yellow→warning, red/rose→error.
      Defaults keep the original hues, so this is visually neutral until an admin
      customizes the status colors. ---- */
-  --color-green-50: color-mix(in oklab, var(--c-success) 8%, white);
-  --color-green-100: color-mix(in oklab, var(--c-success) 15%, white);
+  --color-green-50: color-mix(in oklab, var(--c-success) 8%, var(--tint-base));
+  --color-green-100: color-mix(in oklab, var(--c-success) 15%, var(--tint-base));
+  --color-green-200: color-mix(in oklab, var(--c-success) 24%, var(--tint-base));
   --color-green-500: var(--c-success);
   --color-green-600: var(--c-success);
-  --color-green-700: color-mix(in oklab, var(--c-success) 80%, black);
-  --color-emerald-50: color-mix(in oklab, var(--c-success) 8%, white);
-  --color-emerald-100: color-mix(in oklab, var(--c-success) 15%, white);
+  --color-green-700: color-mix(in oklab, var(--c-success) 80%, var(--shade-base));
+  --color-emerald-50: color-mix(in oklab, var(--c-success) 8%, var(--tint-base));
+  --color-emerald-100: color-mix(in oklab, var(--c-success) 15%, var(--tint-base));
   --color-emerald-500: var(--c-success);
   --color-emerald-600: var(--c-success);
-  --color-emerald-700: color-mix(in oklab, var(--c-success) 80%, black);
-  --color-amber-50: color-mix(in oklab, var(--c-warning) 9%, white);
-  --color-amber-100: color-mix(in oklab, var(--c-warning) 16%, white);
+  --color-emerald-700: color-mix(in oklab, var(--c-success) 80%, var(--shade-base));
+  --color-amber-50: color-mix(in oklab, var(--c-warning) 9%, var(--tint-base));
+  --color-amber-100: color-mix(in oklab, var(--c-warning) 16%, var(--tint-base));
+  --color-amber-200: color-mix(in oklab, var(--c-warning) 26%, var(--tint-base));
   --color-amber-500: var(--c-warning);
   --color-amber-600: var(--c-warning);
-  --color-amber-700: color-mix(in oklab, var(--c-warning) 82%, black);
+  --color-amber-700: color-mix(in oklab, var(--c-warning) 82%, var(--shade-base));
   --color-yellow-500: var(--c-warning);
   --color-yellow-600: var(--c-warning);
-  --color-red-50: color-mix(in oklab, var(--c-error) 8%, white);
-  --color-red-100: color-mix(in oklab, var(--c-error) 15%, white);
+  --color-red-50: color-mix(in oklab, var(--c-error) 8%, var(--tint-base));
+  --color-red-100: color-mix(in oklab, var(--c-error) 15%, var(--tint-base));
+  --color-red-200: color-mix(in oklab, var(--c-error) 24%, var(--tint-base));
   --color-red-500: var(--c-error);
   --color-red-600: var(--c-error);
-  --color-red-700: color-mix(in oklab, var(--c-error) 82%, black);
-  --color-rose-50: color-mix(in oklab, var(--c-error) 8%, white);
-  --color-rose-100: color-mix(in oklab, var(--c-error) 15%, white);
+  --color-red-700: color-mix(in oklab, var(--c-error) 82%, var(--shade-base));
+  --color-rose-50: color-mix(in oklab, var(--c-error) 8%, var(--tint-base));
+  --color-rose-100: color-mix(in oklab, var(--c-error) 15%, var(--tint-base));
   --color-rose-500: var(--c-error);
   --color-rose-600: var(--c-error);
-  --color-rose-700: color-mix(in oklab, var(--c-error) 82%, black);
+  --color-rose-700: color-mix(in oklab, var(--c-error) 82%, var(--shade-base));
 }
 
 /* RedQuirk uses a single light theme (white surfaces, dark text) for both the
@@ -112,6 +199,26 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Smooth, subtle crossfade when the theme flips between light and dark. Scoped
+   to color properties only (never layout) and disabled for reduced-motion. The
+   `[data-theme-ready]` gate means the transition is armed only AFTER the initial
+   no-FOUC paint, so first load never animates from a wrong color. */
+html[data-theme-ready] *,
+html[data-theme-ready] *::before,
+html[data-theme-ready] *::after {
+  transition-property: background-color, border-color, color, fill, stroke;
+  transition-duration: 200ms;
+  transition-timing-function: ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme-ready] *,
+  html[data-theme-ready] *::before,
+  html[data-theme-ready] *::after {
+    transition: none;
+  }
 }
 
 /* Mobile safety net: never let a single stray-wide element force horizontal
@@ -260,7 +367,7 @@ body {
 /* the actual input pill sits on top of the gradient padding */
 .search-rainbow > .search-rainbow-inner {
   border-radius: 9999px;
-  background: #fff;
+  background: var(--c-surface);
 }
 
 @media (prefers-reduced-motion: reduce) {

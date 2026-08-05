@@ -62,7 +62,7 @@ function TrackingInner() {
   return (
     <main className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="border-b border-gray-200 bg-white">
+      <header className="border-b border-gray-200 bg-surface">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
           <Link href="/" className="text-xl font-bold tracking-tight text-gray-900">
             Blue<span className="text-blue-600">Quirk</span>
@@ -97,7 +97,7 @@ function TrackingInner() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="BQ-2026-000123"
-              className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+              className="w-full rounded-lg border border-gray-300 bg-surface py-2.5 pl-10 pr-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
             />
           </div>
           <button
@@ -134,7 +134,7 @@ function OrderView({ order }: { order: OrderResponse }) {
   return (
     <div className="mt-8 space-y-5">
       {/* Summary header */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+      <div className="rounded-2xl border border-gray-200 bg-surface p-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs uppercase tracking-wide text-gray-400">Commande</p>
@@ -169,7 +169,7 @@ function OrderView({ order }: { order: OrderResponse }) {
 
       {/* Status timeline */}
       {!cancelled && (
-        <div className="rounded-2xl border border-gray-200 bg-white p-6">
+        <div className="rounded-2xl border border-gray-200 bg-surface p-6">
           <h2 className="mb-5 text-sm font-bold text-gray-900">Statut de la livraison</h2>
           <ol className="space-y-4">
             {FLOW.map((step, i) => {
@@ -195,7 +195,7 @@ function OrderView({ order }: { order: OrderResponse }) {
       )}
 
       {/* Items */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6">
+      <div className="rounded-2xl border border-gray-200 bg-surface p-6">
         <h2 className="mb-4 text-sm font-bold text-gray-900">Articles</h2>
         <ul className="divide-y divide-gray-100">
           {order.items.map((it, i) => (

@@ -36,6 +36,12 @@ public class EmailVerificationService {
     /** Issues a fresh single-use token (invalidating older ones) and emails the link. */
     @Transactional
     public void sendVerification(User user) {
+        sendVerification(user, null);
+    }
+
+    /** As {@link #sendVerification(User)}, in the given language (fr default, or ar). */
+    @Transactional
+    public void sendVerification(User user, String lang) {
         if (user.isEmailVerified()) {
             return;
         }
@@ -48,7 +54,7 @@ public class EmailVerificationService {
         token.setExpiresAt(Instant.now().plus(props.getTokens().getVerificationTtl()));
         tokenRepository.save(token);
 
-        emailService.sendVerificationEmail(user.getEmail(), user.getName(), raw);
+        emailService.sendVerificationEmail(user.getEmail(), user.getName(), raw, lang);
     }
 
     @Transactional

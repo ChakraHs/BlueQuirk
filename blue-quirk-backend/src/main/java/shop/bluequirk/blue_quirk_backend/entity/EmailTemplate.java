@@ -3,15 +3,23 @@ package shop.bluequirk.blue_quirk_backend.entity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "email_template")
+@Table(name = "email_template", uniqueConstraints = @UniqueConstraint(
+        name = "uk_email_template_code_lang", columnNames = {"code", "lang"}))
 public class EmailTemplate {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    // No longer unique on its own: a template exists per (code, lang) so the same
+    // event can carry a French and an Arabic body.
+    @Column(nullable = false)
     private String code;
+
+    // Language of this template body: "fr" (default) or "ar". The DB default lets
+    // the column be added non-destructively to an existing table (rows backfill to 'fr').
+    @Column(nullable = false, length = 8, columnDefinition = "varchar(8) default 'fr'")
+    private String lang = "fr";
 
     @Column(nullable = false)
     private String subject;
@@ -27,11 +35,13 @@ public class EmailTemplate {
 
     public EmailTemplate(
             String code,
+            String lang,
             String subject,
             String body,
             boolean active
     ) {
         this.code = code;
+        this.lang = lang;
         this.subject = subject;
         this.body = body;
         this.active = active;
@@ -47,6 +57,14 @@ public class EmailTemplate {
 
     public void setCode(String code) {
         this.code = code;
+    }
+
+    public String getLang() {
+        return lang;
+    }
+
+    public void setLang(String lang) {
+        this.lang = lang;
     }
 
     public String getSubject() {

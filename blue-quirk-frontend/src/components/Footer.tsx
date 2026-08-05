@@ -88,7 +88,7 @@ export default function Footer({
                 <a
                   key={i}
                   href="#"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-gray-600 ring-1 ring-gray-200 transition hover:text-blue-600 hover:ring-blue-300"
+                  className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-gray-600 ring-1 ring-gray-200 transition hover:text-blue-600 hover:ring-blue-300"
                   aria-label="Social link"
                 >
                   <Icon size={18} />

@@ -29,6 +29,9 @@ export type CreateOrderPayload = {
   // Optional coupon code. The backend re-validates it and recomputes the
   // discount + total from catalog prices — the client total is never trusted.
   couponCode?: string;
+  // Storefront language at checkout ("fr" | "ar"). Determines the language of the
+  // confirmation and status emails the customer receives. Normalized server-side.
+  lang?: string;
   items: OrderItemPayload[];
 };
 
@@ -64,6 +67,7 @@ export type OrderResponse = {
   postalCode?: string;
   note?: string;
   email?: string;
+  lang?: string;
   subtotal: number;
   shippingFee: number;
   originalTotal: number;

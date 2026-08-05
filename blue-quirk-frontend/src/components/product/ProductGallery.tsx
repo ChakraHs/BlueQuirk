@@ -310,7 +310,7 @@ export default function ProductGallery({
               onMouseEnter={() => setZoomPos(null)}
               onMouseMove={(e) => e.stopPropagation()}
               aria-label="Agrandir"
-              className="absolute right-3 top-3 z-10 flex size-10 items-center justify-center rounded-full bg-white/90 text-gray-800 opacity-0 shadow-md backdrop-blur transition hover:bg-white group-hover:opacity-100"
+              className="absolute right-3 top-3 z-10 flex size-10 items-center justify-center rounded-full bg-surface/90 text-gray-800 opacity-0 shadow-md backdrop-blur transition hover:bg-surface group-hover:opacity-100"
             >
               <Expand className="size-4" />
             </button>
@@ -330,7 +330,7 @@ export default function ProductGallery({
                 aria-label="Image précédente"
                 className="absolute left-0 top-1/2 z-10 hidden h-20 w-14 -translate-y-1/2 items-center justify-start pl-3 sm:flex"
               >
-                <span className="flex size-10 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100">
+                <span className="flex size-10 items-center justify-center rounded-full bg-surface/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-surface sm:opacity-0 sm:group-hover:opacity-100">
                   <ChevronLeft className="size-5" />
                 </span>
               </button>
@@ -345,7 +345,7 @@ export default function ProductGallery({
                 aria-label="Image suivante"
                 className="absolute right-0 top-1/2 z-10 hidden h-20 w-14 -translate-y-1/2 items-center justify-end pr-3 sm:flex"
               >
-                <span className="flex size-10 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-white sm:opacity-0 sm:group-hover:opacity-100">
+                <span className="flex size-10 items-center justify-center rounded-full bg-surface/90 text-gray-800 shadow-md backdrop-blur transition hover:bg-surface sm:opacity-0 sm:group-hover:opacity-100">
                   <ChevronRight className="size-5" />
                 </span>
               </button>

@@ -110,7 +110,7 @@ export default function Hero({
                 hidden from the hero for now. Restore this block to bring it back. */}
             {/* <Link
               href={`/${lang}`}
-              className="rounded-full border border-white/40 px-7 py-3 text-base font-semibold text-white transition hover:bg-white/10"
+              className="rounded-full border border-white/40 px-7 py-3 text-base font-semibold text-white transition hover:bg-surface/10"
             >
               {t(lang, "hero.explore")}
             </Link> */}

@@ -62,7 +62,7 @@ public class AuthService {
     public TokenResponse register(RegisterRequest req, String ip, String userAgent) {
         passwordPolicy.validate(req.password());
         User user = userAccountService.registerCustomer(req.email(), req.name(), req.password());
-        verificationService.sendVerification(user);
+        verificationService.sendVerification(user, req.lang());
         auditService.record(AuditAction.REGISTER, user.getId(), user.getEmail(), null, ip, userAgent);
 
         TokenPair pair = tokenService.issue(user, false, ip, userAgent);

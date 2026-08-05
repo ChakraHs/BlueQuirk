@@ -11,19 +11,22 @@ import {
   Lock,
   LogOut,
   Package,
+  Palette,
   ShoppingBag,
   User as UserIcon,
 } from "lucide-react";
 import RoleGuard from "@/components/auth/RoleGuard";
+import ThemePreference from "@/components/ThemePreference";
 import { getAuthUser, logout, type AuthUser } from "@/lib/auth";
 import { IdentityService, type Profile } from "@/services/identity.service";
 
-type Tab = "profile" | "security" | "orders";
+type Tab = "profile" | "security" | "orders" | "preferences";
 
 const TABS: { id: Tab; label: string; icon: typeof UserIcon }[] = [
   { id: "profile", label: "Profile", icon: UserIcon },
   { id: "security", label: "Security", icon: Lock },
   { id: "orders", label: "Orders", icon: Package },
+  { id: "preferences", label: "Preferences", icon: Palette },
 ];
 
 export default function AccountPage() {
@@ -92,7 +95,7 @@ function AccountContent() {
       </div>
 
       {/* Hero */}
-      <div className="mb-8 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+      <div className="mb-8 overflow-hidden rounded-2xl border border-gray-200 bg-surface">
         <div className="h-24 bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700" />
         <div className="flex flex-col items-start gap-4 px-6 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-end gap-4">
@@ -126,7 +129,7 @@ function AccountContent() {
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         {/* Side nav */}
-        <nav className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-white p-2 lg:flex-col lg:overflow-visible">
+        <nav className="flex gap-1 overflow-x-auto rounded-xl border border-gray-200 bg-surface p-2 lg:flex-col lg:overflow-visible">
           {TABS.map(({ id, label, icon: Icon }) => (
             <button
               key={id}
@@ -153,7 +156,7 @@ function AccountContent() {
         {/* Panel */}
         <div className="min-w-0">
           {loading ? (
-            <div className="flex min-h-[40vh] items-center justify-center rounded-xl border border-gray-200 bg-white">
+            <div className="flex min-h-[40vh] items-center justify-center rounded-xl border border-gray-200 bg-surface">
               <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
             </div>
           ) : tab === "profile" ? (
@@ -165,8 +168,10 @@ function AccountContent() {
             />
           ) : tab === "security" ? (
             <SecurityTab />
-          ) : (
+          ) : tab === "orders" ? (
             <OrdersTab />
+          ) : (
+            <PreferencesTab />
           )}
         </div>
       </div>
@@ -385,10 +390,27 @@ function OrdersTab() {
   );
 }
 
+/* --------------------------- Preferences tab --------------------------- */
+
+function PreferencesTab() {
+  return (
+    <Card title="Appearance" subtitle="Choose how RedQuirk looks on this device.">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-900">Theme</h3>
+        <p className="mb-4 mt-1 text-sm text-gray-500">
+          Light, dark, or match your device. Your choice is saved and applied on
+          every visit.
+        </p>
+        <ThemePreference />
+      </div>
+    </Card>
+  );
+}
+
 /* ------------------------------- UI bits ------------------------------- */
 
 const inputClass =
-  "w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20";
+  "w-full rounded-lg border border-gray-300 bg-surface px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20";
 
 function Card({
   title,
@@ -400,7 +422,7 @@ function Card({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-xl border border-gray-200 bg-white p-6">
+    <section className="rounded-xl border border-gray-200 bg-surface p-6">
       <header className="mb-6">
         <h2 className="text-lg font-bold tracking-tight">{title}</h2>
         {subtitle && <p className="mt-1 text-sm text-gray-500">{subtitle}</p>}

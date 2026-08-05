@@ -28,6 +28,7 @@ import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
 import shop.bluequirk.blue_quirk_backend.promotion.service.AppliedPromotion;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService.CustomerRef;
+import shop.bluequirk.blue_quirk_backend.utility.EmailI18n;
 import shop.bluequirk.blue_quirk_backend.repository.OrderAuditLogRepository;
 import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
 import shop.bluequirk.blue_quirk_backend.repository.TodifySyncLogRepository;
@@ -127,6 +128,7 @@ public class OrderService {
         order.setPostalCode(trimToNull(req.postalCode()));
         order.setNote(req.note() != null ? req.note().trim() : null);
         order.setEmail(email);
+        order.setLang(EmailI18n.normalize(req.lang()));
         order.setPaymentMethod("COD");
         order.setStatus(OrderStatus.PENDING);
         order.setPaymentStatus(PaymentStatus.UNPAID);

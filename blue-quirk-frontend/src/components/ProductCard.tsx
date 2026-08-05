@@ -74,7 +74,7 @@ export default function ProductCard({
   return (
     <Link
       href={`/${lang}/product/${product.id}`}
-      className="group block overflow-hidden rounded-2xl border border-gray-200/70 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl"
+      className="group block overflow-hidden rounded-2xl border border-gray-200/70 bg-surface shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-gray-300 hover:shadow-xl"
     >
       {/* IMAGE / carousel */}
       <div
@@ -106,7 +106,7 @@ export default function ProductCard({
 
         {isOutOfStock && (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/50">
-            <span className="rounded-full bg-white/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-800">
+            <span className="rounded-full bg-surface/95 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-gray-800">
               {t(lang, "product.outOfStock")}
             </span>
           </div>
@@ -119,7 +119,7 @@ export default function ProductCard({
               type="button"
               onClick={go(-1)}
               aria-label="Image précédente"
-              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-sm backdrop-blur transition hover:bg-white md:opacity-0 md:group-hover:opacity-100"
+              className="absolute left-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-gray-800 shadow-sm backdrop-blur transition hover:bg-surface md:opacity-0 md:group-hover:opacity-100"
             >
               <ChevronLeft size={18} />
             </button>
@@ -127,7 +127,7 @@ export default function ProductCard({
               type="button"
               onClick={go(1)}
               aria-label="Image suivante"
-              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-gray-800 shadow-sm backdrop-blur transition hover:bg-white md:opacity-0 md:group-hover:opacity-100"
+              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full bg-surface/90 text-gray-800 shadow-sm backdrop-blur transition hover:bg-surface md:opacity-0 md:group-hover:opacity-100"
             >
               <ChevronRight size={18} />
             </button>
@@ -145,7 +145,7 @@ export default function ProductCard({
                   }}
                   aria-label={`Image ${i + 1}`}
                   className={`h-1.5 rounded-full transition-all ${
-                    i === index ? "w-4 bg-white" : "w-1.5 bg-white/60 hover:bg-white/80"
+                    i === index ? "w-4 bg-surface" : "w-1.5 bg-surface/60 hover:bg-surface/80"
                   }`}
                 />
               ))}
@@ -156,7 +156,7 @@ export default function ProductCard({
         {/* wishlist toggle */}
         <WishlistButton
           item={{ id: product.id, name: product.name, price: product.price, image: images[0], lang }}
-          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-gray-700 shadow-sm backdrop-blur transition hover:text-blue-600"
+          className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-gray-700 shadow-sm backdrop-blur transition hover:text-blue-600"
         />
       </div>
 

@@ -108,7 +108,7 @@ export default async function ProductPage({
   };
 
   return (
-    <main className="bg-white">
+    <main className="bg-surface">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

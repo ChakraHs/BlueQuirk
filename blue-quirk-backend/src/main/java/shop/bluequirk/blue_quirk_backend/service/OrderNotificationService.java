@@ -12,18 +12,29 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import shop.bluequirk.blue_quirk_backend.domain.DefaultEmailTemplates;
 import shop.bluequirk.blue_quirk_backend.domain.EmailEvent;
 import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.EmailTemplate;
 import shop.bluequirk.blue_quirk_backend.provider.EmailProvider;
 import shop.bluequirk.blue_quirk_backend.repository.EmailTemplateRepository;
+import shop.bluequirk.blue_quirk_backend.utility.EmailI18n;
 import shop.bluequirk.blue_quirk_backend.utility.TemplateEngine;
 
 /**
- * Sends order-confirmation emails (customer + admin) after an order is placed.
- * Runs asynchronously and best-effort: a mail failure is logged but never breaks
- * order placement, and each recipient is sent independently.
+ * Sends order emails (customer + admin) after an order is placed or its status
+ * changes. Runs asynchronously and best-effort: a mail failure is logged but
+ * never breaks the order, and each recipient is sent independently.
+ *
+ * <p><b>Language:</b> the customer's emails are rendered in the order's language
+ * (the storefront locale captured at checkout — "fr" default, or "ar"); the admin
+ * notification is always in the default language. For each event the active DB
+ * {@link EmailTemplate} for that (code, language) is used, falling back to the
+ * default-language template, then to the built-in {@link DefaultEmailTemplates}
+ * seed for the language — so a language never renders as raw fallback English.
+ * The pre-rendered fragments ({@code itemsTable} etc.) are built in the target
+ * language too, including right-to-left layout for Arabic.
  */
 @Service
 public class OrderNotificationService {
@@ -54,19 +65,57 @@ public class OrderNotificationService {
 
     @Async
     public void sendOrderEmails(OrderResponse order) {
-        Map<String, String> vars = buildVars(order);
-        // Customer confirmation
+        String customerLang = EmailI18n.normalize(order.lang());
+        // Customer confirmation — in the customer's language.
         if (order.email() != null && !order.email().isBlank()) {
-            sendEvent(order.email(), EmailEvent.ORDER_PLACED_CUSTOMER, vars,
-                    storeName + " order " + ref(order) + " confirmed",
-                    customerHtml(order));
+            sendEvent(order.email(), EmailEvent.ORDER_PLACED_CUSTOMER, customerLang, order);
         }
-        // Admin notification
+        // Admin notification — always in the default (store) language.
         if (!adminEmail.isBlank()) {
-            sendEvent(adminEmail, EmailEvent.ORDER_PLACED_ADMIN, vars,
-                    "New order " + ref(order) + " — " + money(order.total()),
-                    adminHtml(order));
+            sendEvent(adminEmail, EmailEvent.ORDER_PLACED_ADMIN, EmailI18n.DEFAULT_LANG, order);
         }
+    }
+
+    /**
+     * Emails the customer when an admin changes the order's status. Best-effort,
+     * async, and skipped when there is no customer email or no email for the status.
+     */
+    @Async
+    public void sendStatusUpdate(OrderResponse order, OrderStatus status) {
+        if (order.email() == null || order.email().isBlank()) {
+            return;
+        }
+        EmailEvent event = EmailEvent.forStatus(status);
+        if (event == null) {
+            return; // no email for this status (e.g. PENDING)
+        }
+        sendEvent(order.email(), event, EmailI18n.normalize(order.lang()), order);
+    }
+
+    /**
+     * Sends an event email in the given language. Resolves the template as:
+     * active (code, lang) → active (code, default lang) → built-in seed for lang.
+     * Variables (incl. localized fragments) are filled for that language.
+     */
+    private void sendEvent(String to, EmailEvent event, String lang, OrderResponse order) {
+        Map<String, String> vars = buildVars(order, lang);
+
+        Optional<EmailTemplate> template = templateRepository.findByCodeAndLangAndActiveTrue(event.code(), lang);
+        if (template.isEmpty() && !EmailI18n.DEFAULT_LANG.equals(lang)) {
+            template = templateRepository.findByCodeAndLangAndActiveTrue(event.code(), EmailI18n.DEFAULT_LANG);
+        }
+
+        String subject;
+        String body;
+        if (template.isPresent()) {
+            subject = template.get().getSubject();
+            body = template.get().getBody();
+        } else {
+            DefaultEmailTemplates.Seed seed = DefaultEmailTemplates.forEvent(event, lang);
+            subject = seed.subject();
+            body = seed.body();
+        }
+        trySend(to, TemplateEngine.process(subject, vars), TemplateEngine.process(body, vars));
     }
 
     /** Public tracking URL for this order, or null when it has no order number. */
@@ -79,17 +128,17 @@ public class OrderNotificationService {
                 + URLEncoder.encode(order.orderNumber(), StandardCharsets.UTF_8);
     }
 
-    /** A "Suivre ma commande" CTA button, or "" when there is no tracking URL. */
-    private String trackButton(OrderResponse order) {
+    /** A "Track my order" CTA button (localized), or "" when there is no tracking URL. */
+    private String trackButton(OrderResponse order, String lang) {
         String url = trackUrl(order);
         if (url == null) return "";
         return "<div style='margin:18px 0'>"
                 + "<a href='" + url + "' "
                 + "style='display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;"
                 + "font-weight:600;font-size:14px;padding:12px 22px;border-radius:999px'>"
-                + "Suivre ma commande</a>"
+                + EmailI18n.t(lang, "track.button") + "</a>"
                 + "<p style='margin:8px 0 0;color:#6b7280;font-size:12px'>"
-                + "Référence : <strong>" + esc(ref(order)) + "</strong></p>"
+                + EmailI18n.t(lang, "track.ref") + " : <strong>" + esc(ref(order)) + "</strong></p>"
                 + "</div>";
     }
 
@@ -99,42 +148,8 @@ public class OrderNotificationService {
                 ? order.orderNumber() : "#" + order.id();
     }
 
-    /**
-     * Emails the customer when an admin changes the order's status. Best-effort,
-     * async, and skipped when there is no customer email.
-     */
-    @Async
-    public void sendStatusUpdate(OrderResponse order, OrderStatus status) {
-        if (order.email() == null || order.email().isBlank()) {
-            return;
-        }
-        EmailEvent event = EmailEvent.forStatus(status);
-        if (event == null) {
-            return; // no email for this status (e.g. PENDING)
-        }
-        sendEvent(order.email(), event, buildVars(order),
-                statusSubject(order, status), statusHtml(order, status));
-    }
-
-    /**
-     * Sends an event email using the active {@link EmailTemplate} whose code
-     * matches the event, rendering {@code {{variables}}}. Falls back to the
-     * built-in subject/HTML when no active template is assigned. Best-effort.
-     */
-    private void sendEvent(String to, EmailEvent event, Map<String, String> vars,
-                           String fallbackSubject, String fallbackHtml) {
-        String subject = fallbackSubject;
-        String html = fallbackHtml;
-        Optional<EmailTemplate> template = templateRepository.findByCodeAndActiveTrue(event.code());
-        if (template.isPresent()) {
-            subject = TemplateEngine.process(template.get().getSubject(), vars);
-            html = TemplateEngine.process(template.get().getBody(), vars);
-        }
-        trySend(to, subject, html);
-    }
-
-    /** All template variables for an order (see EmailTemplateCatalog). */
-    private Map<String, String> buildVars(OrderResponse o) {
+    /** All template variables for an order, rendered in the given language. */
+    private Map<String, String> buildVars(OrderResponse o, String lang) {
         Map<String, String> v = new LinkedHashMap<>();
         v.put("storeName", storeName);
         v.put("orderRef", ref(o));
@@ -144,78 +159,27 @@ public class OrderNotificationService {
         v.put("address", esc(o.address()));
         v.put("city", esc(o.city()));
         v.put("subtotal", money(o.subtotal()));
-        v.put("shipping", o.shippingFee() == 0 ? "Free" : money(o.shippingFee()));
+        v.put("shipping", o.shippingFee() == 0 ? EmailI18n.t(lang, "summary.free") : money(o.shippingFee()));
         v.put("total", money(o.total()));
 
         String tracking = o.trackingNumber() != null ? o.trackingNumber().trim() : "";
         v.put("trackingNumber", esc(tracking));
         v.put("trackingLine", tracking.isBlank() ? ""
-                : "Tracking number: <strong>" + esc(tracking) + "</strong>.");
+                : EmailI18n.t(lang, "track.number") + " : <strong>" + esc(tracking) + "</strong>.");
 
         String reason = o.cancellationReason() != null ? o.cancellationReason().trim() : "";
         v.put("cancellationReason", esc(reason));
         v.put("cancellationLine", reason.isBlank() ? ""
-                : "Reason: <strong>" + esc(reason) + "</strong>.");
+                : EmailI18n.t(lang, "cancel.reason") + " : <strong>" + esc(reason) + "</strong>.");
 
         v.put("estimatedDelivery", esc(o.estimatedDelivery() != null ? o.estimatedDelivery() : ""));
         String url = trackUrl(o);
         v.put("trackUrl", url != null ? url : "");
-        v.put("trackButton", trackButton(o));
-        v.put("itemsTable", itemsTable(o));
-        v.put("orderSummary", totals(o));
-        v.put("shippingBlock", shipping(o));
+        v.put("trackButton", trackButton(o, lang));
+        v.put("itemsTable", itemsTable(o, lang));
+        v.put("orderSummary", totals(o, lang));
+        v.put("shippingBlock", shipping(o, lang));
         return v;
-    }
-
-    private String statusSubject(OrderResponse order, OrderStatus status) {
-        String ref = ref(order);
-        return switch (status) {
-            case PROCESSING -> "Votre commande RedQuirk " + ref + " est en préparation";
-            case PACKED     -> "Votre commande RedQuirk " + ref + " est prête à l'expédition";
-            case SHIPPED    -> "Votre commande RedQuirk " + ref + " a été expédiée";
-            case DELIVERED  -> "Votre commande RedQuirk " + ref + " a bien été livrée";
-            case CANCELLED  -> "Votre commande RedQuirk " + ref + " a été annulée";
-            default         -> "Mise à jour de votre commande RedQuirk " + ref;
-        };
-    }
-
-    private String statusHtml(OrderResponse order, OrderStatus status) {
-        // Delivered is a premium closing email, not a generic status notice.
-        if (status == OrderStatus.DELIVERED) {
-            return deliveredHtml(order);
-        }
-        String ref = ref(order);
-        String title;
-        String intro;
-        switch (status) {
-            case PROCESSING -> {
-                title = "Commande en préparation";
-                intro = "Votre commande <strong>" + ref + "</strong> est en cours de préparation dans nos ateliers.";
-            }
-            case PACKED -> {
-                title = "Commande prête";
-                intro = "Votre commande <strong>" + ref + "</strong> est emballée et prête à être remise au transporteur.";
-            }
-            case SHIPPED -> {
-                title = "Commande expédiée";
-                String tracking = (order.trackingNumber() != null && !order.trackingNumber().isBlank())
-                        ? " Numéro de suivi : <strong>" + esc(order.trackingNumber()) + "</strong>." : "";
-                intro = "Votre commande <strong>" + ref + "</strong> est en route. "
-                        + "Notre livreur vous contactera au " + esc(order.phone()) + " pour la livraison." + tracking;
-            }
-            case CANCELLED -> {
-                title = "Commande annulée";
-                String reason = (order.cancellationReason() != null && !order.cancellationReason().isBlank())
-                        ? " Motif : <strong>" + esc(order.cancellationReason()) + "</strong>." : "";
-                intro = "Votre commande <strong>" + ref + "</strong> a été annulée." + reason
-                        + " Pour toute question, répondez simplement à cet e-mail.";
-            }
-            default -> {
-                title = "Mise à jour de commande";
-                intro = "Le statut de votre commande <strong>" + ref + "</strong> a été mis à jour.";
-            }
-        }
-        return wrap(title, intro, trackButton(order) + itemsTable(order) + totals(order) + shipping(order));
     }
 
     private void trySend(String to, String subject, String html) {
@@ -231,116 +195,63 @@ public class OrderNotificationService {
         return String.format("%.2f %s", v, currency);
     }
 
-    private String itemsTable(OrderResponse order) {
+    private String itemsTable(OrderResponse order, String lang) {
+        String start = EmailI18n.startAlign(lang);
+        String end = EmailI18n.endAlign(lang);
         StringBuilder rows = new StringBuilder();
         for (OrderResponse.Item it : order.items()) {
             String variant = (it.variant() != null && !it.variant().isBlank())
                     ? "<div style='color:#6b7280;font-size:12px'>" + esc(it.variant()) + "</div>" : "";
             rows.append("<tr>")
-                .append("<td style='padding:10px 8px;border-bottom:1px solid #eee'>")
+                .append("<td style='padding:10px 8px;border-bottom:1px solid #eee;text-align:").append(start).append("'>")
                 .append("<strong>").append(esc(it.name())).append("</strong>").append(variant)
                 .append("</td>")
                 .append("<td style='padding:10px 8px;border-bottom:1px solid #eee;text-align:center'>")
                 .append(it.quantity()).append("</td>")
-                .append("<td style='padding:10px 8px;border-bottom:1px solid #eee;text-align:right'>")
+                .append("<td style='padding:10px 8px;border-bottom:1px solid #eee;text-align:").append(end).append("'>")
                 .append(money(it.lineTotal())).append("</td>")
                 .append("</tr>");
         }
         return "<table style='width:100%;border-collapse:collapse;font-size:14px'>"
                 + "<thead><tr>"
-                + "<th style='text-align:left;padding:8px;color:#6b7280;font-weight:600'>Article</th>"
-                + "<th style='text-align:center;padding:8px;color:#6b7280;font-weight:600'>Qté</th>"
-                + "<th style='text-align:right;padding:8px;color:#6b7280;font-weight:600'>Total</th>"
+                + "<th style='text-align:" + start + ";padding:8px;color:#6b7280;font-weight:600'>"
+                + EmailI18n.t(lang, "item.article") + "</th>"
+                + "<th style='text-align:center;padding:8px;color:#6b7280;font-weight:600'>"
+                + EmailI18n.t(lang, "item.qty") + "</th>"
+                + "<th style='text-align:" + end + ";padding:8px;color:#6b7280;font-weight:600'>"
+                + EmailI18n.t(lang, "item.total") + "</th>"
                 + "</tr></thead><tbody>" + rows + "</tbody></table>";
     }
 
-    private String totals(OrderResponse order) {
+    private String totals(OrderResponse order, String lang) {
         return "<table style='width:100%;font-size:14px;margin-top:12px'>"
-                + row("Sous-total", money(order.subtotal()), false)
-                + row("Livraison", order.shippingFee() == 0 ? "Gratuite" : money(order.shippingFee()), false)
-                + row("Total (à payer à la livraison)", money(order.total()), true)
+                + row(lang, EmailI18n.t(lang, "summary.subtotal"), money(order.subtotal()), false)
+                + row(lang, EmailI18n.t(lang, "summary.shipping"),
+                        order.shippingFee() == 0 ? EmailI18n.t(lang, "summary.free") : money(order.shippingFee()), false)
+                + row(lang, EmailI18n.t(lang, "summary.totalCod"), money(order.total()), true)
                 + "</table>";
     }
 
-    private String row(String label, String value, boolean bold) {
+    private String row(String lang, String label, String value, boolean bold) {
         String w = bold ? "700" : "400";
         String size = bold ? "16px" : "14px";
-        return "<tr><td style='padding:4px 0;font-weight:" + w + ";font-size:" + size + "'>" + esc(label) + "</td>"
-                + "<td style='padding:4px 0;text-align:right;font-weight:" + w + ";font-size:" + size + "'>" + value + "</td></tr>";
+        String start = EmailI18n.startAlign(lang);
+        String end = EmailI18n.endAlign(lang);
+        return "<tr><td style='padding:4px 0;text-align:" + start + ";font-weight:" + w + ";font-size:" + size + "'>"
+                + esc(label) + "</td>"
+                + "<td style='padding:4px 0;text-align:" + end + ";font-weight:" + w + ";font-size:" + size + "'>"
+                + value + "</td></tr>";
     }
 
-    private String shipping(OrderResponse o) {
+    private String shipping(OrderResponse o, String lang) {
         String note = (o.note() != null && !o.note().isBlank())
-                ? "<p style='margin:6px 0;color:#374151'><strong>Note:</strong> " + esc(o.note()) + "</p>" : "";
+                ? "<p style='margin:6px 0;color:#374151'><strong>" + EmailI18n.t(lang, "shipping.note")
+                  + ":</strong> " + esc(o.note()) + "</p>" : "";
         return "<div style='background:#f9fafb;border-radius:10px;padding:16px;margin-top:16px'>"
-                + "<p style='margin:0 0 6px;font-weight:600'>Livraison</p>"
+                + "<p style='margin:0 0 6px;font-weight:600'>" + EmailI18n.t(lang, "shipping.heading") + "</p>"
                 + "<p style='margin:2px 0;color:#374151'>" + esc(o.customerName()) + " — " + esc(o.phone()) + "</p>"
                 + "<p style='margin:2px 0;color:#374151'>" + esc(o.address()) + ", " + esc(o.city()) + "</p>"
                 + note + "</div>";
-    }
-
-    private String wrap(String title, String intro, String inner) {
-        return "<div style='font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#111827'>"
-                + "<div style='font-size:22px;font-weight:800;padding:8px 0'>Red<span style='color:#dc2626'>Quirk</span></div>"
-                + "<h2 style='font-size:20px;margin:8px 0'>" + esc(title) + "</h2>"
-                + "<p style='color:#374151'>" + intro + "</p>"
-                + "<div style='display:inline-block;background:#eff6ff;color:#1d4ed8;border-radius:999px;"
-                + "padding:6px 12px;font-size:13px;font-weight:600;margin:6px 0'>Paiement à la livraison (Cash on Delivery)</div>"
-                + inner
-                + "<p style='color:#9ca3af;font-size:12px;margin-top:24px'>RedQuirk — merci pour votre confiance.</p>"
-                + "</div>";
-    }
-
-    /**
-     * Premium "order delivered" email — mirrors the seeded ORDER_DELIVERED
-     * template. A warm closing message: delivery-confirmation hero, thank-you,
-     * item recap and paid total, plus a support/feedback block. No COD badge,
-     * tracking button, or "amount to pay" (the order is delivered and paid).
-     */
-    private String deliveredHtml(OrderResponse o) {
-        return "<div style='background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif'>"
-                + "<div style='max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;"
-                + "border:1px solid #ececf0;overflow:hidden'>"
-                + "<div style='padding:22px 28px;border-bottom:1px solid #f1f2f4;font-size:22px;"
-                + "font-weight:800;color:#111827'>Red<span style='color:#dc2626'>Quirk</span></div>"
-                + "<div style='padding:36px 28px 4px;text-align:center'>"
-                + "<div style='width:66px;height:66px;margin:0 auto 18px;border-radius:50%;background:#ecfdf5'>"
-                + "<span style='font-size:34px;line-height:66px;color:#059669'>&#10003;</span></div>"
-                + "<h1 style='margin:0;font-size:23px;color:#111827'>Votre commande est arrivée</h1>"
-                + "<p style='margin:10px 0 0;color:#6b7280;font-size:15px'>La commande "
-                + "<strong style='color:#111827'>" + esc(ref(o)) + "</strong> a été livrée avec succès.</p></div>"
-                + "<div style='padding:22px 28px 4px'>"
-                + "<p style='margin:0 0 20px;color:#374151;font-size:15px;line-height:1.65'>"
-                + "Bonjour " + esc(o.customerName()) + ", merci d'avoir choisi " + esc(storeName) + ". "
-                + "Nous espérons que votre commande vous plaît et nous vous remercions de votre confiance.</p>"
-                + "<p style='margin:0 0 8px;color:#111827;font-size:13px;font-weight:700;"
-                + "text-transform:uppercase;letter-spacing:.04em'>Votre commande</p>"
-                + itemsTable(o)
-                + "<div style='text-align:right;margin-top:12px;color:#111827;font-size:15px'>"
-                + "Total payé&nbsp;: <strong>" + money(o.total()) + "</strong></div>"
-                + "<div style='background:#f9fafb;border:1px solid #f0f1f3;border-radius:12px;"
-                + "padding:16px 18px;margin:24px 0 6px'>"
-                + "<p style='margin:0 0 4px;color:#111827;font-weight:700;font-size:14px'>"
-                + "Une question sur votre commande&nbsp;?</p>"
-                + "<p style='margin:0;color:#6b7280;font-size:13px;line-height:1.6'>"
-                + "Répondez simplement à cet e-mail — notre équipe vous répond rapidement. "
-                + "Votre avis compte énormément pour nous.</p></div></div>"
-                + "<div style='padding:18px 28px 26px;border-top:1px solid #f1f2f4;text-align:center'>"
-                + "<p style='margin:0;color:#9ca3af;font-size:12px'>" + esc(storeName)
-                + " — merci pour votre confiance.</p></div></div></div>";
-    }
-
-    private String customerHtml(OrderResponse o) {
-        String intro = "Bonjour " + esc(o.customerName()) + ", votre commande <strong>" + ref(o)
-                + "</strong> a bien été enregistrée. Conservez cette référence pour suivre votre commande. "
-                + "Nous vous appellerons pour confirmer la livraison. Vous payez en espèces à la réception.";
-        return wrap("Commande confirmée", intro, trackButton(o) + itemsTable(o) + totals(o) + shipping(o));
-    }
-
-    private String adminHtml(OrderResponse o) {
-        String intro = "Nouvelle commande <strong>" + ref(o) + "</strong> passée par "
-                + esc(o.customerName()) + " (" + esc(o.email() != null ? o.email() : "—") + ").";
-        return wrap("Nouvelle commande " + ref(o), intro, shipping(o) + itemsTable(o) + totals(o));
     }
 
     private String esc(String s) {

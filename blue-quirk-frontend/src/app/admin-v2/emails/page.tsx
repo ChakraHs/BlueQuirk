@@ -45,7 +45,13 @@ function render(text: string): string {
   );
 }
 
+const LANGUAGES: { code: string; label: string }[] = [
+  { code: "fr", label: "Français" },
+  { code: "ar", label: "العربية" },
+];
+
 export default function EmailTemplatesPage() {
+  const [lang, setLang] = useState<string>("fr");
   const [catalog, setCatalog] = useState<EmailCatalog | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [subject, setSubject] = useState("");
@@ -59,57 +65,68 @@ export default function EmailTemplatesPage() {
   const [error, setError] = useState<string | null>(null);
   const bodyRef = useRef<HTMLTextAreaElement>(null);
 
+  // Refresh only the catalog (event assignment badges) for the current language.
   const loadCatalog = useCallback(async () => {
     try {
-      const c = await EmailTemplateService.catalog();
-      setCatalog(c);
-      setSelected((prev) => prev ?? c.events[0]?.code ?? null);
+      setCatalog(await EmailTemplateService.catalog(lang));
     } catch {
       setError("Failed to load email templates. Is the backend running?");
-    } finally {
-      setLoading(false);
     }
-  }, []);
+  }, [lang]);
 
+  // Open one event in the editor, loading its template for the current language.
+  const openEvent = useCallback(
+    async (ev: EmailEventInfo) => {
+      setSelected(ev.code);
+      setSaved(false);
+      setError(null);
+      if (ev.assigned) {
+        setLoadingTemplate(true);
+        try {
+          const t = await EmailTemplateService.getByCode(ev.code, lang);
+          setTemplateId(t.id);
+          setSubject(t.subject);
+          setBody(t.body);
+          setActive(t.active);
+        } catch {
+          setError("Failed to load this template.");
+        } finally {
+          setLoadingTemplate(false);
+        }
+      } else {
+        setTemplateId(null);
+        setSubject("");
+        setBody("");
+        setActive(true);
+      }
+    },
+    [lang]
+  );
+
+  // Initial load and every language switch: reload the catalog, then (re)open the
+  // currently selected event (or the first one) in the newly selected language.
   useEffect(() => {
-    loadCatalog();
-  }, [loadCatalog]);
-
-  const selectEvent = useCallback(async (ev: EmailEventInfo) => {
-    setSelected(ev.code);
-    setSaved(false);
-    setError(null);
-    if (ev.assigned) {
-      setLoadingTemplate(true);
+    let alive = true;
+    (async () => {
+      setLoading(true);
       try {
-        const t = await EmailTemplateService.getByCode(ev.code);
-        setTemplateId(t.id);
-        setSubject(t.subject);
-        setBody(t.body);
-        setActive(t.active);
+        const c = await EmailTemplateService.catalog(lang);
+        if (!alive) return;
+        setCatalog(c);
+        const code = selected ?? c.events[0]?.code ?? null;
+        const ev = code ? c.events.find((e) => e.code === code) : undefined;
+        if (ev) await openEvent(ev);
       } catch {
-        setError("Failed to load this template.");
+        if (alive) setError("Failed to load email templates. Is the backend running?");
       } finally {
-        setLoadingTemplate(false);
+        if (alive) setLoading(false);
       }
-    } else {
-      setTemplateId(null);
-      setSubject("");
-      setBody("");
-      setActive(true);
-    }
-  }, []);
-
-  // Load the first event's template once the catalog arrives.
-  useEffect(() => {
-    if (catalog && selected) {
-      const ev = catalog.events.find((e) => e.code === selected);
-      if (ev && templateId === null && subject === "" && body === "") {
-        selectEvent(ev);
-      }
-    }
+    })();
+    return () => {
+      alive = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catalog]);
+  }, [lang]);
 
   const insertVariable = (name: string) => {
     const el = bodyRef.current;
@@ -139,7 +156,7 @@ export default function EmailTemplatesPage() {
     setError(null);
     setSaved(false);
     try {
-      const payload = { code: selected, subject, body, active };
+      const payload = { code: selected, lang, subject, body, active };
       const t = templateId
         ? await EmailTemplateService.update(templateId, payload)
         : await EmailTemplateService.create(payload);
@@ -162,8 +179,25 @@ export default function EmailTemplatesPage() {
     <div>
       <PageHeader
         title="Email templates"
-        subtitle="Edit the transactional emails your store sends. Each event uses its assigned template, with {{variables}} filled from the order."
+        subtitle="Edit the transactional emails your store sends. Each event has a template per language; customers receive it in their language, or the default when unavailable."
       />
+
+      {/* Language switch — each event has an independent template per language. */}
+      <div className="mb-4 inline-flex rounded-lg border border-gray-200 bg-white p-1 shadow-sm">
+        {LANGUAGES.map((lng) => (
+          <button
+            key={lng.code}
+            onClick={() => setLang(lng.code)}
+            className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+              lang === lng.code
+                ? "bg-blue-600 text-white"
+                : "text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {lng.label}
+          </button>
+        ))}
+      </div>
 
       {error && (
         <div className="mb-4 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
@@ -188,7 +222,7 @@ export default function EmailTemplatesPage() {
                 return (
                   <li key={ev.code}>
                     <button
-                      onClick={() => selectEvent(ev)}
+                      onClick={() => openEvent(ev)}
                       className={`flex w-full items-start gap-3 border-b border-gray-50 px-4 py-3 text-left transition ${
                         isSel ? "bg-blue-50" : "hover:bg-gray-50"
                       }`}
