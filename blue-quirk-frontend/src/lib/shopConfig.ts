@@ -41,6 +41,8 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   // Clarity off by default until an admin enables it.
   clarityEnabled: false,
   clarityProjectId: null,
+  // Coupon block on checkout is shown by default.
+  couponEnabled: true,
 };
 
 export async function getPublicShopConfig(): Promise<PublicShopConfig> {
@@ -85,6 +87,8 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
       errorColor: data.errorColor ?? null,
       clarityEnabled: data.clarityEnabled === true,
       clarityProjectId: data.clarityProjectId ?? null,
+      // Default to true (shown) unless the backend explicitly says false.
+      couponEnabled: data.couponEnabled !== false,
     };
   } catch {
     return SHOP_CONFIG_DEFAULTS;

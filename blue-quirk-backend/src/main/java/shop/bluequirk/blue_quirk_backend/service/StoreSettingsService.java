@@ -168,6 +168,10 @@ public class StoreSettingsService {
         if (req.clarityProjectId() != null) {
             s.setClarityProjectId(blankToNull(req.clarityProjectId()));
         }
+        // Checkout coupon block: enabled null = unchanged.
+        if (req.couponEnabled() != null) {
+            s.setCouponEnabled(req.couponEnabled());
+        }
         return repository.save(s);
     }
 

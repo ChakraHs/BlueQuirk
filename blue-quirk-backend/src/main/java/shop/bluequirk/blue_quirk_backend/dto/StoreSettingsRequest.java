@@ -41,5 +41,7 @@ public record StoreSettingsRequest(
         // Microsoft Clarity (session replay only). enabled null = leave unchanged;
         // projectId blank clears it.
         Boolean clarityEnabled,
-        String clarityProjectId
+        String clarityProjectId,
+        // Checkout coupon block toggle. null = leave unchanged.
+        Boolean couponEnabled
 ) {}

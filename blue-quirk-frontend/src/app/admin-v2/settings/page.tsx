@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
 import { StoreSettings, ThemeColors } from "@/types/settings";
@@ -55,6 +55,7 @@ type FormState = {
   heroImageMobileUrl: string | null;
   clarityEnabled: boolean;
   clarityProjectId: string;
+  couponEnabled: boolean;
 } & { [K in keyof ThemeColors]: string };
 
 function toForm(s: StoreSettings): FormState {
@@ -79,6 +80,7 @@ function toForm(s: StoreSettings): FormState {
     heroImageMobileUrl: s.heroImageMobileUrl ?? null,
     clarityEnabled: s.clarityEnabled ?? false,
     clarityProjectId: s.clarityProjectId ?? "",
+    couponEnabled: s.couponEnabled ?? true,
     primaryColor: s.primaryColor ?? "",
     primaryHoverColor: s.primaryHoverColor ?? "",
     secondaryColor: s.secondaryColor ?? "",
@@ -184,6 +186,8 @@ export default function SettingsPage() {
         // Microsoft Clarity: toggle + project id ("" clears it).
         clarityEnabled: form.clarityEnabled,
         clarityProjectId: form.clarityProjectId.trim(),
+        // Checkout coupon block toggle.
+        couponEnabled: form.couponEnabled,
         // Theme colors: send trimmed value, or "" to clear back to the default.
         primaryColor: form.primaryColor.trim(),
         primaryHoverColor: form.primaryHoverColor.trim(),
@@ -676,6 +680,42 @@ export default function SettingsPage() {
                 for replay to load. Leave the toggle off to disable Clarity entirely.
               </p>
             </div>
+          </section>
+
+          {/* Checkout — coupon block toggle */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <Tag size={18} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">
+                Checkout coupon block
+              </h2>
+            </div>
+            <p className="mb-4 text-xs text-gray-400">
+              Controls the &ldquo;have a coupon?&rdquo; input on the checkout page. Turn it
+              off to hide the coupon field from customers entirely (existing promotions are
+              unaffected — they just can&apos;t be entered at checkout while this is off).
+            </p>
+
+            <label className="flex cursor-pointer items-center gap-3">
+              <button
+                type="button"
+                role="switch"
+                aria-checked={form.couponEnabled}
+                onClick={() => update({ couponEnabled: !form.couponEnabled })}
+                className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+                  form.couponEnabled ? "bg-blue-600" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                    form.couponEnabled ? "translate-x-5" : "translate-x-0.5"
+                  }`}
+                />
+              </button>
+              <span className="text-sm font-medium text-gray-700">
+                {form.couponEnabled ? "Enabled" : "Disabled"}
+              </span>
+            </label>
           </section>
 
           {error && <p className="text-sm text-rose-600">{error}</p>}

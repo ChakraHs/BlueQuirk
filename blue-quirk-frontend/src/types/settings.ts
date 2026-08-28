@@ -56,7 +56,13 @@ export interface ClaritySettings {
   clarityProjectId: string | null;
 }
 
-export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySettings {
+// Checkout-related admin toggles.
+export interface CheckoutSettings {
+  // When false, the storefront hides the "have a coupon?" block on checkout.
+  couponEnabled: boolean;
+}
+
+export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySettings, CheckoutSettings {
   id?: number;
   storeName: string;
   logoUrl: string | null;
@@ -70,7 +76,7 @@ export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySetting
 // Public subset returned by GET /api/shop/config (also includes the shipping
 // economics, see lib/shipping). Used for storefront branding + hero + theme +
 // the Clarity runtime toggle.
-export interface PublicShopConfig extends HeroSettings, ThemeColors, ClaritySettings {
+export interface PublicShopConfig extends HeroSettings, ThemeColors, ClaritySettings, CheckoutSettings {
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;

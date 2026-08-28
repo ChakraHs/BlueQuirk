@@ -360,7 +360,8 @@ export default function CheckoutPage({
 
           <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
 
-          {/* Coupon */}
+          {/* Coupon — shown only when the admin has enabled the block. */}
+          {shippingConfig.couponEnabled && (
           <div className="mt-5 border-t border-gray-100 pt-5">
             {couponActive ? (
               <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
@@ -411,6 +412,7 @@ export default function CheckoutPage({
               </div>
             )}
           </div>
+          )}
 
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">

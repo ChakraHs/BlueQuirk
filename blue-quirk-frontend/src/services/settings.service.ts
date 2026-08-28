@@ -27,6 +27,8 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   // Microsoft Clarity (session replay only).
   clarityEnabled: boolean;
   clarityProjectId: string; // "" clears it
+  // Checkout coupon block toggle.
+  couponEnabled: boolean;
 };
 
 export const SettingsService = {
