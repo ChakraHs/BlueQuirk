@@ -360,7 +360,7 @@ export default function SearchClient({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t.keywordPh}
-            className="w-full rounded-lg border border-gray-200 bg-white py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            className="w-full rounded-lg border border-gray-200 bg-surface py-2 pl-9 pr-3 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </div>
       </FacetSection>
@@ -394,8 +394,8 @@ export default function SearchClient({
                   onClick={() => toggleStr(sizes, setSizes, s.value)}
                   className={`min-w-[2.5rem] rounded-md border px-2.5 py-1.5 text-xs font-semibold transition ${
                     on
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+                      ? "border-gray-900 bg-gray-900 text-gray-50"
+                      : "border-gray-200 bg-surface text-gray-700 hover:border-gray-400"
                   }`}
                 >
                   {s.value}
@@ -420,8 +420,8 @@ export default function SearchClient({
                   title={c.value}
                   className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1.5 text-xs font-medium transition ${
                     on
-                      ? "border-gray-900 bg-gray-900 text-white"
-                      : "border-gray-200 bg-white text-gray-700 hover:border-gray-400"
+                      ? "border-gray-900 bg-gray-900 text-gray-50"
+                      : "border-gray-200 bg-surface text-gray-700 hover:border-gray-400"
                   }`}
                 >
                   <span
@@ -446,7 +446,7 @@ export default function SearchClient({
               min={0}
               onChange={(e) => setMinPrice(e.target.value)}
               placeholder={`${t.min} ${facets.priceLo}`}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-200 bg-surface px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
             <span className="text-gray-400">—</span>
             <input
@@ -456,7 +456,7 @@ export default function SearchClient({
               min={0}
               onChange={(e) => setMaxPrice(e.target.value)}
               placeholder={`${t.max} ${facets.priceHi}`}
-              className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              className="w-full rounded-lg border border-gray-200 bg-surface px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
             />
           </div>
         </FacetSection>
@@ -473,7 +473,7 @@ export default function SearchClient({
   );
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:py-10" dir={l === "ar" ? "rtl" : "ltr"}>
+    <main className="mx-auto max-w-7xl px-3 py-8 sm:px-4 lg:py-10" dir={l === "ar" ? "rtl" : "ltr"}>
       {/* breadcrumb + heading */}
       <div className="mb-6">
         <p className="text-sm text-gray-500">
@@ -506,7 +506,7 @@ export default function SearchClient({
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 lg:hidden"
+            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-surface px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 lg:hidden"
           >
             <SlidersHorizontal size={15} />
             {t.filters}
@@ -518,7 +518,7 @@ export default function SearchClient({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="appearance-none rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-8 text-sm font-medium text-gray-700 outline-none focus:border-blue-500"
+              className="appearance-none rounded-lg border border-gray-200 bg-surface py-2 pl-3 pr-8 text-sm font-medium text-gray-700 outline-none focus:border-blue-500"
             >
               <option value="relevance">{t.relevance}</option>
               <option value="price-asc">{t.priceAsc}</option>
@@ -576,7 +576,7 @@ export default function SearchClient({
         </div>
       )}
 
-      <div className="flex gap-8">
+      <div className="flex gap-6 lg:gap-8">
         {/* desktop sidebar */}
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24">{sidebar}</div>
@@ -592,10 +592,10 @@ export default function SearchClient({
               href={`/${lang}`}
             />
           ) : loading ? (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
               {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="animate-pulse">
-                  <div className="aspect-square rounded-xl bg-gray-100" />
+                  <div className="aspect-[4/5] rounded-2xl bg-gray-100" />
                   <div className="mt-3 h-3 w-3/4 rounded bg-gray-100" />
                   <div className="mt-2 h-3 w-1/3 rounded bg-gray-100" />
                 </div>
@@ -612,7 +612,7 @@ export default function SearchClient({
               />
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-3 xl:grid-cols-4">
               {results.map((p) => (
                 <ProductCard key={p.id} product={p} lang={lang} />
               ))}
@@ -629,7 +629,7 @@ export default function SearchClient({
             onClick={() => setDrawerOpen(false)}
           />
           <div
-            className={`absolute top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-white p-5 shadow-xl ${
+            className={`absolute top-0 h-full w-[85%] max-w-sm overflow-y-auto bg-surface p-5 shadow-xl ${
               l === "ar" ? "left-0" : "right-0"
             }`}
           >
@@ -702,7 +702,7 @@ function CheckRow({
     >
       <span
         className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
-          checked ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white"
+          checked ? "border-gray-900 bg-gray-900 text-gray-50" : "border-gray-300 bg-surface"
         }`}
       >
         {checked && <Check size={12} strokeWidth={3} />}

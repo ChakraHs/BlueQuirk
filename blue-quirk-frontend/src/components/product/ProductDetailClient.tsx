@@ -426,7 +426,7 @@ export default function ProductDetailClient({
                         className={`min-h-10 rounded-full border px-4 text-sm font-medium transition ${
                           selected
                             ? "border-blue-600 bg-blue-600 text-white"
-                            : "border-gray-300 bg-white text-gray-700 hover:border-blue-400"
+                            : "border-gray-300 bg-surface text-gray-700 hover:border-blue-400"
                         }`}
                       >
                         {value.value}
@@ -472,7 +472,7 @@ export default function ProductDetailClient({
                 type="button"
                 onClick={handleAddToCart}
                 disabled={!canBuy}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-white px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
+                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-surface px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
               >
                 <ShoppingBag className="size-4" />
                 {canBuy ? t(lang, "product.addToCart") : t(lang, "product.unavailable")}
@@ -547,7 +547,7 @@ export default function ProductDetailClient({
             ].map(({ icon: Icon, label, caption }) => (
               <div
                 key={label}
-                className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 px-3 py-4 text-center transition hover:border-blue-300 hover:bg-white hover:shadow-sm"
+                className="flex flex-col items-center gap-2 rounded-2xl border border-gray-200 bg-gray-50/70 px-3 py-4 text-center transition hover:border-blue-300 hover:bg-surface hover:shadow-sm"
               >
                 <span className="flex size-10 items-center justify-center rounded-full bg-blue-50 text-blue-600">
                   <Icon className="size-5" />
@@ -604,7 +604,7 @@ export default function ProductDetailClient({
           borderTop: "1px solid #e5e7eb",
           paddingBottom: "env(safe-area-inset-bottom)",
         }}
-        className={`fixed inset-x-0 bottom-0 z-40 bg-white transition-all duration-[250ms] ease-out md:hidden ${
+        className={`fixed inset-x-0 bottom-0 z-40 bg-surface transition-all duration-[250ms] ease-out md:hidden ${
           showSticky
             ? "translate-y-0 opacity-100"
             : "pointer-events-none translate-y-full opacity-0"
@@ -625,7 +625,7 @@ export default function ProductDetailClient({
             <button
               type="button"
               onClick={handleBuyNow}
-              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-black px-8 text-sm font-semibold text-white transition active:scale-[0.98]"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-gray-900 px-8 text-sm font-semibold text-gray-50 transition active:scale-[0.98]"
             >
               <Zap className="size-4" />
               {t(lang, "product.buyNow")}

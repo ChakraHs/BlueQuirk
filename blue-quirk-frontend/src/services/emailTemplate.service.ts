@@ -3,6 +3,7 @@ import api from "./api";
 export type EmailTemplate = {
   id: number;
   code: string;
+  lang: string;
   subject: string;
   body: string;
   active: boolean;
@@ -10,6 +11,7 @@ export type EmailTemplate = {
 
 export type EmailTemplatePayload = {
   code: string;
+  lang: string;
   subject: string;
   body: string;
   active: boolean;
@@ -27,16 +29,24 @@ export type EmailEventInfo = {
 export type EmailVariableInfo = { name: string; description: string };
 
 export type EmailCatalog = {
+  lang: string;
+  languages: string[];
   events: EmailEventInfo[];
   variables: EmailVariableInfo[];
 };
 
 export const EmailTemplateService = {
-  catalog: async (): Promise<EmailCatalog> =>
-    (await api.get<EmailCatalog>("/email-templates/events")).data,
+  // Catalog resolved for one language (fr default, or ar).
+  catalog: async (lang: string): Promise<EmailCatalog> =>
+    (await api.get<EmailCatalog>("/email-templates/events", { params: { lang } }))
+      .data,
 
-  getByCode: async (code: string): Promise<EmailTemplate> =>
-    (await api.get<EmailTemplate>(`/email-templates/code/${code}`)).data,
+  getByCode: async (code: string, lang: string): Promise<EmailTemplate> =>
+    (
+      await api.get<EmailTemplate>(`/email-templates/code/${code}`, {
+        params: { lang },
+      })
+    ).data,
 
   create: async (payload: EmailTemplatePayload): Promise<EmailTemplate> =>
     (await api.post<EmailTemplate>("/email-templates", payload)).data,

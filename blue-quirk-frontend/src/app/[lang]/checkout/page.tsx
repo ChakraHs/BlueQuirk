@@ -220,6 +220,7 @@ export default function CheckoutPage({
         postalCode: form.postalCode.trim() || undefined,
         note: form.note.trim() || undefined,
         couponCode: couponActive ? appliedCoupon!.code ?? undefined : undefined,
+        lang,
         items: cartToOrderItems(items),
       });
       track("purchase", {
@@ -314,7 +315,7 @@ export default function CheckoutPage({
                 onChange={update("note")}
                 rows={3}
                 placeholder={t(lang, "checkout.notePlaceholder")}
-                className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                className="w-full rounded-lg border border-gray-300 bg-surface px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
               />
             </div>
           </div>
@@ -359,7 +360,8 @@ export default function CheckoutPage({
 
           <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
 
-          {/* Coupon */}
+          {/* Coupon — shown only when the admin has enabled the block. */}
+          {shippingConfig.couponEnabled && (
           <div className="mt-5 border-t border-gray-100 pt-5">
             {couponActive ? (
               <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
@@ -389,14 +391,14 @@ export default function CheckoutPage({
                       onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApplyCoupon(); } }}
                       placeholder={t(lang, "checkout.couponPlaceholder")}
-                      className="w-full rounded-lg border border-gray-300 bg-white py-2 pl-9 pr-3 font-mono text-sm uppercase text-gray-900 placeholder:font-sans placeholder:normal-case placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
+                      className="w-full rounded-lg border border-gray-300 bg-surface py-2 pl-9 pr-3 font-mono text-sm uppercase text-gray-900 placeholder:font-sans placeholder:normal-case placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
                     />
                   </div>
                   <button
                     type="button"
                     onClick={handleApplyCoupon}
                     disabled={applyingCoupon || !couponInput.trim()}
-                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-4 text-sm font-semibold text-white transition hover:bg-black disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-gray-900 px-4 text-sm font-semibold text-gray-50 transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {applyingCoupon && <Loader2 size={14} className="animate-spin" />}
                     {t(lang, "checkout.couponApply")}
@@ -410,6 +412,7 @@ export default function CheckoutPage({
               </div>
             )}
           </div>
+          )}
 
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">
@@ -595,7 +598,7 @@ function Field({
           placeholder={placeholder}
           autoComplete={autoComplete}
           aria-invalid={!!error}
-          className={`w-full rounded-lg border bg-white py-2.5 ${icon ? "pl-10" : "pl-3"} pr-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:outline-none focus:ring-2 ${
+          className={`w-full rounded-lg border bg-surface py-2.5 ${icon ? "pl-10" : "pl-3"} pr-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:outline-none focus:ring-2 ${
             error
               ? "border-red-400 focus:border-red-500 focus:ring-red-500/20"
               : "border-gray-300 focus:border-blue-600 focus:ring-blue-600/20"

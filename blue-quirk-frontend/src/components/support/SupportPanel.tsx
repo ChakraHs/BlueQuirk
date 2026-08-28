@@ -84,7 +84,7 @@ export default function SupportPanel({
         onTransitionEnd={(e) => {
           if (e.target === e.currentTarget && !visible) onExited();
         }}
-        className={`fixed z-[70] flex flex-col overflow-hidden bg-white shadow-2xl outline-none
+        className={`fixed z-[70] flex flex-col overflow-hidden bg-surface shadow-2xl outline-none
           inset-x-0 bottom-0 h-[86vh] max-h-[86dvh] rounded-t-2xl
           md:inset-x-auto md:bottom-24 md:right-6 md:h-[620px] md:max-h-[calc(100dvh-8rem)] md:w-[400px] md:rounded-2xl md:border md:border-gray-200
           transition-[transform,opacity] duration-300 ease-out will-change-transform
@@ -97,13 +97,13 @@ export default function SupportPanel({
               type="button"
               onClick={() => setView("home")}
               aria-label={s.ui.back}
-              className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/90 transition hover:bg-white/15"
+              className="-ml-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/90 transition hover:bg-surface/15"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
 
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 ring-1 ring-white/25">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface/15 ring-1 ring-white/25">
             {logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={logoUrl} alt={storeName} className="h-full w-full object-contain" />
@@ -127,14 +127,14 @@ export default function SupportPanel({
             type="button"
             onClick={onRequestClose}
             aria-label={s.ui.close}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/90 transition hover:bg-white/15"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/90 transition hover:bg-surface/15"
           >
             <X className="h-5 w-5" />
           </button>
         </header>
 
         {/* ---- Body ---- */}
-        <div className="flex-1 overflow-y-auto overscroll-contain bg-white">
+        <div className="flex-1 overflow-y-auto overscroll-contain bg-surface">
           {view === "home" ? (
             <div className="px-4 py-4">
               {/* Welcome */}
@@ -154,7 +154,7 @@ export default function SupportPanel({
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={s.ui.searchPlaceholder}
                   aria-label={s.ui.searchPlaceholder}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20"
+                  className="w-full rounded-xl border border-gray-200 bg-gray-50 py-2.5 pl-9 pr-3 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-surface focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -174,7 +174,7 @@ export default function SupportPanel({
                         key={a.id}
                         type="button"
                         onClick={() => startChat(a.label, a.topic)}
-                        className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:bg-blue-50 active:scale-[0.98]"
+                        className="flex items-center gap-2 rounded-xl border border-gray-200 bg-surface px-3 py-2.5 text-left text-sm font-medium text-gray-700 transition hover:border-blue-300 hover:bg-blue-50 active:scale-[0.98]"
                       >
                         <span className="text-base leading-none">{a.emoji}</span>
                         <span className="min-w-0 flex-1 truncate">{a.label}</span>

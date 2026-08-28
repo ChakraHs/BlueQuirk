@@ -78,7 +78,7 @@ export default function LanguageSwitcher({ current }: { current: string }) {
       {open && (
         <ul
           role="listbox"
-          className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-white py-1 shadow-lg"
+          className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-surface py-1 shadow-lg"
         >
           {LANGS.map((lang) => {
             const selected = lang.code === active.code;

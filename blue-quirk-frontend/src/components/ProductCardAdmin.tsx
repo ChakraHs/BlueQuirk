@@ -21,7 +21,7 @@ export default function ProductCard({
         overflow-hidden
         rounded-xl
         border
-        bg-white
+        bg-surface
         shadow-sm
         transition-all
         duration-300

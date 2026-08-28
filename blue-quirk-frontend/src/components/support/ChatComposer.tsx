@@ -54,7 +54,7 @@ export default function ChatComposer({
   const canSend = value.trim().length > 0 && !disabled;
 
   return (
-    <div className="border-t border-gray-100 bg-white px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+    <div className="border-t border-gray-100 bg-surface px-3 pt-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
       <div className="flex items-end gap-2">
         <textarea
           ref={taRef}
@@ -66,7 +66,7 @@ export default function ChatComposer({
           onKeyDown={onKeyDown}
           placeholder={placeholder}
           aria-label={placeholder}
-          className="max-h-[120px] min-h-[42px] flex-1 resize-none rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
+          className="max-h-[120px] min-h-[42px] flex-1 resize-none rounded-2xl border border-gray-200 bg-gray-50 px-3.5 py-2.5 text-sm text-gray-800 outline-none transition placeholder:text-gray-400 focus:border-blue-400 focus:bg-surface focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60"
         />
         <button
           type="button"

@@ -9,7 +9,7 @@ export default function ProductsGrid({
   lang?: string;
 }) {
   return (
-    <div className="mt-10 grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-4">
+    <div className="mt-8 grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-4">
       {products.map((product: Product) => (
         <ProductCard key={product.id} product={product} lang={lang} />
       ))}

@@ -11,6 +11,7 @@ import shop.bluequirk.blue_quirk_backend.domain.EmailEvent;
 import shop.bluequirk.blue_quirk_backend.domain.EmailTemplateCatalog;
 import shop.bluequirk.blue_quirk_backend.entity.EmailTemplate;
 import shop.bluequirk.blue_quirk_backend.repository.EmailTemplateRepository;
+import shop.bluequirk.blue_quirk_backend.utility.EmailI18n;
 import shop.bluequirk.blue_quirk_backend.utility.TemplateEngine;
 
 @RestController
@@ -23,12 +24,14 @@ public class EmailTemplateController {
         this.repository = repository;
     }
 
-    /** One entry per email event, with whether a template is assigned/active. */
+    /** One entry per email event, with whether a template is assigned/active for the language. */
     public record EventInfo(
             String code, String label, String description,
             boolean assigned, boolean active, Long templateId) {}
 
     public record CatalogResponse(
+            String lang,
+            List<String> languages,
             List<EventInfo> events,
             List<EmailTemplateCatalog.VariableInfo> variables) {}
 
@@ -39,19 +42,23 @@ public class EmailTemplateController {
         return repository.findAll();
     }
 
-    /** Catalog of email events + available template variables (for the admin UI). */
+    /**
+     * Catalog of email events + available template variables (for the admin UI),
+     * resolved for one language. {@code lang} is normalized (fr/ar, default fr).
+     */
     @GetMapping("/events")
-    public CatalogResponse events() {
+    public CatalogResponse events(@RequestParam(required = false) String lang) {
+        String l = EmailI18n.normalize(lang);
         List<EventInfo> events = java.util.Arrays.stream(EmailEvent.values())
                 .map(e -> {
-                    EmailTemplate t = repository.findByCode(e.code()).orElse(null);
+                    EmailTemplate t = repository.findByCodeAndLang(e.code(), l).orElse(null);
                     return new EventInfo(
                             e.code(), e.label(), e.description(),
                             t != null, t != null && t.isActive(),
                             t != null ? t.getId() : null);
                 })
                 .toList();
-        return new CatalogResponse(events, EmailTemplateCatalog.VARIABLES);
+        return new CatalogResponse(l, EmailI18n.SUPPORTED, events, EmailTemplateCatalog.VARIABLES);
     }
 
     @GetMapping("/{id}")
@@ -60,8 +67,9 @@ public class EmailTemplateController {
     }
 
     @GetMapping("/code/{code}")
-    public EmailTemplate getByCode(@PathVariable String code) {
-        return repository.findByCode(code).orElseThrow(this::notFound);
+    public EmailTemplate getByCode(@PathVariable String code,
+                                   @RequestParam(required = false) String lang) {
+        return repository.findByCodeAndLang(code, EmailI18n.normalize(lang)).orElseThrow(this::notFound);
     }
 
     /** Render a template with realistic sample data — used for the live preview. */
@@ -76,6 +84,7 @@ public class EmailTemplateController {
 
     @PostMapping
     public EmailTemplate create(@RequestBody EmailTemplate template) {
+        template.setLang(EmailI18n.normalize(template.getLang()));
         return repository.save(template);
     }
 
@@ -87,6 +96,7 @@ public class EmailTemplateController {
         EmailTemplate existing = repository.findById(id).orElseThrow(this::notFound);
 
         existing.setCode(template.getCode());
+        existing.setLang(EmailI18n.normalize(template.getLang()));
         existing.setSubject(template.getSubject());
         existing.setBody(template.getBody());
         existing.setActive(template.isActive());

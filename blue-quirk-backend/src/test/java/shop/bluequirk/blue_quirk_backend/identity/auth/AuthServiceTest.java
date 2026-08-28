@@ -162,16 +162,16 @@ class AuthServiceTest {
                 .thenReturn(new TokenPair("acc", "ref", created));
 
         TokenResponse res = authService.register(
-                new RegisterRequest("c@x.com", "Password1", "Customer"), "ip", "agent");
+                new RegisterRequest("c@x.com", "Password1", "Customer", null), "ip", "agent");
 
         assertThat(res.accessToken()).isEqualTo("acc");
-        verify(verificationService).sendVerification(created);
+        verify(verificationService).sendVerification(created, null);
     }
 
     @Test
     void registerRejectsWeakPassword() {
         assertThatThrownBy(() -> authService.register(
-                new RegisterRequest("c@x.com", "short", "Customer"), "ip", "a"))
+                new RegisterRequest("c@x.com", "short", "Customer", null), "ip", "a"))
                 .isInstanceOf(IdentityException.class);
     }
 }

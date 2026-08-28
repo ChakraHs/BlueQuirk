@@ -63,7 +63,8 @@ public class ShopConfigController {
                 s.getWarningColor(),
                 s.getErrorColor(),
                 s.isClarityEnabled(),
-                s.getClarityProjectId());
+                s.getClarityProjectId(),
+                s.isCouponEnabled());
     }
 
     public record ShopConfig(
@@ -99,5 +100,8 @@ public class ShopConfigController {
             // Microsoft Clarity — public, non-secret (the project id ships to the
             // browser in the loader tag regardless). Session replay only.
             boolean clarityEnabled,
-            String clarityProjectId) {}
+            String clarityProjectId,
+            // Checkout coupon block toggle. When false the storefront hides the
+            // "have a coupon?" input on checkout.
+            boolean couponEnabled) {}
 }

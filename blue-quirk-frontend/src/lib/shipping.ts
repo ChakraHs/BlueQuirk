@@ -12,12 +12,17 @@ export type ShippingConfig = {
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;
+  // Whether the checkout coupon block is shown (admin toggle). Not a shipping
+  // number, but it rides on the same /shop/config fetch so checkout can gate the
+  // coupon input without a second request.
+  couponEnabled: boolean;
 };
 
 export const SHIPPING_DEFAULTS: ShippingConfig = {
   currency: "DH",
   shippingFee: 29,
   freeShippingThreshold: 300,
+  couponEnabled: true,
 };
 
 const CONFIG_URL = `${API_BASE_URL}/shop/config`;
@@ -44,6 +49,8 @@ export async function fetchShippingConfig(): Promise<ShippingConfig> {
           typeof data.freeShippingThreshold === "number"
             ? data.freeShippingThreshold
             : SHIPPING_DEFAULTS.freeShippingThreshold,
+        // Shown unless the backend explicitly disables it.
+        couponEnabled: data.couponEnabled !== false,
       };
       return cached;
     })

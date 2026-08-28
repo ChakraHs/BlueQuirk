@@ -15,7 +15,7 @@ export default async function FeaturedProducts({ lang }: { lang: string }) {
 
   return (
     <section className="py-12">
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl px-3 sm:px-4 lg:px-6">
 
         <div className="mb-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 md:text-3xl">
@@ -26,7 +26,7 @@ export default async function FeaturedProducts({ lang }: { lang: string }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:gap-x-6 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-4">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} lang={lang} />
           ))}

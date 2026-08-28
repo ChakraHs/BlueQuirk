@@ -64,7 +64,7 @@ export default function StaticPageView({
   content: StaticPageContent;
 }) {
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-surface">
       {/* Header band */}
       <div className="border-b border-gray-100 bg-gradient-to-b from-gray-50 to-white">
         <div className="mx-auto max-w-3xl px-6 py-14 sm:py-20">

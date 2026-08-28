@@ -11,11 +11,13 @@ import shop.bluequirk.blue_quirk_backend.domain.DefaultEmailTemplates;
 import shop.bluequirk.blue_quirk_backend.domain.EmailEvent;
 import shop.bluequirk.blue_quirk_backend.entity.EmailTemplate;
 import shop.bluequirk.blue_quirk_backend.repository.EmailTemplateRepository;
+import shop.bluequirk.blue_quirk_backend.utility.EmailI18n;
 
 /**
- * Seeds a default, editable email template for every {@link EmailEvent} on
- * startup when one with that code doesn't already exist. Existing templates are
- * never overwritten, so admin edits are preserved across restarts.
+ * Seeds a default, editable email template for every {@link EmailEvent} in every
+ * supported language on startup, when one with that (code, lang) doesn't already
+ * exist. Existing templates are never overwritten, so admin edits are preserved
+ * across restarts.
  */
 @Component
 @Order(50)
@@ -33,10 +35,12 @@ public class EmailTemplateSeeder implements ApplicationRunner {
     public void run(ApplicationArguments args) {
         int created = 0;
         for (EmailEvent event : EmailEvent.values()) {
-            if (repository.findByCode(event.code()).isEmpty()) {
-                DefaultEmailTemplates.Seed seed = DefaultEmailTemplates.forEvent(event);
-                repository.save(new EmailTemplate(event.code(), seed.subject(), seed.body(), true));
-                created++;
+            for (String lang : EmailI18n.SUPPORTED) {
+                if (repository.findByCodeAndLang(event.code(), lang).isEmpty()) {
+                    DefaultEmailTemplates.Seed seed = DefaultEmailTemplates.forEvent(event, lang);
+                    repository.save(new EmailTemplate(event.code(), lang, seed.subject(), seed.body(), true));
+                    created++;
+                }
             }
         }
         if (created > 0) {

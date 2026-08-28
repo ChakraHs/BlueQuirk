@@ -141,7 +141,7 @@ export default function SizeCalculatorModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="size-calc-title"
-        className="relative w-full max-w-md overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl animate-[fadeIn_0.2s_ease]"
+        className="relative w-full max-w-md overflow-hidden rounded-t-2xl bg-surface shadow-2xl sm:rounded-2xl animate-[fadeIn_0.2s_ease]"
       >
         {/* header */}
         <div className="flex items-start justify-between border-b border-gray-100 px-5 py-4">
@@ -227,7 +227,7 @@ export default function SizeCalculatorModal({
           <button
             type="button"
             onClick={calculate}
-            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-gray-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-gray-800"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-gray-900 px-5 py-3 text-sm font-semibold text-gray-50 transition hover:bg-gray-800"
           >
             <Sparkles className="size-4" />
             {result ? t.recalc : t.calc}
@@ -262,7 +262,7 @@ const Field = forwardRef<
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
+          className="w-full rounded-lg border border-gray-300 bg-surface py-2.5 pl-9 pr-3 text-sm text-gray-900 outline-none transition focus:border-blue-600 focus:ring-2 focus:ring-blue-600/20"
         />
       </span>
     </label>

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import SearchBar from "./SearchBar";
 import LanguageSwitcher from "./LanguageSwitcher";
+import ThemeToggle from "./ThemeToggle";
 import { Category } from "@/types/category";
 import { useCart, cartCount } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
@@ -58,7 +59,7 @@ export default function Header({
   //    slide naturally into view again.
   return (
     <>
-      <header className="relative z-[60] bg-white md:sticky md:top-0 md:border-b md:border-gray-200">
+      <header className="relative z-[60] bg-surface md:sticky md:top-0 md:border-b md:border-gray-200">
         {/* ---- Top row ---- */}
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="flex h-16 items-center gap-2 md:gap-4">
@@ -127,6 +128,8 @@ export default function Header({
                 </>
               )}
 
+              <ThemeToggle lang={lang} />
+
               <LanguageSwitcher current={lang} />
 
               <Link
@@ -168,7 +171,7 @@ export default function Header({
 
         {/* ---- Category nav strip (desktop) ---- */}
         {categories.length > 0 && (
-          <div className="hidden md:block border-t border-gray-100 bg-white">
+          <div className="hidden md:block border-t border-gray-100 bg-surface">
             <div className="mx-auto max-w-7xl px-6">
               <ul className="flex items-center gap-1 overflow-x-auto">
                 {categories.map((cat) => (
@@ -192,7 +195,7 @@ export default function Header({
           containing block is the whole page: it rides up with the content and
           pins to the top the moment it gets there, staying visible for the rest
           of the scroll. */}
-      <div className="sticky top-0 z-50 border-b border-gray-200 bg-white md:hidden">
+      <div className="sticky top-0 z-50 border-b border-gray-200 bg-surface md:hidden">
         <div className="mx-auto max-w-7xl px-4">
           <div className="py-2">
             <SearchBar lang={lang} />
@@ -202,7 +205,7 @@ export default function Header({
 
       {/* ---- Mobile drawer ---- */}
       {open && (
-        <div className="border-t border-gray-200 bg-white md:hidden">
+        <div className="border-t border-gray-200 bg-surface md:hidden">
           <div className="space-y-1 px-4 py-3">
             {loggedIn ? (
               <>

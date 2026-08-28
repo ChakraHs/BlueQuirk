@@ -1,5 +1,7 @@
 package shop.bluequirk.blue_quirk_backend.entity;
 
+import org.hibernate.annotations.ColumnDefault;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -140,6 +142,18 @@ public class StoreSettings {
     @Column(name = "clarity_project_id")
     private String clarityProjectId;
 
+    // --- Checkout coupon block ---
+    // Admin-controlled runtime toggle for the "have a coupon?" block on the
+    // checkout page. When false the storefront hides the coupon input entirely;
+    // when true (the default) customers can enter a code. Defaults to true so
+    // existing behaviour is unchanged until an admin turns it off.
+    // @ColumnDefault("true") so the ddl-auto ALTER that adds this column to an
+    // existing (already-populated) settings row backfills it to true — keeping the
+    // coupon block visible by default rather than silently disabling it.
+    @Column(name = "coupon_enabled", nullable = false)
+    @ColumnDefault("true")
+    private boolean couponEnabled = true;
+
     public StoreSettings() {}
 
     public Long getId() { return id; }
@@ -239,4 +253,7 @@ public class StoreSettings {
 
     public String getClarityProjectId() { return clarityProjectId; }
     public void setClarityProjectId(String clarityProjectId) { this.clarityProjectId = clarityProjectId; }
+
+    public boolean isCouponEnabled() { return couponEnabled; }
+    public void setCouponEnabled(boolean couponEnabled) { this.couponEnabled = couponEnabled; }
 }

@@ -112,7 +112,7 @@ public class AccountController {
                 Duration.ofMinutes(1))) {
             throw new IdentityExceptions.RateLimited();
         }
-        passwordResetService.requestReset(req.email(), ip, RequestContext.userAgent(http));
+        passwordResetService.requestReset(req.email(), req.lang(), ip, RequestContext.userAgent(http));
         // Always generic — never reveal whether the email exists.
         return ResponseEntity.ok(MessageResponse.of(
                 "If an account exists for that email, a reset link has been sent."));

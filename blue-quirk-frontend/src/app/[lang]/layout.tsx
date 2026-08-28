@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 import { Providers } from "../../components/Providers";
 import ThemeStyle from "@/components/ThemeStyle";
+import ThemeScript from "@/components/ThemeScript";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
@@ -88,8 +89,9 @@ export default async function LangLayout({
   const topCategories = categories.filter((c) => !c.parentId);
 
   return (
-    <html lang={lang} dir={dirOf(lang)}>
+    <html lang={lang} dir={dirOf(lang)} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            <ThemeScript />
             <ThemeStyle />
             {/* <ShopNavbar /> */}
             <Header
