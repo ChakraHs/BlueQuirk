@@ -494,12 +494,16 @@ export default function ProductDetailClient({
             </div>
           </div>
 
-          {/* Buy Now — adds to cart and jumps straight to the COD checkout. */}
+          {/* Buy Now — adds to cart and jumps straight to the COD checkout. Uses the
+              brand-red primary token (--c-primary #dc2626 → --c-primary-hover #b91c1c),
+              white text, plus a soft red glow so it is the single most prominent
+              action on the page — standing out from the outlined add-to-cart. Keeps
+              the existing h-12 rounded-full shape and theme-aware colors. */}
           <button
             type="button"
             onClick={handleBuyNow}
             disabled={!canBuy}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-blue-600 px-5 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(220,38,38,0.5)] transition hover:bg-primary-hover hover:shadow-[0_12px_26px_-6px_rgba(185,28,28,0.6)] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-white disabled:shadow-none"
           >
             <Zap className="size-4" />
             {canBuy ? t(lang, "product.buyNow") : t(lang, "product.unavailable")}
@@ -625,7 +629,7 @@ export default function ProductDetailClient({
             <button
               type="button"
               onClick={handleBuyNow}
-              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-gray-900 px-8 text-sm font-semibold text-gray-50 transition active:scale-[0.98]"
+              className="inline-flex h-12 shrink-0 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-white shadow-[0_6px_16px_-4px_rgba(220,38,38,0.5)] transition hover:bg-primary-hover active:scale-[0.98]"
             >
               <Zap className="size-4" />
               {t(lang, "product.buyNow")}
