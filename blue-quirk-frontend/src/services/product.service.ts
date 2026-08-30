@@ -103,6 +103,25 @@ export const ProductService = {
     return res.data;
   },
 
+  // Inline status flip (DRAFT / PUBLISHED / ARCHIVED) from the catalog list.
+  // Hits the lightweight PATCH endpoint that only changes status — it never
+  // touches images, variants, translations or video (unlike the full PUT).
+  updateStatus: async (id: number, status: string): Promise<AdminProduct> => {
+    const res = await api.patch(`/products/${id}/status`, { status });
+    return res.data;
+  },
+
+  // Bulk status flip for multi-selected products in the catalog list. Only
+  // touches status (same lightweight path as the single-row flip).
+  updateStatuses: async (ids: number[], status: string): Promise<void> => {
+    await api.patch(`/products/status`, { ids, status });
+  },
+
+  // Bulk delete for multi-selected products in the catalog list.
+  deleteMany: async (ids: number[]): Promise<void> => {
+    await api.post(`/products/bulk-delete`, { ids });
+  },
+
   delete: async (id: number) => {
     await api.delete(`/products/${id}`);
   },

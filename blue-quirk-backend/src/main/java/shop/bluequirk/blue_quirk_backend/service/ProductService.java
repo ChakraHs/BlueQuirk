@@ -134,6 +134,40 @@ public class ProductService {
     }
     
     
+    /**
+     * Lightweight status-only update used by the admin catalog list to flip a
+     * product between DRAFT / PUBLISHED / ARCHIVED inline. Unlike
+     * {@link #updateProduct}, this touches nothing else — images, variants,
+     * translations, video and cost are all left untouched.
+     */
+    public Product updateStatus(Long productId, ProductStatus status) {
+        Product existing = productRepository.findById(productId)
+                .orElseThrow(() -> new RuntimeException("Product not found"));
+        existing.setStatus(status);
+        return productRepository.save(existing);
+    }
+
+    /**
+     * Bulk status flip for the admin catalog's multi-select actions. Applies the
+     * same status to every listed product in one transaction. Like
+     * {@link #updateStatus}, it only touches status — nothing else.
+     */
+    @Transactional
+    public void updateStatuses(List<Long> ids, ProductStatus status) {
+        for (Long id : ids) {
+            Product existing = productRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + id));
+            existing.setStatus(status);
+            productRepository.save(existing);
+        }
+    }
+
+    /** Bulk delete for the admin catalog's multi-select actions. */
+    @Transactional
+    public void deleteProducts(List<Long> ids) {
+        productRepository.deleteAllById(ids);
+    }
+
     public Product saveProduct(Product product) {
         return productRepository.save(product);
     }
