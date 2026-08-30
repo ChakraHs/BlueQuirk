@@ -8,6 +8,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
+import shop.bluequirk.blue_quirk_backend.dto.AdminProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.response.PageResponse;
@@ -49,6 +51,44 @@ public class ProductController {
         productService.updateProduct(id, dto);
         return ResponseEntity.ok(productService.getProductById(id, null));
     }
+
+    /**
+     * Inline status flip (DRAFT / PUBLISHED / ARCHIVED) used by the admin
+     * catalog list. Unlike the full PUT, this only changes the status and never
+     * touches images, variants, translations or video. Admin-only via
+     * SecurityConfig's fail-closed rule. Returns the admin view so the caller
+     * can refresh its row without a second request.
+     */
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<AdminProductResponse> updateStatus(
+            @PathVariable Long id, @RequestBody StatusUpdateRequest body) {
+        productService.updateStatus(id, body.status());
+        return ResponseEntity.ok(productService.getAdminProductById(id));
+    }
+
+    public record StatusUpdateRequest(ProductStatus status) {}
+
+    /**
+     * Bulk status flip for the admin catalog's multi-select actions — applies one
+     * status (DRAFT / PUBLISHED / ARCHIVED) to every listed product. Only touches
+     * status, never images/variants/etc. Admin-only via SecurityConfig.
+     */
+    @PatchMapping("/status")
+    public ResponseEntity<Void> updateStatuses(@RequestBody BulkStatusRequest body) {
+        productService.updateStatuses(body.ids(), body.status());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Bulk delete for the admin catalog's multi-select actions. */
+    @PostMapping("/bulk-delete")
+    public ResponseEntity<Void> deleteProducts(@RequestBody BulkIdsRequest body) {
+        productService.deleteProducts(body.ids());
+        return ResponseEntity.noContent().build();
+    }
+
+    public record BulkStatusRequest(List<Long> ids, ProductStatus status) {}
+
+    public record BulkIdsRequest(List<Long> ids) {}
     
     @GetMapping
     public ResponseEntity<PageResponse<ProductResponse>> getAllProducts(
