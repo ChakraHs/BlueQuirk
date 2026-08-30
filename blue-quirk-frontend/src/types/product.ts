@@ -45,6 +45,7 @@ export interface AdminProduct {
   stockQuantity?: number;
   status: string;
   images?: ProductImage[];
+  categories?: { id: number; name: string }[];
 }
 
 export interface ProductImage {

@@ -78,6 +78,7 @@ export default function ProductsPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
   const [toDelete, setToDelete] = useState<AdminProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
   // `null` = no explicit column sort → preserve the server order, which is
@@ -117,10 +118,30 @@ export default function ProductsPage() {
     }
   }, [fetchProducts]);
 
+  // Distinct categories present across the loaded products, sorted by name.
+  // Only categories that actually have products appear, which is exactly what
+  // you want for filtering the catalog.
+  const categoryOptions = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const p of products) {
+      for (const c of p.categories ?? []) {
+        if (!map.has(c.id)) map.set(c.id, c.name);
+      }
+    }
+    return [...map.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [products]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = products
       .filter((p) => (statusFilter === "ALL" ? true : p.status === statusFilter))
+      .filter((p) =>
+        categoryFilter === "ALL"
+          ? true
+          : (p.categories ?? []).some((c) => String(c.id) === categoryFilter)
+      )
       .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
 
     // No explicit column sort → keep the server order (newest created first).
@@ -148,7 +169,7 @@ export default function ProductsPage() {
           : String(av).localeCompare(String(bv));
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [products, query, statusFilter, sortKey, sortDir]);
+  }, [products, query, statusFilter, categoryFilter, sortKey, sortDir]);
 
   const handleDelete = async () => {
     if (!toDelete) return;
@@ -201,6 +222,18 @@ export default function ProductsPage() {
           />
         </div>
         <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
+        >
+          <option value="ALL">All categories</option>
+          {categoryOptions.map((c) => (
+            <option key={c.id} value={String(c.id)}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+        <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
           className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
@@ -248,11 +281,11 @@ export default function ProductsPage() {
                         <img
                           src={thumbSrc(p.images[0])}
                           alt={p.name}
-                          className="h-11 w-11 shrink-0 rounded-lg border border-gray-100 object-cover"
+                          className="h-20 w-20 shrink-0 rounded-lg border border-gray-100 object-cover"
                         />
                       ) : (
-                        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
-                          <Package size={18} />
+                        <span className="flex h-20 w-20 shrink-0 items-center justify-center rounded-lg bg-gray-100 text-gray-400">
+                          <Package size={28} />
                         </span>
                       )}
                       <span className="font-medium text-gray-800">{p.name}</span>
