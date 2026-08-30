@@ -334,7 +334,8 @@ public class ProductService {
                 finance.grossMarginPercent(price, cost),
                 product.getStockQuantity(),
                 product.getStatus(),
-                sortedImages(product)
+                sortedImages(product),
+                toCategoryRefs(product, null)
         );
     }
 

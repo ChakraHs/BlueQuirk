@@ -22,5 +22,8 @@ public record AdminProductResponse(
         double grossMarginPercent,
         Integer stockQuantity,
         ProductStatus status,
-        List<Image> images
+        List<Image> images,
+        // Category references (default-locale names) so the admin catalog can
+        // filter products by category without a second round-trip.
+        List<CategoryRef> categories
 ) {}
