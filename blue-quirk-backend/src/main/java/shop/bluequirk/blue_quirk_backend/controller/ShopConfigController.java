@@ -64,7 +64,9 @@ public class ShopConfigController {
                 s.getErrorColor(),
                 s.isClarityEnabled(),
                 s.getClarityProjectId(),
-                s.isCouponEnabled());
+                s.isCouponEnabled(),
+                s.isMetaTrackingEnabled(),
+                s.getMetaPixelId());
     }
 
     public record ShopConfig(
@@ -103,5 +105,10 @@ public class ShopConfigController {
             String clarityProjectId,
             // Checkout coupon block toggle. When false the storefront hides the
             // "have a coupon?" input on checkout.
-            boolean couponEnabled) {}
+            boolean couponEnabled,
+            // Meta Ads (Facebook Pixel) — public, non-secret (the pixel id ships to
+            // the browser in the pixel tag regardless). Browser pixel only; the CAPI
+            // access token is NEVER exposed here.
+            boolean metaTrackingEnabled,
+            String metaPixelId) {}
 }

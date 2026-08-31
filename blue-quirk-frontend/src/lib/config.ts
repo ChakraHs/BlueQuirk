@@ -73,3 +73,51 @@ export function resolveClarity(runtime?: ClarityRuntime): { active: boolean; pro
   const projectId = ((runtime?.projectId ?? "").trim() || clarityConfig.projectId).trim();
   return { active: enabled && projectId.length > 0, projectId };
 }
+
+// --- Meta Ads (Facebook Pixel) ------------------------------------------------
+// Browser Pixel only in this phase — NO Conversions API, NO server credentials.
+// Like Clarity, the enable toggle + Pixel ID are primarily controlled at RUNTIME
+// from the admin dashboard (StoreSettings, read via /api/shop/config). The Pixel
+// ID is NOT a secret — it ships to the browser in the pixel tag. The build-time
+// env vars below are only a fallback (if the config request fails) and the
+// development gate:
+//
+//   NEXT_PUBLIC_META_TRACKING_ENABLED          fallback enable flag
+//   NEXT_PUBLIC_META_PIXEL_ID                  fallback Pixel ID
+//   NEXT_PUBLIC_META_TRACK_IN_DEVELOPMENT      "true" to allow loading in dev builds
+//   NEXT_PUBLIC_META_DEBUG                     "true" to log `[meta-pixel]` events
+export const metaConfig = {
+  enabled: envFlag(process.env.NEXT_PUBLIC_META_TRACKING_ENABLED),
+  pixelId: (process.env.NEXT_PUBLIC_META_PIXEL_ID || "").trim(),
+  trackInDevelopment: envFlag(process.env.NEXT_PUBLIC_META_TRACK_IN_DEVELOPMENT),
+  debug: envFlag(process.env.NEXT_PUBLIC_META_DEBUG),
+};
+
+/** Runtime Meta settings sourced from the admin dashboard (/api/shop/config). */
+export type MetaRuntime = { enabled?: boolean; pixelId?: string | null };
+
+/**
+ * Resolve whether the Meta Pixel should load and with which id. Fails closed,
+ * mirroring resolveClarity:
+ *
+ *   • Non-production builds stay OFF unless trackInDevelopment is set, even when
+ *     the admin toggle is on — so local dev never sends to Meta by accident.
+ *   • The admin runtime toggle (when provided) is authoritative for enable/id;
+ *     the env vars fill in only when no runtime value is available.
+ *   • Requires BOTH an enable flag and a non-empty Pixel ID to be active.
+ */
+export function resolveMeta(runtime?: MetaRuntime): { active: boolean; pixelId: string } {
+  if (process.env.NODE_ENV !== "production" && !metaConfig.trackInDevelopment) {
+    return { active: false, pixelId: "" };
+  }
+  const enabled = runtime ? runtime.enabled === true : metaConfig.enabled;
+  const pixelId = ((runtime?.pixelId ?? "").trim() || metaConfig.pixelId).trim();
+  return { active: enabled && pixelId.length > 0, pixelId };
+}
+
+/** Map the storefront's display currency ("DH") to an ISO-4217 code for Meta. */
+export function toIsoCurrency(currency: string | null | undefined): string {
+  const c = (currency || "").trim().toUpperCase();
+  if (!c || c === "DH" || c === "DHS" || c === "MAD") return "MAD";
+  return c;
+}

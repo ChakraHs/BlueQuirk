@@ -43,6 +43,9 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   clarityProjectId: null,
   // Coupon block on checkout is shown by default.
   couponEnabled: true,
+  // Meta Ads (Facebook Pixel) off by default until an admin enables it.
+  metaTrackingEnabled: false,
+  metaPixelId: null,
 };
 
 export async function getPublicShopConfig(): Promise<PublicShopConfig> {
@@ -89,6 +92,8 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
       clarityProjectId: data.clarityProjectId ?? null,
       // Default to true (shown) unless the backend explicitly says false.
       couponEnabled: data.couponEnabled !== false,
+      metaTrackingEnabled: data.metaTrackingEnabled === true,
+      metaPixelId: data.metaPixelId ?? null,
     };
   } catch {
     return SHOP_CONFIG_DEFAULTS;

@@ -6,6 +6,7 @@ import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShieldCheck, 
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
+import { trackingService } from "@/lib/tracking/service";
 import { formatPrice } from "@/lib/money";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
@@ -108,6 +109,17 @@ export default function ProductDetailClient({
   const router = useRouter();
 
   const canBuy = product.status === "PUBLISHED";
+
+  // ViewContent — the customer opened this product's detail page. Fires once per
+  // product (a ref guard absorbs React StrictMode's double-mount and any
+  // re-render), carrying the real product id + price so Meta can attribute
+  // product-level interest and use it as an Ads signal.
+  const viewedProductId = useRef<number | null>(null);
+  useEffect(() => {
+    if (viewedProductId.current === product.id) return;
+    viewedProductId.current = product.id;
+    trackingService.viewContent({ id: product.id, price: product.price });
+  }, [product.id, product.price]);
 
   // --- Mobile sticky purchase bar (Redbubble/Amazon/Gymshark style) ----------
   // The real Buy Now / Add to Cart section sits below the fold on mobile, so we

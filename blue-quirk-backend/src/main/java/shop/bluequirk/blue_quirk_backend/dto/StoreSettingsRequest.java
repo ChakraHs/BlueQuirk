@@ -43,5 +43,9 @@ public record StoreSettingsRequest(
         Boolean clarityEnabled,
         String clarityProjectId,
         // Checkout coupon block toggle. null = leave unchanged.
-        Boolean couponEnabled
+        Boolean couponEnabled,
+        // Meta Ads (Facebook Pixel). enabled null = leave unchanged; pixel id blank
+        // clears it. Validated by the service (must be a 15–16 digit number).
+        Boolean metaTrackingEnabled,
+        String metaPixelId
 ) {}

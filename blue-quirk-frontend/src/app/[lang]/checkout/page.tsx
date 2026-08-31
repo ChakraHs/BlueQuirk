@@ -17,6 +17,7 @@ import { validateCoupon, type CouponValidation } from "@/services/promotion.serv
 import LoginModal from "@/components/storefront/LoginModal";
 import { t } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
+import { trackingService } from "@/lib/tracking/service";
 
 type Form = {
   firstName: string;
@@ -148,6 +149,13 @@ export default function CheckoutPage({
     if (!checkoutTracked.current && items.length > 0) {
       checkoutTracked.current = true;
       track("begin_checkout", { value: cartTotal(items) });
+      // Marketing/ads InitiateCheckout — the single source for this event (the
+      // Buy-Now button also routes here, so it's covered too). The ref guard
+      // keeps re-renders from firing it twice.
+      trackingService.initiateCheckout({
+        items: items.map((i) => ({ id: i.id, price: i.price, quantity: i.quantity })),
+        value: cartTotal(items),
+      });
     }
   }, [items]);
 
@@ -226,6 +234,16 @@ export default function CheckoutPage({
       track("purchase", {
         value: order.total,
         meta: { orderId: order.id, orderNumber: order.orderNumber },
+      });
+      // Marketing/ads Purchase — fired ONLY after the order is server-confirmed,
+      // with the real order id, product ids/quantities (from the cart, still in
+      // scope before clearCart) and the server-computed total. The service dedups
+      // by order id (localStorage) and uses eventID `order-<id>`, so a refresh /
+      // back-forward / duplicate submit can never emit a second conversion.
+      trackingService.purchase({
+        orderId: order.id,
+        items: items.map((i) => ({ id: i.id, price: i.price, quantity: i.quantity })),
+        value: order.total,
       });
       clearCart();
       setPlaced(order);

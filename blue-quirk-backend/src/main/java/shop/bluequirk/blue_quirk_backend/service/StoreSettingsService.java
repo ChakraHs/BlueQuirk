@@ -1,10 +1,13 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import shop.bluequirk.blue_quirk_backend.dto.StoreSettingsRequest;
 import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
@@ -20,6 +23,10 @@ import shop.bluequirk.blue_quirk_backend.repository.StoreSettingsRepository;
 public class StoreSettingsService {
 
     private static final Set<String> SUPPORTED_LANGS = Set.of("fr", "ar", "en");
+
+    // A Meta Pixel (dataset) id is a 15–16 digit number. We validate the shape so
+    // a typo can't silently disable tracking or inject junk into the pixel tag.
+    private static final Pattern META_PIXEL_ID = Pattern.compile("\\d{15,16}");
 
     private final StoreSettingsRepository repository;
 
@@ -171,6 +178,19 @@ public class StoreSettingsService {
         // Checkout coupon block: enabled null = unchanged.
         if (req.couponEnabled() != null) {
             s.setCouponEnabled(req.couponEnabled());
+        }
+        // Meta Ads (Facebook Pixel): enabled null = unchanged; pixel id blank clears
+        // it, otherwise it must be a 15–16 digit number.
+        if (req.metaTrackingEnabled() != null) {
+            s.setMetaTrackingEnabled(req.metaTrackingEnabled());
+        }
+        if (req.metaPixelId() != null) {
+            String pixelId = blankToNull(req.metaPixelId());
+            if (pixelId != null && !META_PIXEL_ID.matcher(pixelId).matches()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Invalid Meta Pixel ID: it must be a 15–16 digit number.");
+            }
+            s.setMetaPixelId(pixelId);
         }
         return repository.save(s);
     }
