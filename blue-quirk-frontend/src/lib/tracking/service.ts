@@ -20,6 +20,15 @@ let providers: TrackingProvider[] = [];
 let context: TrackingContext = { currency: "MAD" };
 let debug = false;
 
+// Events emitted before any provider has registered are buffered here and
+// replayed the moment one registers. This decouples event emission from provider
+// registration TIMING — critical because a product page's ViewContent effect can
+// fire during hydration BEFORE the (parent) TrackingProvider registers the Meta
+// provider (child effects run before parent effects in React). Without this, that
+// first ViewContent would be dropped. Bounded so a disabled store can't grow it.
+let pending: CommerceEvent[] = [];
+const PENDING_MAX = 20;
+
 // --- configuration ------------------------------------------------------------
 
 /** Merge runtime context (currency, …). Called once config resolves. */
@@ -34,9 +43,16 @@ export function setTrackingDebug(on: boolean): void {
 
 /** Register a destination (idempotent by provider name). */
 export function registerProvider(provider: TrackingProvider): void {
-  if (!providers.some((p) => p.name === provider.name)) {
-    providers = [...providers, provider];
-    log("provider registered:", provider.name);
+  if (providers.some((p) => p.name === provider.name)) return;
+  providers = [...providers, provider];
+  log("provider registered:", provider.name);
+  // Replay anything buffered before a destination existed (e.g. a ViewContent
+  // emitted during hydration). Clear first so a second provider registering
+  // later doesn't re-send them.
+  if (pending.length) {
+    const buffered = pending;
+    pending = [];
+    for (const event of buffered) dispatch(event);
   }
 }
 
@@ -62,9 +78,8 @@ function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 100) / 100;
 }
 
-/** Dispatch to every provider, isolating failures so one can't affect another. */
-function emit(event: CommerceEvent): void {
-  if (providers.length === 0) return;
+/** Send an event to every registered provider, isolating failures. */
+function dispatch(event: CommerceEvent): void {
   for (const provider of providers) {
     try {
       provider.handle(event, context);
@@ -73,6 +88,16 @@ function emit(event: CommerceEvent): void {
       log("provider error", provider.name, err);
     }
   }
+}
+
+/** Emit an event: dispatch now if a provider exists, otherwise buffer it. */
+function emit(event: CommerceEvent): void {
+  if (providers.length === 0) {
+    pending.push(event);
+    if (pending.length > PENDING_MAX) pending = pending.slice(-PENDING_MAX);
+    return;
+  }
+  dispatch(event);
 }
 
 // --- purchase idempotency -----------------------------------------------------
