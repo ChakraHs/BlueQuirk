@@ -1,6 +1,5 @@
 "use client";
 
-import Script from "next/script";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { API_BASE_URL, metaConfig, resolveMeta, toIsoCurrency, type MetaRuntime } from "@/lib/config";
@@ -25,17 +24,16 @@ import { captureAttribution } from "@/lib/tracking/attribution";
  * (StoreSettings). The NEXT_PUBLIC_META_* env vars are only a fallback (used if
  * that request fails) and the development gate — see resolveMeta().
  *
- * Behaviour:
- *   • Renders NOTHING (and loads nothing) until the runtime config resolves and
- *     says Meta is active. Fails closed.
- *   • Injects the official Pixel base code via next/script strategy="afterInteractive"
- *     so it NEVER blocks rendering. The snippet defines the `fbq` queue shim
- *     synchronously (calls buffer until the library loads), runs `fbq('init')`
- *     ONCE, and fires the initial PageView.
- *   • Registers the Meta provider with the TrackingService once, and fires a
- *     PageView on each subsequent client-side route change (the first PageView is
- *     the snippet's, so we skip it here to avoid a duplicate).
+ * The Pixel BASE CODE (init + initial PageView) is rendered SERVER-SIDE by
+ * MetaPixelBase in the [lang] layout, so it lands in the initial HTML and is
+ * detectable by Meta's tools. This client component does NOT inject the base code
+ * (that would double-init); it complements the SSR snippet:
+ *   • Registers the Meta provider with the TrackingService (so ViewContent /
+ *     AddToCart / InitiateCheckout / Purchase dispatch), once, when active.
+ *   • Fires a PageView on each subsequent client-side route change (the first
+ *     PageView is the SSR snippet's, so we skip it here to avoid a duplicate).
  *   • Captures first-touch UTM/fbclid attribution on load + navigation.
+ *   • Renders nothing. Fails closed when config says Meta is inactive.
  */
 export function TrackingProvider() {
   const pathname = usePathname();
@@ -63,7 +61,7 @@ export function TrackingProvider() {
   }, []);
 
   const ready = runtime !== undefined;
-  const { active, pixelId } = resolveMeta(runtime ?? undefined);
+  const { active } = resolveMeta(runtime ?? undefined);
   const debug = metaConfig.debug || process.env.NODE_ENV !== "production";
 
   // Register the Meta provider + configure the service once tracking is active.
@@ -87,8 +85,8 @@ export function TrackingProvider() {
   }, [ready, active, pathname]);
 
   // Fire PageView on SPA route changes. The FIRST PageView is emitted by the
-  // Pixel base snippet itself (right after init), so we skip the initial render
-  // here to avoid a duplicate; every later route change fires one PageView.
+  // server-rendered base snippet (right after init), so we skip the initial
+  // render here to avoid a duplicate; every later route change fires one PageView.
   const firstRun = useRef(true);
   const lastPath = useRef<string | null>(null);
   useEffect(() => {
@@ -104,21 +102,6 @@ export function TrackingProvider() {
     trackingService.pageView(url);
   }, [ready, active, pathname]);
 
-  if (!ready || !active) return null;
-
-  // Official Meta Pixel base code. Defines the `fbq` shim synchronously, then
-  // async-injects fbevents.js. next/script defers execution until the page is
-  // interactive, so it never blocks first paint. `init` + the initial PageView
-  // run exactly once (this component mounts once, high in the tree).
-  return (
-    <Script id="meta-pixel" strategy="afterInteractive">
-      {`!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
-n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
-document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', ${JSON.stringify(pixelId)});
-fbq('track', 'PageView');`}
-    </Script>
-  );
+  // Renders nothing — the base pixel code is server-rendered (MetaPixelBase).
+  return null;
 }
