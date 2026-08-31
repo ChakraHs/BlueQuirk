@@ -62,7 +62,20 @@ export interface CheckoutSettings {
   couponEnabled: boolean;
 }
 
-export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySettings, CheckoutSettings {
+// Meta Ads (Facebook Pixel) — admin-controlled toggle + Pixel (dataset) id for
+// the browser Pixel. The Pixel id is public (it ships in the tag); the CAPI
+// access token is deliberately NOT modeled here (future server-side phase).
+export interface MetaSettings {
+  metaTrackingEnabled: boolean;
+  metaPixelId: string | null;
+}
+
+export interface StoreSettings
+  extends HeroSettings,
+    ThemeColors,
+    ClaritySettings,
+    CheckoutSettings,
+    MetaSettings {
   id?: number;
   storeName: string;
   logoUrl: string | null;
@@ -76,7 +89,12 @@ export interface StoreSettings extends HeroSettings, ThemeColors, ClaritySetting
 // Public subset returned by GET /api/shop/config (also includes the shipping
 // economics, see lib/shipping). Used for storefront branding + hero + theme +
 // the Clarity runtime toggle.
-export interface PublicShopConfig extends HeroSettings, ThemeColors, ClaritySettings, CheckoutSettings {
+export interface PublicShopConfig
+  extends HeroSettings,
+    ThemeColors,
+    ClaritySettings,
+    CheckoutSettings,
+    MetaSettings {
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;

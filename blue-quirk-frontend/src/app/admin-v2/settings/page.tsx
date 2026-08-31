@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag, Megaphone, AlertCircle } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
 import { StoreSettings, ThemeColors } from "@/types/settings";
@@ -56,7 +56,13 @@ type FormState = {
   clarityEnabled: boolean;
   clarityProjectId: string;
   couponEnabled: boolean;
+  metaTrackingEnabled: boolean;
+  metaPixelId: string;
 } & { [K in keyof ThemeColors]: string };
+
+// A Meta Pixel (dataset) id is a 15–16 digit number. Mirrors the backend guard
+// so the admin gets an inline error instead of a failed save.
+const META_PIXEL_RE = /^\d{15,16}$/;
 
 function toForm(s: StoreSettings): FormState {
   return {
@@ -81,6 +87,8 @@ function toForm(s: StoreSettings): FormState {
     clarityEnabled: s.clarityEnabled ?? false,
     clarityProjectId: s.clarityProjectId ?? "",
     couponEnabled: s.couponEnabled ?? true,
+    metaTrackingEnabled: s.metaTrackingEnabled ?? false,
+    metaPixelId: s.metaPixelId ?? "",
     primaryColor: s.primaryColor ?? "",
     primaryHoverColor: s.primaryHoverColor ?? "",
     secondaryColor: s.secondaryColor ?? "",
@@ -157,6 +165,12 @@ export default function SettingsPage() {
       setError("The store name is required.");
       return;
     }
+    // Validate the Meta Pixel ID up front (must be a 15–16 digit number, or empty).
+    const pixelId = form.metaPixelId.trim();
+    if (pixelId && !META_PIXEL_RE.test(pixelId)) {
+      setError("Invalid Meta Pixel ID — it must be a 15–16 digit number.");
+      return;
+    }
     setSaving(true);
     setError(null);
     setSaved(false);
@@ -188,6 +202,9 @@ export default function SettingsPage() {
         clarityProjectId: form.clarityProjectId.trim(),
         // Checkout coupon block toggle.
         couponEnabled: form.couponEnabled,
+        // Meta Ads (Facebook Pixel): toggle + Pixel id ("" clears it).
+        metaTrackingEnabled: form.metaTrackingEnabled,
+        metaPixelId: pixelId,
         // Theme colors: send trimmed value, or "" to clear back to the default.
         primaryColor: form.primaryColor.trim(),
         primaryHoverColor: form.primaryHoverColor.trim(),
@@ -682,6 +699,14 @@ export default function SettingsPage() {
             </div>
           </section>
 
+          {/* Meta Ads — Facebook Pixel (browser tracking) */}
+          <MetaAdsSection
+            enabled={form.metaTrackingEnabled}
+            pixelId={form.metaPixelId}
+            onToggle={() => update({ metaTrackingEnabled: !form.metaTrackingEnabled })}
+            onPixelId={(v) => update({ metaPixelId: v })}
+          />
+
           {/* Checkout — coupon block toggle */}
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
             <div className="mb-1 flex items-center gap-2">
@@ -738,6 +763,131 @@ export default function SettingsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Meta Ads (Facebook Pixel) configuration + diagnostics. Browser Pixel only —
+// the Conversions API (and its access token) are a future, server-side phase and
+// are intentionally NOT configurable here.
+function MetaAdsSection({
+  enabled,
+  pixelId,
+  onToggle,
+  onPixelId,
+}: {
+  enabled: boolean;
+  pixelId: string;
+  onToggle: () => void;
+  onPixelId: (v: string) => void;
+}) {
+  const trimmed = pixelId.trim();
+  const hasId = trimmed.length > 0;
+  const validId = META_PIXEL_RE.test(trimmed);
+  // dev/prod is auto-detected from the build; the Pixel does not load in dev
+  // unless NEXT_PUBLIC_META_TRACK_IN_DEVELOPMENT is set (see resolveMeta).
+  const isProd = process.env.NODE_ENV === "production";
+
+  // Masked id for the diagnostics readout — never show the full id back in full,
+  // just enough to recognize it.
+  const maskedId = validId ? `${"•".repeat(Math.max(0, trimmed.length - 4))}${trimmed.slice(-4)}` : "—";
+
+  // Overall status shown in the diagnostics strip.
+  const status: { label: string; tone: string } = !hasId
+    ? { label: "Not configured", tone: "bg-gray-100 text-gray-600" }
+    : !validId
+      ? { label: "Configuration error", tone: "bg-rose-50 text-rose-700" }
+      : enabled
+        ? { label: "Enabled", tone: "bg-emerald-50 text-emerald-700" }
+        : { label: "Configured · disabled", tone: "bg-amber-50 text-amber-700" };
+
+  return (
+    <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+      <div className="mb-1 flex items-center gap-2">
+        <Megaphone size={18} className="text-gray-500" />
+        <h2 className="text-sm font-semibold text-gray-800">Meta Ads (Facebook Pixel)</h2>
+      </div>
+      <p className="mb-4 text-xs text-gray-400">
+        Loads the Meta Pixel in the browser and sends standard e-commerce events
+        (PageView, ViewContent, AddToCart, InitiateCheckout, Purchase) so Meta can
+        measure and optimize your ad campaigns. The Pixel ID is public (it ships in
+        the page). Server-side Conversions API is a future phase — no access token
+        is needed or stored here.
+      </p>
+
+      {/* Diagnostics strip — Configured / Enabled / Disabled / Error at a glance. */}
+      <div className="mb-4 grid gap-2 rounded-lg border border-gray-100 bg-gray-50 p-3 text-xs sm:grid-cols-3">
+        <div>
+          <span className="block text-gray-400">Status</span>
+          <span className={`mt-1 inline-flex rounded-full px-2 py-0.5 font-medium ${status.tone}`}>
+            {status.label}
+          </span>
+        </div>
+        <div>
+          <span className="block text-gray-400">Pixel ID</span>
+          <span className="mt-1 block font-mono text-gray-700">{maskedId}</span>
+        </div>
+        <div>
+          <span className="block text-gray-400">Environment</span>
+          <span className="mt-1 block font-medium text-gray-700">
+            {isProd ? "Production" : "Development"}
+          </span>
+        </div>
+      </div>
+
+      <label className="flex cursor-pointer items-center gap-3">
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          onClick={onToggle}
+          className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+            enabled ? "bg-blue-600" : "bg-gray-300"
+          }`}
+        >
+          <span
+            className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+              enabled ? "translate-x-5" : "translate-x-0.5"
+            }`}
+          />
+        </button>
+        <span className="text-sm font-medium text-gray-700">
+          Browser tracking {enabled ? "enabled" : "disabled"}
+        </span>
+      </label>
+
+      <div className="mt-4">
+        <label className="mb-1 block text-sm font-medium text-gray-700">Pixel ID</label>
+        <input
+          value={pixelId}
+          onChange={(e) => onPixelId(e.target.value)}
+          placeholder="e.g. 123456789012345"
+          inputMode="numeric"
+          spellCheck={false}
+          className={`w-full max-w-xs rounded-md border px-3 py-2 font-mono text-sm outline-none focus:ring-1 ${
+            hasId && !validId
+              ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500"
+              : "border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+          }`}
+        />
+        {hasId && !validId ? (
+          <p className="mt-1 flex items-center gap-1 text-xs text-rose-600">
+            <AlertCircle size={12} /> Must be a 15–16 digit number.
+          </p>
+        ) : (
+          <p className="mt-1 text-xs text-gray-400">
+            From Meta Events Manager → Data Sources (the Pixel / dataset id). Leave the
+            toggle off to disable Meta tracking entirely.
+          </p>
+        )}
+        {!isProd && (
+          <p className="mt-2 text-xs text-amber-600">
+            Development build: the Pixel won&apos;t load here unless
+            <span className="font-mono"> NEXT_PUBLIC_META_TRACK_IN_DEVELOPMENT=true</span>.
+            It will work normally in production.
+          </p>
+        )}
+      </div>
+    </section>
   );
 }
 

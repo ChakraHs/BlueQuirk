@@ -29,6 +29,9 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   clarityProjectId: string; // "" clears it
   // Checkout coupon block toggle.
   couponEnabled: boolean;
+  // Meta Ads (Facebook Pixel). "" clears the pixel id.
+  metaTrackingEnabled: boolean;
+  metaPixelId: string;
 };
 
 export const SettingsService = {

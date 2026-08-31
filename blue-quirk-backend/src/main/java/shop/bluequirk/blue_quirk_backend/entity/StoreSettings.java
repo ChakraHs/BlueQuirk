@@ -154,6 +154,21 @@ public class StoreSettings {
     @ColumnDefault("true")
     private boolean couponEnabled = true;
 
+    // --- Meta Ads (Facebook Pixel) -------------------------------------------
+    // Admin-controlled runtime toggle + Meta Pixel (dataset) id for the BROWSER
+    // pixel. This is the single source of truth for whether the storefront loads
+    // the Meta Pixel; the frontend env vars only act as a fallback / dev gate.
+    // The Pixel ID is NOT a secret (it ships to the browser in the pixel tag),
+    // so it is safe to expose on the public /api/shop/config. The server-side
+    // Conversions API access token is deliberately NOT modeled here — CAPI is a
+    // later phase and its token must never live alongside this public config.
+    @Column(name = "meta_tracking_enabled", nullable = false)
+    @ColumnDefault("false")
+    private boolean metaTrackingEnabled = false;
+
+    @Column(name = "meta_pixel_id")
+    private String metaPixelId;
+
     public StoreSettings() {}
 
     public Long getId() { return id; }
@@ -256,4 +271,10 @@ public class StoreSettings {
 
     public boolean isCouponEnabled() { return couponEnabled; }
     public void setCouponEnabled(boolean couponEnabled) { this.couponEnabled = couponEnabled; }
+
+    public boolean isMetaTrackingEnabled() { return metaTrackingEnabled; }
+    public void setMetaTrackingEnabled(boolean metaTrackingEnabled) { this.metaTrackingEnabled = metaTrackingEnabled; }
+
+    public String getMetaPixelId() { return metaPixelId; }
+    public void setMetaPixelId(String metaPixelId) { this.metaPixelId = metaPixelId; }
 }

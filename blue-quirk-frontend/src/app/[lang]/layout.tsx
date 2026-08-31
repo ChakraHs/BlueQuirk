@@ -5,6 +5,7 @@ import "../globals.css";
 import { Providers } from "../../components/Providers";
 import ThemeStyle from "@/components/ThemeStyle";
 import ThemeScript from "@/components/ThemeScript";
+import { MetaPixelBase } from "@/components/analytics/MetaPixelBase";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
@@ -91,6 +92,12 @@ export default async function LangLayout({
   return (
     <html lang={lang} dir={dirOf(lang)} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            {/* Meta Pixel base code, server-rendered into the initial HTML so
+                Meta can detect the pixel. Admin-toggled via the shop config. */}
+            <MetaPixelBase
+              enabled={config.metaTrackingEnabled}
+              pixelId={config.metaPixelId}
+            />
             <ThemeScript />
             <ThemeStyle />
             {/* <ShopNavbar /> */}

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { track } from "@/lib/analytics/tracker";
+import { trackingService } from "@/lib/tracking/service";
 
 export type CartItem = {
   id: number;
@@ -46,7 +47,12 @@ export function addToCart(item: CartItem) {
     cart.push(item);
   }
   writeCart(cart);
+  // Native business-metrics event (internal pipeline).
   track("add_to_cart", { productId: item.id, value: item.quantity });
+  // Marketing/ads AddToCart — fired here, AFTER the cart mutation succeeds, so it
+  // reflects a real add (not a product-page view). Central place → no duplicates
+  // from UI re-renders. Value = unit price × quantity of the added line.
+  trackingService.addToCart({ id: item.id, price: item.price, quantity: item.quantity });
 }
 
 export function setQuantity(key: string, quantity: number) {
