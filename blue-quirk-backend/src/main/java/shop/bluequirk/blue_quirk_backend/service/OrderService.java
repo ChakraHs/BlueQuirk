@@ -25,6 +25,8 @@ import shop.bluequirk.blue_quirk_backend.identity.user.CurrentUserService;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderCancelledEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
+import shop.bluequirk.blue_quirk_backend.bundle.service.AppliedBundle;
+import shop.bluequirk.blue_quirk_backend.bundle.service.BundlePricingService;
 import shop.bluequirk.blue_quirk_backend.promotion.service.AppliedPromotion;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService.CustomerRef;
@@ -51,6 +53,7 @@ public class OrderService {
     private final ApplicationEventPublisher events;
     private final PricingService pricingService;
     private final PromotionRedemptionService promotionRedemptionService;
+    private final BundlePricingService bundlePricingService;
     private final FinancialCalculationService finance;
     private final StoreSettingsService storeSettingsService;
     private final CurrentUserService currentUserService;
@@ -65,6 +68,7 @@ public class OrderService {
                         ApplicationEventPublisher events,
                         PricingService pricingService,
                         PromotionRedemptionService promotionRedemptionService,
+                        BundlePricingService bundlePricingService,
                         FinancialCalculationService finance,
                         StoreSettingsService storeSettingsService,
                         CurrentUserService currentUserService,
@@ -76,6 +80,7 @@ public class OrderService {
         this.events = events;
         this.pricingService = pricingService;
         this.promotionRedemptionService = promotionRedemptionService;
+        this.bundlePricingService = bundlePricingService;
         this.finance = finance;
         this.storeSettingsService = storeSettingsService;
         this.currentUserService = currentUserService;
@@ -177,21 +182,31 @@ public class OrderService {
             }
         }
 
+        // --- Automatic quantity bundle (server-side, authoritative). Detected from
+        // the cart's eligible items and always recomputed here from catalog prices —
+        // never taken from the client. Applied BEFORE any coupon.
+        AppliedBundle bundle = bundlePricingService.bestFor(cart);
+        double bundleDiscount = bundle != null ? bundle.discountAmount() : 0;
+
         // --- Coupon: validate + reserve a usage slot server-side (atomic). Any
         // rejection throws a 400 and fails the whole order. The discount is always
-        // recomputed here from the server subtotal — never taken from the client.
+        // recomputed here — from the subtotal AFTER the bundle discount (documented
+        // stacking policy: bundle first, coupon on the reduced subtotal).
         boolean firstOrder = orderRepository.countByCustomerId(customer.getId()) == 0;
         CustomerRef promoRef = new CustomerRef(
                 customer.getId(), user != null ? user.getId() : null, email, firstOrder);
 
+        double reducedSubtotal = round(Math.max(0, subtotal - bundleDiscount));
         AppliedPromotion applied = null;
-        double discount = 0;
+        double couponDiscount = 0;
         String couponCode = trimToNull(req.couponCode());
         if (couponCode != null) {
-            applied = promotionRedemptionService.apply(couponCode, subtotal, shippingFee, promoRef);
-            discount = applied.discountAmount();
+            applied = promotionRedemptionService.apply(couponCode, reducedSubtotal, shippingFee, promoRef);
+            couponDiscount = applied.discountAmount();
         }
 
+        // Total goods discount = bundle + coupon (capped so the goods can't go < 0).
+        double discount = round(Math.min(subtotal, bundleDiscount + couponDiscount));
         double originalTotal = round(subtotal + shippingFee);
         double finalTotal = Math.max(0, round(subtotal - discount + shippingFee));
         double discountPercentage = subtotal > 0 ? round(discount / subtotal * 100.0) : 0;
@@ -207,6 +222,11 @@ public class OrderService {
         order.setDiscountPercentage(discountPercentage);
         order.setAppliedCouponCode(applied != null ? applied.code() : null);
         order.setPromotionId(applied != null ? applied.promotionId() : null);
+        // Freeze the bundle snapshot so historical orders stay understandable even if
+        // the offer is later changed or disabled.
+        order.setBundleDiscount(bundleDiscount);
+        order.setBundleOfferId(bundle != null ? bundle.offerId() : null);
+        order.setBundleLabel(bundle != null ? bundle.label() : null);
         order.setTotal(finalTotal);
         // Mark for Todify sync only when at least one item is linked to a template;
         // pure-local orders never touch Todify.
@@ -221,6 +241,10 @@ public class OrderService {
         // it rolls back with the order if anything downstream fails).
         if (applied != null) {
             promotionRedemptionService.recordUsage(applied, saved.getId(), promoRef, originalTotal);
+        }
+        // Accrue bundle analytics in the same transaction (rolls back with the order).
+        if (bundle != null) {
+            bundlePricingService.recordUsage(bundle);
         }
 
         OrderResponse response = OrderResponse.from(saved);

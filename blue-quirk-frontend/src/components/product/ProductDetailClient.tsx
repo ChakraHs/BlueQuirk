@@ -14,6 +14,8 @@ import { thumbSrc } from "@/lib/productImage";
 import { colorSwatch, isLightColor } from "@/lib/colors";
 import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
+import { useActiveBundles, offerForProductPage } from "@/lib/bundle";
+import BundleBuilder from "@/components/product/BundleBuilder";
 import { t } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
@@ -109,6 +111,14 @@ export default function ProductDetailClient({
   const router = useRouter();
 
   const canBuy = product.status === "PUBLISHED";
+
+  // Automatic quantity-bundle offer for this product (display-only; the backend
+  // computes the real discount at cart/checkout). Shown near the purchase actions.
+  const activeBundles = useActiveBundles();
+  const bundleOffer = useMemo(
+    () => offerForProductPage(activeBundles, product),
+    [activeBundles, product]
+  );
 
   // ViewContent — the customer opened this product's detail page. Fires once per
   // product (a ref guard absorbs React StrictMode's double-mount and any
@@ -526,6 +536,18 @@ export default function ProductDetailClient({
           <p className="order-4 rounded-sm bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 md:order-5">
             {t(lang, "product.added")}
           </p>
+        )}
+
+        {/* Build-your-set bundle offer — only on eligible, purchasable products. */}
+        {canBuy && bundleOffer && (
+          <div className="order-4 md:order-5">
+            <BundleBuilder
+              product={product}
+              offer={bundleOffer}
+              lang={lang}
+              buildCurrentItem={buildCartItem}
+            />
+          </div>
         )}
 
         {/* Shipping info banner (mobile only) — promoted below the purchase

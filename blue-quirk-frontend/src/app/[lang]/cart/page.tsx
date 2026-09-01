@@ -1,9 +1,9 @@
 "use client";
 
-import { use } from "react";
+import { use, useMemo } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag, Truck } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingBag, Truck, Sparkles, Tag } from "lucide-react";
 import {
   useCart,
   cartItemKey,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
+import { useCartQuote } from "@/lib/bundle";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { t } from "@/lib/i18n";
 
@@ -28,6 +29,14 @@ export default function CartPage({
   const shippingConfig = useShippingConfig();
   const shipping = computeShipping(total, shippingConfig);
   const grandTotal = total + shipping;
+
+  // Authoritative pricing from the backend (automatic bundle discount + upsell).
+  // Falls back to the client-side subtotal until the first quote arrives.
+  const quoteItems = useMemo(() => items.map((i) => ({ id: i.id, quantity: i.quantity })), [items]);
+  const { quote } = useCartQuote(quoteItems);
+  const bundleDiscount = quote?.bundleApplied ? quote.bundleDiscount : 0;
+  const effectiveShipping = quote ? quote.shippingFee : shipping;
+  const finalTotal = quote ? quote.total : grandTotal;
 
   if (items.length === 0) {
     return (
@@ -139,6 +148,25 @@ export default function CartPage({
         <aside className="h-fit rounded-2xl border border-gray-200 p-6">
           <FreeShippingBar subtotal={total} lang={lang} className="mb-5" />
 
+          {/* Bundle upsell — when a bundle offer is within reach (spec §10). Clearly
+              states that the SET price is the total, never that a single item is cheaper. */}
+          {quote?.upsellAvailable && (
+            <div className="mb-5 rounded-xl border border-primary/30 bg-primary/[0.04] p-4">
+              <p className="flex items-center gap-1.5 text-sm font-bold text-gray-900">
+                <Sparkles className="size-4 text-primary" />
+                {t(lang, "bundle.completeTitle")}
+              </p>
+              <p className="mt-1 text-xs text-gray-600">
+                {quote.upsellSetPrice > 0
+                  ? t(lang, "bundle.upsell", {
+                      count: quote.upsellMinQuantity,
+                      price: formatPrice(quote.upsellSetPrice),
+                    })
+                  : t(lang, "bundle.pickToComplete", { count: quote.upsellUnitsNeeded })}
+              </p>
+            </div>
+          )}
+
           <h2 className="text-lg font-bold text-gray-900">{t(lang, "checkout.orderSummary")}</h2>
 
           <dl className="mt-5 space-y-3 text-sm">
@@ -146,10 +174,18 @@ export default function CartPage({
               <dt>{t(lang, "cart.subtotal")}</dt>
               <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
             </div>
+            {bundleDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(bundleDiscount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
-              <dd className={`font-medium ${shipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {shipping === 0 ? t(lang, "cart.free") : formatPrice(shipping)}
+              <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping)}
               </dd>
             </div>
           </dl>
@@ -157,7 +193,7 @@ export default function CartPage({
           <div className="mt-5 flex justify-between border-t border-gray-200 pt-5">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
             <span className="text-base font-bold text-gray-900">
-              {formatPrice(grandTotal)}
+              {formatPrice(finalTotal)}
             </span>
           </div>
 

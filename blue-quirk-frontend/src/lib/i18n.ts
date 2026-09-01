@@ -211,6 +211,25 @@ const fr: Dict = {
   // seo
   "seo.homeTagline": "Mode & créations originales",
   "seo.categoryDesc": "Découvrez notre sélection {category} — qualité premium, livraison partout au Maroc.",
+  // bundle / build-your-set
+  "bundle.buildTitle": "Composez votre set 🌸",
+  "bundle.single": "1 article",
+  "bundle.setOf": "{count} articles",
+  "bundle.save": "Économisez {amount}",
+  "bundle.chooseAnother": "Choisissez un autre modèle",
+  "bundle.pickToComplete": "Ajoutez {count} article(s) pour compléter le set",
+  "bundle.addSet": "Ajouter le set au panier",
+  "bundle.added": "Set ajouté au panier ✓",
+  "bundle.pickVariant": "Choisissez les options",
+  "bundle.addToSet": "Ajouter au set",
+  "bundle.edit": "Modifier",
+  "bundle.setPrice": "Prix du set",
+  "bundle.mixNote": "Mélangez les modèles à votre guise.",
+  "bundle.completeTitle": "Complétez votre set 🌸",
+  "bundle.upsell": "Ajoutez un autre article éligible et obtenez les {count} pour {price}.",
+  "bundle.applied": "Réduction set",
+  "bundle.cartHint": "{count} × {unit} = {normal} · Prix du set {setPrice}",
+  "bundle.close": "Fermer",
 };
 
 const en: Dict = {
@@ -388,6 +407,25 @@ const en: Dict = {
   "common.back": "Back",
   "seo.homeTagline": "Original designs & apparel",
   "seo.categoryDesc": "Discover our {category} selection — premium quality, delivery across Morocco.",
+  // bundle / build-your-set
+  "bundle.buildTitle": "Build your set 🌸",
+  "bundle.single": "1 item",
+  "bundle.setOf": "{count} items",
+  "bundle.save": "Save {amount}",
+  "bundle.chooseAnother": "Choose another design",
+  "bundle.pickToComplete": "Add {count} more item(s) to complete the set",
+  "bundle.addSet": "Add set to cart",
+  "bundle.added": "Set added to cart ✓",
+  "bundle.pickVariant": "Choose options",
+  "bundle.addToSet": "Add to set",
+  "bundle.edit": "Edit",
+  "bundle.setPrice": "Set price",
+  "bundle.mixNote": "Mix & match any designs.",
+  "bundle.completeTitle": "Complete your set 🌸",
+  "bundle.upsell": "Add another eligible item and get all {count} for {price}.",
+  "bundle.applied": "Bundle discount",
+  "bundle.cartHint": "{count} × {unit} = {normal} · Set price {setPrice}",
+  "bundle.close": "Close",
 };
 
 const ar: Dict = {
@@ -564,6 +602,25 @@ const ar: Dict = {
   "common.back": "رجوع",
   "seo.homeTagline": "أزياء وتصاميم أصلية",
   "seo.categoryDesc": "اكتشف تشكيلة {category} — جودة عالية، توصيل في جميع أنحاء المغرب.",
+  // bundle / build-your-set
+  "bundle.buildTitle": "كوّن مجموعتك 🌸",
+  "bundle.single": "قطعة واحدة",
+  "bundle.setOf": "{count} قطع",
+  "bundle.save": "وفّر {amount}",
+  "bundle.chooseAnother": "اختر تصميماً آخر",
+  "bundle.pickToComplete": "أضف {count} قطعة لإكمال المجموعة",
+  "bundle.addSet": "أضف المجموعة إلى السلة",
+  "bundle.added": "تمت إضافة المجموعة ✓",
+  "bundle.pickVariant": "اختر الخيارات",
+  "bundle.addToSet": "أضف إلى المجموعة",
+  "bundle.edit": "تعديل",
+  "bundle.setPrice": "سعر المجموعة",
+  "bundle.mixNote": "امزج بين التصاميم كما تشاء.",
+  "bundle.completeTitle": "أكمل مجموعتك 🌸",
+  "bundle.upsell": "أضف قطعة أخرى مؤهّلة واحصل على {count} بسعر {price}.",
+  "bundle.applied": "خصم المجموعة",
+  "bundle.cartHint": "{count} × {unit} = {normal} · سعر المجموعة {setPrice}",
+  "bundle.close": "إغلاق",
 };
 
 const messages: Record<string, Dict> = { fr, en, ar };

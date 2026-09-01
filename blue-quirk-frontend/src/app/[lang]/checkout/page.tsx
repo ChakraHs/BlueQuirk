@@ -10,10 +10,10 @@ import {
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
+import { useCartQuote } from "@/lib/bundle";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
-import { validateCoupon, type CouponValidation } from "@/services/promotion.service";
 import LoginModal from "@/components/storefront/LoginModal";
 import { t } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
@@ -54,14 +54,7 @@ export default function CheckoutPage({
   // --- Coupon state. The server validates + reprices; we only display what it
   // returns and forward the code on submit. The final total is never computed here.
   const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
-  const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [couponError, setCouponError] = useState<string | null>(null);
-
-  const couponActive = appliedCoupon?.valid === true;
-  const discount = couponActive ? appliedCoupon!.discountAmount : 0;
-  const effectiveShipping = couponActive ? appliedCoupon!.shippingFee : shipping;
-  const finalTotal = couponActive ? appliedCoupon!.total : grandTotal;
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
 
   const [form, setForm] = useState<Form>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -71,6 +64,25 @@ export default function CheckoutPage({
   const [placed, setPlaced] = useState<OrderResponse | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+
+  // --- Authoritative pricing from the backend: subtotal + automatic bundle
+  // discount + (optional) coupon, computed exactly as the order will be. We only
+  // display what it returns; the final total is never computed on the client.
+  const quoteItems = useMemo(() => items.map((i) => ({ id: i.id, quantity: i.quantity })), [items]);
+  const { quote, loading: quoting } = useCartQuote(quoteItems, {
+    couponCode: appliedCode ?? undefined,
+    email: form.email.trim() || undefined,
+  });
+
+  const bundleDiscount = quote?.bundleApplied ? quote.bundleDiscount : 0;
+  const couponActive = quote?.couponValid === true;
+  const couponDiscount = couponActive ? quote!.couponDiscount : 0;
+  const couponError =
+    appliedCode && quote && !quote.couponValid
+      ? quote.couponMessage || t(lang, "checkout.couponInvalid")
+      : null;
+  const effectiveShipping = quote ? quote.shippingFee : shipping;
+  const finalTotal = quote ? quote.total : grandTotal;
 
   // Prefill from the signed-in account if there is one — but never force login.
   useEffect(() => {
@@ -159,56 +171,21 @@ export default function CheckoutPage({
     }
   }, [items]);
 
-  // Cart lines reduced to what the coupon endpoint trusts (ids + quantities).
-  const couponCartItems = useMemo(
-    () => items.map((i) => ({ productId: i.id, quantity: i.quantity })),
-    [items]
-  );
+  // Applying a coupon just records the code; the backend cart quote (above)
+  // validates it against the current cart — already bundle-aware — and returns the
+  // final total. No separate client-side coupon call is needed.
+  const applyingCoupon = quoting && !!appliedCode && !couponActive;
 
-  const handleApplyCoupon = async () => {
+  const handleApplyCoupon = () => {
     const code = couponInput.trim();
     if (!code) return;
-    setApplyingCoupon(true);
-    setCouponError(null);
-    try {
-      const result = await validateCoupon(code, couponCartItems, form.email.trim() || undefined);
-      if (result.valid) {
-        setAppliedCoupon(result);
-        setCouponError(null);
-      } else {
-        setAppliedCoupon(null);
-        setCouponError(result.message || t(lang, "checkout.couponInvalid"));
-      }
-    } catch {
-      setAppliedCoupon(null);
-      setCouponError(t(lang, "checkout.couponInvalid"));
-    } finally {
-      setApplyingCoupon(false);
-    }
+    setAppliedCode(code);
   };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
+    setAppliedCode(null);
     setCouponInput("");
-    setCouponError(null);
   };
-
-  // Keep an applied coupon in sync when the cart changes: re-price server-side,
-  // and drop it (with a message) if it no longer qualifies.
-  useEffect(() => {
-    if (!appliedCoupon?.valid || !appliedCoupon.code) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const result = await validateCoupon(appliedCoupon.code!, couponCartItems, form.email.trim() || undefined);
-        if (cancelled) return;
-        if (result.valid) setAppliedCoupon(result);
-        else { setAppliedCoupon(null); setCouponError(result.message); }
-      } catch { /* keep previous state on transient error */ }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [couponCartItems]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -227,7 +204,7 @@ export default function CheckoutPage({
         address: form.address.trim(),
         postalCode: form.postalCode.trim() || undefined,
         note: form.note.trim() || undefined,
-        couponCode: couponActive ? appliedCoupon!.code ?? undefined : undefined,
+        couponCode: couponActive ? appliedCode ?? undefined : undefined,
         lang,
         items: cartToOrderItems(items),
       });
@@ -385,7 +362,7 @@ export default function CheckoutPage({
               <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
                 <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
                   <Check size={16} />
-                  <span className="font-mono">{appliedCoupon!.code}</span>
+                  <span className="font-mono">{quote?.couponCode ?? appliedCode}</span>
                   {t(lang, "checkout.couponApplied")}
                 </span>
                 <button
@@ -406,7 +383,7 @@ export default function CheckoutPage({
                     <Tag size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       value={couponInput}
-                      onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApplyCoupon(); } }}
                       placeholder={t(lang, "checkout.couponPlaceholder")}
                       className="w-full rounded-lg border border-gray-300 bg-surface py-2 pl-9 pr-3 font-mono text-sm uppercase text-gray-900 placeholder:font-sans placeholder:normal-case placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
@@ -437,12 +414,20 @@ export default function CheckoutPage({
               <dt>{t(lang, "cart.subtotal")}</dt>
               <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
             </div>
-            {couponActive && discount > 0 && (
+            {bundleDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(bundleDiscount)}</dd>
+              </div>
+            )}
+            {couponActive && couponDiscount > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {t(lang, "checkout.discount")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(discount)}</dd>
+                <dd className="font-medium">−{formatPrice(couponDiscount)}</dd>
               </div>
             )}
             <div className="flex justify-between text-gray-600">
