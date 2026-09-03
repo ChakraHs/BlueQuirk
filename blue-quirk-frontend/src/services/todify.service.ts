@@ -89,6 +89,35 @@ export const TodifyService = {
     return data;
   },
 
+  // Switch an order to manual (self-managed) fulfillment — never auto-sent to Todify.
+  setManual: async (id: number): Promise<OrderResponse> => {
+    const { data } = await api.post<OrderResponse>(
+      `/admin/todify/orders/${id}/manual`
+    );
+    return data;
+  },
+
+  // Switch an order back to automatic Todify sync (re-queues it).
+  setAuto: async (id: number): Promise<OrderResponse> => {
+    const { data } = await api.post<OrderResponse>(
+      `/admin/todify/orders/${id}/auto`
+    );
+    return data;
+  },
+
+  // Link an order to a Todify order created by hand in the dashboard.
+  linkTodifyOrder: async (
+    id: number,
+    todifyOrderId: string,
+    referenceCode?: string
+  ): Promise<OrderResponse> => {
+    const { data } = await api.post<OrderResponse>(
+      `/admin/todify/orders/${id}/link`,
+      { todifyOrderId, referenceCode }
+    );
+    return data;
+  },
+
   // --- logs ---
   logs: async (page = 0, type?: string): Promise<Page<TodifySyncLog>> => {
     const q = new URLSearchParams({ page: String(page), size: "30" });

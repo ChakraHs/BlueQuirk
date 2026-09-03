@@ -67,6 +67,7 @@ public class TodifyService {
     private final TodifySyncLogRepository logRepository;
     private final OrderAuditLogRepository auditRepository;
     private final OrderService orderService;
+    private final shop.bluequirk.blue_quirk_backend.identity.user.CurrentUserService currentUserService;
 
     private final String defaultCountry;
     private final int maxAttempts;
@@ -84,6 +85,7 @@ public class TodifyService {
                          TodifySyncLogRepository logRepository,
                          OrderAuditLogRepository auditRepository,
                          OrderService orderService,
+                         shop.bluequirk.blue_quirk_backend.identity.user.CurrentUserService currentUserService,
                          @Value("${todify.default-country:MA}") String defaultCountry,
                          @Value("${todify.retry.max-attempts:5}") int maxAttempts) {
         this.client = client;
@@ -96,6 +98,7 @@ public class TodifyService {
         this.logRepository = logRepository;
         this.auditRepository = auditRepository;
         this.orderService = orderService;
+        this.currentUserService = currentUserService;
         this.defaultCountry = defaultCountry;
         this.maxAttempts = maxAttempts;
     }
@@ -184,6 +187,85 @@ public class TodifyService {
             log(TodifySyncLog.Type.ERROR, "submitOrder", "OUTBOUND", orderId, null,
                     e.getStatus(), payload != null ? payload.toString() : null, e.getBody(), e.getMessage(), null);
             LOG.warn("Order {} sync to Todify FAILED: {}", orderId, e.getMessage());
+        }
+    }
+
+    // =====================================================================
+    // Manual / automatic fulfillment control (admin)
+    // =====================================================================
+
+    /**
+     * Switches an order to <b>manual</b> (self-managed) fulfillment: the admin will
+     * create/manage it directly in Todify (or elsewhere). It is removed from the
+     * automatic send + retry job but stays visible in the Todify orders list and
+     * keeps its history. Never re-sent automatically while MANUAL. No-op for an
+     * order Todify has already accepted (SENT) — there is nothing to hold back.
+     */
+    @Transactional
+    public void markManual(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) return;
+        if (order.getTodifySyncState() == TodifySyncState.SENT) return; // already in Todify
+        order.setTodifySyncState(TodifySyncState.MANUAL);
+        order.setTodifyErrorMessage(null);
+        orderRepository.save(order);
+        audit(order, OrderAuditLog.Action.TODIFY_SET_MANUAL, currentActor(), null,
+                "Order switched to manual (self-managed) fulfillment — excluded from automatic Todify sync.");
+        LOG.info("Order {} switched to manual fulfillment", orderId);
+    }
+
+    /**
+     * Switches an order back to <b>automatic</b> Todify sync: resets the attempt
+     * counter and queues it PENDING so the retry job (and the manual Sync button)
+     * will send it. Used to undo {@link #markManual}. No-op once SENT.
+     */
+    @Transactional
+    public void markAuto(Long orderId) {
+        Order order = orderRepository.findById(orderId).orElse(null);
+        if (order == null) return;
+        if (order.getTodifySyncState() == TodifySyncState.SENT) return;
+        order.setTodifySyncState(TodifySyncState.PENDING);
+        order.setTodifySyncAttempts(0);
+        order.setTodifyErrorMessage(null);
+        orderRepository.save(order);
+        audit(order, OrderAuditLog.Action.TODIFY_SET_AUTO, currentActor(), null,
+                "Order switched back to automatic Todify sync (queued for send).");
+        LOG.info("Order {} switched to automatic Todify sync", orderId);
+    }
+
+    /**
+     * Links a local order to a Todify order that was created by hand in the Todify
+     * dashboard (such orders are not returned by the Developer API, so they cannot
+     * be auto-detected). Records the Todify id/reference and marks the order SENT,
+     * so the idempotency guard blocks any duplicate send and the status-poll job
+     * can pull fulfillment updates onto it.
+     */
+    @Transactional
+    public void linkExistingTodifyOrder(Long orderId, String todifyOrderId, String referenceCode) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found: " + orderId));
+        String id = todifyOrderId == null ? "" : todifyOrderId.trim();
+        if (id.isBlank()) {
+            throw new IllegalArgumentException("A Todify order id is required to link the order.");
+        }
+        order.setTodifyOrderId(id);
+        order.setTodifyReferenceCode(referenceCode == null || referenceCode.isBlank() ? null : referenceCode.trim());
+        order.setTodifySyncState(TodifySyncState.SENT);
+        order.setTodifyErrorMessage(null);
+        order.setTodifyLastSyncAt(LocalDateTime.now());
+        orderRepository.save(order);
+        audit(order, OrderAuditLog.Action.TODIFY_LINKED, currentActor(), null,
+                "Order linked to existing Todify order " + id
+                        + (order.getTodifyReferenceCode() != null ? " (" + order.getTodifyReferenceCode() + ")" : "")
+                        + " — marked SENT.");
+        LOG.info("Order {} manually linked to Todify order {}", orderId, id);
+    }
+
+    private String currentActor() {
+        try {
+            return currentUserService.require().getEmail();
+        } catch (Exception e) {
+            return "system";
         }
     }
 

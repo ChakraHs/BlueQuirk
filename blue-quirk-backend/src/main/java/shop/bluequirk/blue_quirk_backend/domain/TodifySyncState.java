@@ -9,6 +9,12 @@ package shop.bluequirk.blue_quirk_backend.domain;
 public enum TodifySyncState {
     /** No line item is linked to a Todify template — nothing to sync. */
     NOT_APPLICABLE,
+    /**
+     * The admin chose to manage this order manually (fulfil it directly in Todify
+     * or elsewhere). Excluded from the automatic send + retry job, but stays visible
+     * in the Todify orders list and can be switched back to automatic at any time.
+     */
+    MANUAL,
     /** Has Todify-linked items; queued for the async send. */
     PENDING,
     /** Successfully accepted by Todify (todifyOrderId set). */
