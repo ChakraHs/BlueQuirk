@@ -19,7 +19,8 @@ public record FinanceSummary(
         double shipping,           // Σ customer shipping price charged
         double realShippingCost,   // Σ internal shipping cost (never shown to customers)
         double collected,          // Σ amount customers paid (final total)
-        long orders,
+        long orders,               // DELIVERED orders (realized revenue) — drives AOV
+        long totalOrders,          // orders placed in the window, excluding cancelled
         long productsSold,         // Σ units
         double averageOrderValue   // collected / orders
 ) {}

@@ -136,9 +136,10 @@ export default function FinanceKpis() {
           />
           <StatCard
             label="Orders"
-            value={current.orders}
+            value={current.totalOrders}
             icon={ShoppingBag}
             accent="amber"
+            hint={`${current.orders} delivered`}
           />
           <StatCard
             label="Average Order Value"
