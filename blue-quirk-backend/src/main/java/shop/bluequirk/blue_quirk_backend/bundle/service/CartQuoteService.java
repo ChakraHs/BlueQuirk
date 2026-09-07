@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 import shop.bluequirk.blue_quirk_backend.bundle.dto.CartQuoteRequest;
 import shop.bluequirk.blue_quirk_backend.bundle.dto.CartQuoteResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Customer;
+import shop.bluequirk.blue_quirk_backend.progressive.service.AppliedProgressive;
+import shop.bluequirk.blue_quirk_backend.progressive.service.ProgressiveDiscountService;
 import shop.bluequirk.blue_quirk_backend.promotion.engine.PromotionCalculation;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService;
 import shop.bluequirk.blue_quirk_backend.promotion.service.PromotionRedemptionService.CustomerRef;
@@ -33,17 +35,20 @@ public class CartQuoteService {
 
     private final PricingService pricingService;
     private final BundlePricingService bundlePricingService;
+    private final ProgressiveDiscountService progressiveDiscountService;
     private final PromotionRedemptionService redemptionService;
     private final CustomerService customerService;
     private final StoreSettingsService storeSettingsService;
 
     public CartQuoteService(PricingService pricingService,
                             BundlePricingService bundlePricingService,
+                            ProgressiveDiscountService progressiveDiscountService,
                             PromotionRedemptionService redemptionService,
                             CustomerService customerService,
                             StoreSettingsService storeSettingsService) {
         this.pricingService = pricingService;
         this.bundlePricingService = bundlePricingService;
+        this.progressiveDiscountService = progressiveDiscountService;
         this.redemptionService = redemptionService;
         this.customerService = customerService;
         this.storeSettingsService = storeSettingsService;
@@ -61,18 +66,38 @@ public class CartQuoteService {
         // 1) Automatic bundle discount on the goods subtotal.
         AppliedBundle bundle = bundlePricingService.bestFor(cart);
         double bundleDiscount = bundle != null ? bundle.discountAmount() : 0;
+        boolean bundleApplied = bundle != null;
 
-        // 2) Coupon (optional) on the already-reduced subtotal.
-        double reduced = round(Math.max(0, subtotal - bundleDiscount));
+        String code = trimToNull(req == null ? null : req.couponCode());
+        CustomerRef ref = code != null ? resolveCustomer(req.email()) : null;
+
+        // 2) Automatic progressive multi-item discount, after bundle. First compute it
+        //    assuming no coupon is in play so we can price a coupon on the reduced
+        //    subtotal; then re-decide once we know whether a valid coupon participates
+        //    (the combineWithCoupons policy). This mirrors OrderService exactly.
+        AppliedProgressive prog0 = progressiveDiscountService.compute(cart, bundleApplied, false);
+        double progDiscount0 = prog0 != null ? prog0.discountAmount() : 0;
+
+        // 3) Coupon (optional) on the subtotal already reduced by bundle + progressive.
+        double reduced = round(Math.max(0, subtotal - bundleDiscount - progDiscount0));
+        PromotionCalculation calc = code != null
+                ? redemptionService.preview(code, reduced, shipping, ref) : null;
+        boolean couponValid = calc != null && calc.valid();
+
+        // Re-decide progressive now that coupon participation is known; if suppression
+        // changed the reduced subtotal, re-price the coupon so its amount stays correct.
+        AppliedProgressive prog = progressiveDiscountService.compute(cart, bundleApplied, couponValid);
+        double progDiscount = prog != null ? prog.discountAmount() : 0;
+        if (code != null && progDiscount != progDiscount0) {
+            reduced = round(Math.max(0, subtotal - bundleDiscount - progDiscount));
+            calc = redemptionService.preview(code, reduced, shipping, ref);
+            couponValid = calc.valid();
+        }
+
         double couponDiscount = 0;
-        boolean couponValid = false;
         String couponMessage = null;
         String couponCode = null;
-        String code = trimToNull(req == null ? null : req.couponCode());
         if (code != null) {
-            CustomerRef ref = resolveCustomer(req.email());
-            PromotionCalculation calc = redemptionService.preview(code, reduced, shipping, ref);
-            couponValid = calc.valid();
             couponMessage = calc.message();
             if (couponValid) {
                 couponDiscount = calc.discountAmount();
@@ -82,7 +107,7 @@ public class CartQuoteService {
             }
         }
 
-        double totalDiscount = round(bundleDiscount + couponDiscount);
+        double totalDiscount = round(bundleDiscount + progDiscount + couponDiscount);
         double total = round(Math.max(0, subtotal - totalDiscount + shipping));
 
         // Upsell hint (only surfaces when no bundle applied yet).
@@ -90,9 +115,17 @@ public class CartQuoteService {
 
         return new CartQuoteResponse(
                 currency(), subtotal, shipping,
-                bundle != null, bundle != null ? bundle.offerId() : null,
+                bundleApplied, bundle != null ? bundle.offerId() : null,
                 bundle != null ? bundle.label() : null, round(bundleDiscount),
                 bundle != null ? bundle.bundledUnits() : 0,
+                // progressive block
+                prog != null, prog != null && prog.discountAmount() > 0, round(progDiscount),
+                prog != null ? prog.eligibleItemCount() : 0,
+                prog != null ? prog.discountPerItem() : 0,
+                prog != null ? prog.nextDiscount() : 0,
+                prog != null ? prog.itemsUntilNext() : 0,
+                prog != null ? prog.maxDiscount() : 0,
+                prog != null && prog.maxDiscountReached(),
                 couponCode, couponValid, couponMessage, round(couponDiscount),
                 upsell != null, upsell != null ? upsell.label() : null,
                 upsell != null ? upsell.minQuantity() : 0,

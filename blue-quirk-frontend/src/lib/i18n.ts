@@ -230,6 +230,21 @@ const fr: Dict = {
   "bundle.applied": "Réduction set",
   "bundle.cartHint": "{count} × {unit} = {normal} · Prix du set {setPrice}",
   "bundle.close": "Fermer",
+  // Progressive multi-item discount
+  "progressive.offerTitle": "Offre multi-articles",
+  "progressive.discountLine": "Réduction multi-articles",
+  "progressive.currentUnlocked": "{amount} de réduction débloqués",
+  "progressive.addOneMore": "Ajoutez 1 article pour débloquer {amount}",
+  "progressive.perItemNudge": "{amount} de réduction en plus par article ajouté",
+  "progressive.maxTitle": "Réduction maximale débloquée 🎉",
+  "progressive.maxBody": "Vous économisez {amount} sur cette commande.",
+  "progressive.unlockedTitle": "{amount} de réduction débloqués",
+  "progressive.productUnlock": "Ajoutez un article de plus et économisez {amount}",
+  "progressive.productIncrease": "Ajoutez cet article → augmentez vos économies à {amount}",
+  // Announcement bar
+  "announcement.regionLabel": "Annonces de la boutique",
+  "announcement.shopNow": "Découvrir",
+  "announcement.dismiss": "Fermer l'annonce",
 };
 
 const en: Dict = {
@@ -426,6 +441,21 @@ const en: Dict = {
   "bundle.applied": "Bundle discount",
   "bundle.cartHint": "{count} × {unit} = {normal} · Set price {setPrice}",
   "bundle.close": "Close",
+  // Progressive multi-item discount
+  "progressive.offerTitle": "Multi-item offer",
+  "progressive.discountLine": "Multi-item discount",
+  "progressive.currentUnlocked": "{amount} discount unlocked",
+  "progressive.addOneMore": "Add 1 more item to unlock {amount}",
+  "progressive.perItemNudge": "{amount} more off for every item you add",
+  "progressive.maxTitle": "Maximum discount unlocked 🎉",
+  "progressive.maxBody": "You saved {amount} with this order.",
+  "progressive.unlockedTitle": "{amount} discount unlocked",
+  "progressive.productUnlock": "Add one more item and save {amount}",
+  "progressive.productIncrease": "Add this item → increase your savings to {amount}",
+  // Announcement bar
+  "announcement.regionLabel": "Store announcements",
+  "announcement.shopNow": "Shop now",
+  "announcement.dismiss": "Dismiss announcement",
 };
 
 const ar: Dict = {
@@ -621,6 +651,21 @@ const ar: Dict = {
   "bundle.applied": "خصم المجموعة",
   "bundle.cartHint": "{count} × {unit} = {normal} · سعر المجموعة {setPrice}",
   "bundle.close": "إغلاق",
+  // Progressive multi-item discount
+  "progressive.offerTitle": "عرض متعدد المنتجات",
+  "progressive.discountLine": "خصم متعدد المنتجات",
+  "progressive.currentUnlocked": "تم تفعيل خصم {amount}",
+  "progressive.addOneMore": "أضف منتجًا واحدًا آخر لفتح {amount}",
+  "progressive.perItemNudge": "‏{amount} خصم إضافي عن كل منتج تضيفه",
+  "progressive.maxTitle": "🎉 تم فتح الحد الأقصى للخصم",
+  "progressive.maxBody": "لقد وفّرت {amount} في هذا الطلب.",
+  "progressive.unlockedTitle": "تم فتح خصم {amount}",
+  "progressive.productUnlock": "أضف منتجًا آخر ووفّر {amount}",
+  "progressive.productIncrease": "أضف هذا المنتج ← ارفع توفيرك إلى {amount}",
+  // Announcement bar
+  "announcement.regionLabel": "إعلانات المتجر",
+  "announcement.shopNow": "تسوّق الآن",
+  "announcement.dismiss": "إغلاق الإعلان",
 };
 
 const messages: Record<string, Dict> = { fr, en, ar };

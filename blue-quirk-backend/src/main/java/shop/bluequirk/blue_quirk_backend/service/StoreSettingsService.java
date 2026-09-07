@@ -199,6 +199,12 @@ public class StoreSettingsService {
         return v == null || v.isBlank() ? null : v.trim();
     }
 
+    /** Persists a settings instance (used for focused single-field toggles). */
+    @Transactional
+    public StoreSettings save(StoreSettings settings) {
+        return repository.save(settings);
+    }
+
     /** Sets just the logo URL (used by the logo upload endpoint). */
     @Transactional
     public StoreSettings updateLogo(String logoUrl) {

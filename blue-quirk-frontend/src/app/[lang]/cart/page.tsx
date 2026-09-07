@@ -15,6 +15,8 @@ import {
 import { formatPrice } from "@/lib/money";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
+import { progressiveState } from "@/lib/progressive";
+import ProgressiveProgress from "@/components/storefront/ProgressiveProgress";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { t } from "@/lib/i18n";
 
@@ -34,6 +36,8 @@ export default function CartPage({
   // Falls back to the client-side subtotal until the first quote arrives.
   const quoteItems = useMemo(() => items.map((i) => ({ id: i.id, quantity: i.quantity })), [items]);
   const { quote } = useCartQuote(quoteItems);
+  const progressive = progressiveState(quote);
+  const progressiveDiscount = quote?.progressiveApplied ? quote.progressiveDiscount : 0;
   const bundleDiscount = quote?.bundleApplied ? quote.bundleDiscount : 0;
   const effectiveShipping = quote ? quote.shippingFee : shipping;
   const finalTotal = quote ? quote.total : grandTotal;
@@ -148,6 +152,12 @@ export default function CartPage({
         <aside className="h-fit rounded-2xl border border-gray-200 p-6">
           <FreeShippingBar subtotal={total} lang={lang} className="mb-5" />
 
+          {/* Progressive multi-item discount progress. Consumes the same
+              authoritative quote as the totals below. */}
+          {progressive && (
+            <ProgressiveProgress state={progressive} lang={lang} className="mb-5" />
+          )}
+
           {/* Bundle upsell — when a bundle offer is within reach (spec §10). Clearly
               states that the SET price is the total, never that a single item is cheaper. */}
           {quote?.upsellAvailable && (
@@ -180,6 +190,14 @@ export default function CartPage({
                   <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
                 </dt>
                 <dd className="font-medium">−{formatPrice(bundleDiscount)}</dd>
+              </div>
+            )}
+            {progressiveDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {t(lang, "progressive.discountLine")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(progressiveDiscount)}</dd>
               </div>
             )}
             <div className="flex justify-between text-gray-600">

@@ -25,6 +25,7 @@ type FormState = {
   name: string;
   price: number;
   cost: number;
+  compareAtPrice: number;
   stockQuantity: number;
   description: string;
   material: string;
@@ -64,6 +65,7 @@ export default function EditProductPage() {
     name: "",
     price: 0,
     cost: 0,
+    compareAtPrice: 0,
     stockQuantity: 0,
     description: "",
     material: "100% Cotton",
@@ -85,6 +87,7 @@ export default function EditProductPage() {
           name: p.name ?? "",
           price: p.price ?? 0,
           cost: admin?.cost ?? 0,
+          compareAtPrice: p.compareAtPrice ?? 0,
           stockQuantity: p.stockQuantity ?? 0,
           description: p.description ?? "",
           material: p.material ?? "100% Cotton",
@@ -148,6 +151,7 @@ export default function EditProductPage() {
         ...form,
         price: Number(form.price),
         cost: Number(form.cost),
+        compareAtPrice: Number(form.compareAtPrice) || 0,
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
@@ -222,8 +226,10 @@ export default function EditProductPage() {
           <PricingFields
             cost={form.cost}
             price={form.price}
+            compareAtPrice={form.compareAtPrice}
             onCostChange={(cost) => setForm((f) => ({ ...f, cost }))}
             onPriceChange={(price) => setForm((f) => ({ ...f, price }))}
+            onCompareAtChange={(compareAtPrice) => setForm((f) => ({ ...f, compareAtPrice }))}
           />
 
           <div>

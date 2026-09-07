@@ -82,6 +82,18 @@ export type CartQuote = {
   bundleLabel: string | null;
   bundleDiscount: number;
   bundleUnits: number;
+  // --- Progressive multi-item discount (automatic; see progressive.service.ts) ---
+  // progressiveEnabled: campaign live AND cart has eligible items (show progress).
+  // progressiveApplied: a discount (> 0) is unlocked right now.
+  progressiveEnabled: boolean;
+  progressiveApplied: boolean;
+  progressiveDiscount: number;
+  progressiveEligibleCount: number;
+  progressivePerItem: number;
+  progressiveNextDiscount: number;
+  progressiveItemsUntilNext: number;
+  progressiveMaxDiscount: number;
+  progressiveMaxReached: boolean;
   couponCode: string | null;
   couponValid: boolean;
   couponMessage: string | null;

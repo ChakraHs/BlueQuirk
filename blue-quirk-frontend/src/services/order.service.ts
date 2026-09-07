@@ -75,6 +75,16 @@ export type OrderResponse = {
   discountPercentage: number;
   appliedCouponCode?: string;
   promotionId?: number;
+  // Automatic quantity-bundle snapshot (part of discountAmount).
+  bundleDiscount?: number;
+  bundleOfferId?: number;
+  bundleLabel?: string;
+  // Progressive multi-item discount snapshot (part of discountAmount). Frozen at
+  // order time so a later config change never rewrites this order's discount.
+  progressiveDiscount?: number;
+  progressiveEligibleCount?: number;
+  progressivePerItem?: number;
+  progressiveRuleVersion?: number;
   total: number;
   orderDate: string;
   // --- Todify fulfillment (null for non-Todify orders) ---

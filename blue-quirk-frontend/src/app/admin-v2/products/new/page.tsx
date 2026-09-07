@@ -32,6 +32,7 @@ export default function NewProductPage() {
     name: "",
     price: 0,
     cost: 0,
+    compareAtPrice: 0,
     stockQuantity: 0,
     description: "",
     material: "100% Cotton",
@@ -86,6 +87,7 @@ export default function NewProductPage() {
         ...form,
         price: Number(form.price),
         cost: Number(form.cost),
+        compareAtPrice: Number(form.compareAtPrice) || 0,
         stockQuantity: Number(form.stockQuantity),
         attributes,
         images,
@@ -136,8 +138,10 @@ export default function NewProductPage() {
           <PricingFields
             cost={form.cost}
             price={form.price}
+            compareAtPrice={form.compareAtPrice}
             onCostChange={(cost) => setForm((f) => ({ ...f, cost }))}
             onPriceChange={(price) => setForm((f) => ({ ...f, price }))}
+            onCompareAtChange={(compareAtPrice) => setForm((f) => ({ ...f, compareAtPrice }))}
           />
 
           {/* Stock */}

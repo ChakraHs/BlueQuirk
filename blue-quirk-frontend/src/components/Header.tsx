@@ -11,6 +11,7 @@ import { useCart, cartCount } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { accountHref, logout } from "@/lib/auth";
 import { t } from "@/lib/i18n";
+import ProgressiveToaster from "./storefront/ProgressiveToaster";
 
 export default function Header({
   lang,
@@ -251,6 +252,10 @@ export default function Header({
           </div>
         </div>
       )}
+
+      {/* Global progressive-discount toast — fires only when an eligible add-to-cart
+          increases the unlocked discount. */}
+      <ProgressiveToaster lang={lang} />
     </>
   );
 }

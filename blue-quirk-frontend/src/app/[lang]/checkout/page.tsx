@@ -11,6 +11,8 @@ import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
+import { progressiveState } from "@/lib/progressive";
+import ProgressiveIncentive from "@/components/storefront/ProgressiveIncentive";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
@@ -26,13 +28,12 @@ type Form = {
   phone: string;
   address: string;
   city: string;
-  postalCode: string;
   note: string;
 };
 
 const EMPTY: Form = {
   firstName: "", lastName: "", email: "", phone: "",
-  address: "", city: "", postalCode: "", note: "",
+  address: "", city: "", note: "",
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -74,6 +75,8 @@ export default function CheckoutPage({
     email: form.email.trim() || undefined,
   });
 
+  const progressive = progressiveState(quote);
+  const progressiveDiscount = quote?.progressiveApplied ? quote.progressiveDiscount : 0;
   const bundleDiscount = quote?.bundleApplied ? quote.bundleDiscount : 0;
   const couponActive = quote?.couponValid === true;
   const couponDiscount = couponActive ? quote!.couponDiscount : 0;
@@ -117,7 +120,7 @@ export default function CheckoutPage({
         return PHONE_RE.test(v) ? undefined : t(lang, "checkout.phoneInvalid");
       case "address": return v ? undefined : t(lang, "checkout.addressRequired");
       case "city": return v ? undefined : t(lang, "checkout.cityRequired");
-      default: return undefined; // postalCode + note optional
+      default: return undefined; // note optional
     }
   };
 
@@ -202,7 +205,6 @@ export default function CheckoutPage({
         phone: form.phone.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
-        postalCode: form.postalCode.trim() || undefined,
         note: form.note.trim() || undefined,
         couponCode: couponActive ? appliedCode ?? undefined : undefined,
         lang,
@@ -299,10 +301,7 @@ export default function CheckoutPage({
             <Field icon={<Mail size={18} />} label={t(lang, "checkout.email")} required type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t(lang, "checkout.city")} required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
-              <Field label={`${t(lang, "checkout.postalCode")} (${t(lang, "common.optional")})`} value={form.postalCode} onChange={update("postalCode")} placeholder="20000" autoComplete="postal-code" />
-            </div>
+            <Field label={t(lang, "checkout.city")} required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">{t(lang, "checkout.note")} ({t(lang, "common.optional")})</label>
               <textarea
@@ -354,6 +353,12 @@ export default function CheckoutPage({
           </ul>
 
           <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
+
+          {/* Progressive multi-item discount incentive — states the discount already
+              unlocked and how much more each added item earns (no progress bar). */}
+          {progressive && (
+            <ProgressiveIncentive state={progressive} lang={lang} className="mt-5" />
+          )}
 
           {/* Coupon — shown only when the admin has enabled the block. */}
           {shippingConfig.couponEnabled && (
@@ -420,6 +425,14 @@ export default function CheckoutPage({
                   <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
                 </dt>
                 <dd className="font-medium">−{formatPrice(bundleDiscount)}</dd>
+              </div>
+            )}
+            {progressiveDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {t(lang, "progressive.discountLine")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(progressiveDiscount)}</dd>
               </div>
             )}
             {couponActive && couponDiscount > 0 && (

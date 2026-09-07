@@ -19,5 +19,9 @@ public enum EventType {
     LOGIN,
     REGISTER,
     NEWSLETTER_SIGNUP,
-    WISHLIST_ADD
+    WISHLIST_ADD,
+    // Storefront announcement bar (presentation-only funnel signals).
+    ANNOUNCEMENT_VIEW,
+    ANNOUNCEMENT_CLICK,
+    ANNOUNCEMENT_DISMISS
 }

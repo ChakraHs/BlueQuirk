@@ -103,6 +103,10 @@ public class ProductService {
     	
     	existing.setName(dto.getName());
         existing.setPrice(dto.getPrice());
+        // Compare-at price: null = leave unchanged; 0/≤0 = clear it; value = set it.
+        if (dto.getCompareAtPrice() != null) {
+            existing.setCompareAtPrice(sanitizeCompareAt(dto.getCompareAtPrice()));
+        }
         // Cost is optional on update: only overwrite when the admin actually sent
         // a value, so a form that omits it never wipes the stored cost.
         if (dto.getCost() != null) {
@@ -322,6 +326,7 @@ public class ProductService {
             product.getId(),
             resolveName(product, lang),
             campaignPricing.sellingPrice(product.getPrice()),
+            displayCompareAt(product),
             product.getStockQuantity(),
             resolveDescription(product, lang),
             product.getMaterial(),
@@ -389,6 +394,24 @@ public class ProductService {
         return cost;
     }
 
+    /**
+     * The compare-at / previous price for display, scaled by any active campaign
+     * like the selling price (so a marketing surcharge moves both together and the
+     * discount ratio stays correct), or null when no previous price is set. The
+     * frontend still guards on {@code compareAt > price} before crossing it out, so
+     * an accidental compare-at ≤ price simply never shows. Never a charged amount.
+     */
+    private Double displayCompareAt(Product product) {
+        Double raw = product.getCompareAtPrice();
+        return raw == null ? null : campaignPricing.sellingPrice(raw);
+    }
+
+    /** Normalizes a submitted compare-at price: null/≤0 clears it, else round to cents. */
+    private static Double sanitizeCompareAt(Double v) {
+        if (v == null || v <= 0) return null;
+        return Math.round(v * 100.0) / 100.0;
+    }
+
     public void deleteProduct(Long id) {
         productRepository.deleteById(id);
     }
@@ -446,6 +469,7 @@ public class ProductService {
         product.setId(dto.getId());
         product.setName(dto.getName());
         product.setPrice(dto.getPrice());
+        product.setCompareAtPrice(sanitizeCompareAt(dto.getCompareAtPrice()));
         product.setCost(dto.getCost() != null ? validatedCost(dto.getCost()) : 0);
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
@@ -509,6 +533,7 @@ public class ProductService {
                 product.getId(),
                 resolveName(product, lang),
                 campaignPricing.sellingPrice(product.getPrice()),
+                displayCompareAt(product),
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
                 product.getMaterial(),

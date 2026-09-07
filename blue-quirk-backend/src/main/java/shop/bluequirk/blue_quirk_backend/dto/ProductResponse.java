@@ -9,6 +9,9 @@ public record ProductResponse(
 	    Long id,
 	    String name,
 	    Double price,
+	    // Compare-at / previous price shown crossed out (campaign-scaled like price;
+	    // null when the product is not on sale). Display-only — never charged.
+	    Double compareAtPrice,
 	    Integer stockQuantity,
 	    String description,
 	    // Materials / composition (e.g. "100% Cotton") shown in the storefront.

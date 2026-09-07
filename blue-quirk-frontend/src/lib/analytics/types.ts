@@ -11,7 +11,11 @@ export type AnalyticsEventType =
   | "login"
   | "register"
   | "newsletter_signup"
-  | "wishlist_add";
+  | "wishlist_add"
+  // Storefront announcement bar (presentation-only funnel signals).
+  | "announcement_view"
+  | "announcement_click"
+  | "announcement_dismiss";
 
 /** Optional per-event properties. All fields are optional and small. */
 export type AnalyticsProps = {

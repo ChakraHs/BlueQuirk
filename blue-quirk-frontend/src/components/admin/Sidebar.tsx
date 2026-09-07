@@ -20,6 +20,8 @@ import {
   Mail,
   BadgePercent,
   Boxes,
+  Gift,
+  Megaphone,
   KeyRound,
   type LucideIcon,
 } from "lucide-react";
@@ -56,6 +58,8 @@ const groups: Group[] = [
     items: [
       { name: "Promotions", href: "/admin-v2/promotions", icon: BadgePercent },
       { name: "Quantity Bundles", href: "/admin-v2/bundles", icon: Boxes },
+      { name: "Progressive Discount", href: "/admin-v2/progressive-discount", icon: Gift },
+      { name: "Announcement Bar", href: "/admin-v2/announcements", icon: Megaphone },
     ],
   },
   {

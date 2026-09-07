@@ -57,6 +57,12 @@ public class SecurityConfig {
 	                        // Active bundle offers (display-only, non-secret) — the
 	                        // storefront reads these to render "build your set" UX.
 	                        "/api/shop/bundles/**",
+	                        // Active progressive multi-item discount config (display-only,
+	                        // non-secret) - storefront "add one more and save" incentives.
+	                        "/api/shop/progressive-discount/**",
+	                        // Storefront announcement bar (display-only, non-secret) -
+	                        // eligible announcements are already schedule/active filtered.
+	                        "/api/shop/announcements/**",
 	                        "/uploads/**").permitAll()
 	                // Guest checkout (COD, open to non-registered visitors by design)
 	                // and public order tracking by reference number

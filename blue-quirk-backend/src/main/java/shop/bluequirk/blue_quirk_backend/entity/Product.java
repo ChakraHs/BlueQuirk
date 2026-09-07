@@ -37,6 +37,13 @@ public class Product {
     @Column(nullable = false)
     private double price;
 
+    // Optional "compare-at" / previous price (the strikethrough reference shown
+    // when a product is on sale). PURELY a display reference — it is NEVER charged.
+    // Null (or ≤ the selling price) means "no previous price" and nothing is shown
+    // crossed out. Nullable so existing products migrate cleanly with no sale price.
+    @Column(name = "compare_at_price")
+    private Double compareAtPrice;
+
     // Purchase/manufacturing cost of one unit, in MAD. CONFIDENTIAL: never
     // exposed through public/customer/product/search APIs — only the admin
     // surfaces (AdminProductResponse, order financials, finance analytics) read
@@ -138,6 +145,9 @@ public class Product {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Double getCompareAtPrice() { return compareAtPrice; }
+    public void setCompareAtPrice(Double compareAtPrice) { this.compareAtPrice = compareAtPrice; }
 
     public double getCost() { return cost; }
     public void setCost(double cost) { this.cost = cost; }

@@ -30,9 +30,11 @@ const nextConfig = {
         hostname: "fastly.picsum.photos",
       },
       {
-        // Cloudflare R2 public bucket (bluequirk-media) — catalog images.
+        // Cloudflare R2 public buckets (e.g. bluequirk-media) — catalog images.
+        // Wildcard so any R2 public bucket the store uses resolves without a
+        // config change (the public *.r2.dev domains are per-bucket).
         protocol: "https",
-        hostname: "pub-bcddf7eebb064b6fb57f065569be6f5f.r2.dev",
+        hostname: "**.r2.dev",
       },
       {
         // Local dev: images served from the backend's /uploads/** fallback

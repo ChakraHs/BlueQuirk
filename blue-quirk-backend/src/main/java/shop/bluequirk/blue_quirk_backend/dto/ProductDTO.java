@@ -13,6 +13,9 @@ public class ProductDTO {
 	private Long id;
     private String name;
     private Double price;
+    // Optional "compare-at" / previous price (display-only strikethrough reference;
+    // never charged). 0/null clears it. Validated non-negative in ProductService.
+    private Double compareAtPrice;
     // Admin-only purchase cost (MAD). Optional on update (null = leave unchanged);
     // validated non-negative in ProductService. Only submitted via the admin-only
     // create/update endpoints, so it is safe to accept here.
@@ -58,6 +61,9 @@ public class ProductDTO {
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }
+
+    public Double getCompareAtPrice() { return compareAtPrice; }
+    public void setCompareAtPrice(Double compareAtPrice) { this.compareAtPrice = compareAtPrice; }
 
     public Double getCost() { return cost; }
     public void setCost(Double cost) { this.cost = cost; }

@@ -377,6 +377,44 @@ body {
   }
 }
 
+/* Subtle enter transition for the rotating announcement bar (fade + tiny rise).
+   Gated by motion-safe: in the component, so prefers-reduced-motion skips it. */
+@keyframes announce-fade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Slide-in transition variant for the announcement bar. */
+@keyframes announce-slide {
+  from {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Continuous ticker (carousel) for the announcement bar. The track holds two
+   identical copies of the content, so translating by -50% loops seamlessly and
+   scrolls right-to-left. Paused on hover/focus; never rendered under
+   prefers-reduced-motion (handled in JS). */
+@keyframes announce-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
 /* Soft crossfade used when product images switch (gallery + card carousel). */
 @keyframes fadeIn {
   from {

@@ -169,6 +169,33 @@ public class StoreSettings {
     @Column(name = "meta_pixel_id")
     private String metaPixelId;
 
+    // --- Announcement bar -----------------------------------------------------
+    // Global master switch for the storefront announcement bar. Individual
+    // announcements are rows in the `announcements` table; this flag turns the whole
+    // bar on/off without deleting them. Defaults to true so the bar shows as soon as
+    // an eligible announcement exists (the admin can flip it off anytime).
+    @Column(name = "announcement_bar_enabled", nullable = false)
+    @ColumnDefault("true")
+    private boolean announcementBarEnabled = true;
+
+    // Bar-level presentation defaults (a single announcement may still override its
+    // own colors / dwell time). Colors are nullable hex strings — null means "use the
+    // storefront's built-in dark bar". animation: FADE | SLIDE | CAROUSEL. rotation:
+    // seconds each announcement shows before the next in one-at-a-time modes.
+    @Column(name = "announcement_bar_bg_color", length = 32)
+    private String announcementBarBgColor;
+
+    @Column(name = "announcement_bar_text_color", length = 32)
+    private String announcementBarTextColor;
+
+    @Column(name = "announcement_bar_animation", length = 16)
+    @ColumnDefault("'FADE'")
+    private String announcementBarAnimation = "FADE";
+
+    @Column(name = "announcement_bar_rotation_seconds", nullable = false)
+    @ColumnDefault("5")
+    private int announcementBarRotationSeconds = 5;
+
     public StoreSettings() {}
 
     public Long getId() { return id; }
@@ -277,4 +304,19 @@ public class StoreSettings {
 
     public String getMetaPixelId() { return metaPixelId; }
     public void setMetaPixelId(String metaPixelId) { this.metaPixelId = metaPixelId; }
+
+    public boolean isAnnouncementBarEnabled() { return announcementBarEnabled; }
+    public void setAnnouncementBarEnabled(boolean v) { this.announcementBarEnabled = v; }
+
+    public String getAnnouncementBarBgColor() { return announcementBarBgColor; }
+    public void setAnnouncementBarBgColor(String v) { this.announcementBarBgColor = v; }
+
+    public String getAnnouncementBarTextColor() { return announcementBarTextColor; }
+    public void setAnnouncementBarTextColor(String v) { this.announcementBarTextColor = v; }
+
+    public String getAnnouncementBarAnimation() { return announcementBarAnimation; }
+    public void setAnnouncementBarAnimation(String v) { this.announcementBarAnimation = v; }
+
+    public int getAnnouncementBarRotationSeconds() { return announcementBarRotationSeconds; }
+    public void setAnnouncementBarRotationSeconds(int v) { this.announcementBarRotationSeconds = v; }
 }
