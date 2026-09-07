@@ -177,6 +177,7 @@ export default function ProductCard({
         <ProductPrice
           price={product.price}
           compareAt={product.compareAtPrice}
+          lang={lang}
           size="sm"
           showDiscount
           className="mt-1"

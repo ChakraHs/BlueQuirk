@@ -341,10 +341,10 @@ export default function CheckoutPage({
                       <span className="text-xs text-gray-500">{attrs.map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>
                     )}
                     <span className="text-xs text-gray-500">
-                      {item.quantity} × {formatPrice(item.price)}
+                      {item.quantity} × {formatPrice(item.price, lang)}
                     </span>
                     <span className="mt-auto text-sm font-bold text-gray-900">
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(item.price * item.quantity, lang)}
                     </span>
                   </div>
                 </li>
@@ -417,14 +417,14 @@ export default function CheckoutPage({
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.subtotal")}</dt>
-              <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
+              <dd className="font-medium text-gray-900">{formatPrice(total, lang)}</dd>
             </div>
             {bundleDiscount > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(bundleDiscount)}</dd>
+                <dd className="font-medium">−{formatPrice(bundleDiscount, lang)}</dd>
               </div>
             )}
             {progressiveDiscount > 0 && (
@@ -432,7 +432,7 @@ export default function CheckoutPage({
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {t(lang, "progressive.discountLine")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(progressiveDiscount)}</dd>
+                <dd className="font-medium">−{formatPrice(progressiveDiscount, lang)}</dd>
               </div>
             )}
             {couponActive && couponDiscount > 0 && (
@@ -440,20 +440,20 @@ export default function CheckoutPage({
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {t(lang, "checkout.discount")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(couponDiscount)}</dd>
+                <dd className="font-medium">−{formatPrice(couponDiscount, lang)}</dd>
               </div>
             )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
               <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping)}
+                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
               </dd>
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
-            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal)}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal, lang)}</span>
           </div>
 
           <button
@@ -525,12 +525,12 @@ function Confirmation({
                 {t(lang, "checkout.discount")}
                 {order.appliedCouponCode ? ` (${order.appliedCouponCode})` : ""}
               </span>
-              <span className="text-sm font-medium text-emerald-600">−{formatPrice(order.discountAmount)}</span>
+              <span className="text-sm font-medium text-emerald-600">−{formatPrice(order.discountAmount, lang)}</span>
             </div>
           )}
           <div className="mt-2 flex items-center justify-between">
             <span className="text-sm text-gray-500">{t(lang, "checkout.totalToPay")}</span>
-            <span className="text-sm font-bold text-gray-900">{formatPrice(order.total)}</span>
+            <span className="text-sm font-bold text-gray-900">{formatPrice(order.total, lang)}</span>
           </div>
         </div>
 
@@ -546,9 +546,9 @@ function Confirmation({
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">{it.name}</p>
                 {it.variant && <p className="text-xs text-gray-500">{it.variant}</p>}
-                <p className="text-xs text-gray-500">{it.quantity} × {formatPrice(it.unitPrice)}</p>
+                <p className="text-xs text-gray-500">{it.quantity} × {formatPrice(it.unitPrice, lang)}</p>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{formatPrice(it.lineTotal)}</span>
+              <span className="text-sm font-semibold text-gray-900">{formatPrice(it.lineTotal, lang)}</span>
             </li>
           ))}
         </ul>

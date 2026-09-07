@@ -1,7 +1,12 @@
 // Single place for price formatting. RedQuirk is a Morocco-based, cash-on-
-// delivery store, so prices are shown in Moroccan dirham (DH / MAD).
-export function formatPrice(value: number): string {
-  return `${value.toFixed(2)} DH`;
+// delivery store, so prices are shown in Moroccan dirham. The currency label is
+// localized: Latin "DH" for fr/en, Arabic "درهم" for ar. `lang` is optional so
+// existing (admin/internal) callers keep the default "DH".
+const CURRENCY_LABEL: Record<string, string> = { fr: "DH", en: "DH", ar: "درهم" };
+
+export function formatPrice(value: number, lang?: string): string {
+  const currency = (lang && CURRENCY_LABEL[lang]) || "DH";
+  return `${value.toFixed(2)} ${currency}`;
 }
 
 // --- Cost & margin helpers ---------------------------------------------------

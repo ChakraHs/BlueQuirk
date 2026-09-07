@@ -141,7 +141,7 @@ export function progressiveProductMessage(args: {
   // A discount is already unlocked: adding THIS item lifts it to the next step.
   if (state?.applied && state.nextDiscount > state.discount) {
     return t(lang, "progressive.productIncrease", {
-      amount: formatPrice(state.nextDiscount),
+      amount: formatPrice(state.nextDiscount, lang),
     });
   }
 
@@ -149,5 +149,5 @@ export function progressiveProductMessage(args: {
   // there is no cart context yet (empty cart / product visited directly).
   const amount = state && state.nextDiscount > 0 ? state.nextDiscount : config.discountPerAdditionalItem;
   if (!(amount > 0)) return null;
-  return t(lang, "progressive.productUnlock", { amount: formatPrice(amount) });
+  return t(lang, "progressive.productUnlock", { amount: formatPrice(amount, lang) });
 }

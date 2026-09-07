@@ -33,7 +33,7 @@ export default function ProgressiveIncentive({
         <div className="min-w-0">
           <p className="text-sm font-bold text-emerald-800">{t(lang, "progressive.maxTitle")}</p>
           <p className="mt-0.5 text-xs text-emerald-700">
-            {t(lang, "progressive.maxBody", { amount: formatPrice(state.discount) })}
+            {t(lang, "progressive.maxBody", { amount: formatPrice(state.discount, lang) })}
           </p>
         </div>
       </div>
@@ -52,7 +52,7 @@ export default function ProgressiveIncentive({
       <div className="min-w-0">
         {state.applied ? (
           <p className="text-sm font-bold text-emerald-700">
-            {t(lang, "progressive.currentUnlocked", { amount: formatPrice(state.discount) })}
+            {t(lang, "progressive.currentUnlocked", { amount: formatPrice(state.discount, lang) })}
           </p>
         ) : (
           <p className="text-sm font-bold text-gray-900">{t(lang, "progressive.offerTitle")}</p>
@@ -60,7 +60,7 @@ export default function ProgressiveIncentive({
         {perItem > 0 && (
           <p className="mt-0.5 inline-flex items-center gap-1 text-[13px] font-medium text-gray-600">
             <Plus className="size-3.5 text-primary" />
-            {t(lang, "progressive.perItemNudge", { amount: formatPrice(perItem) })}
+            {t(lang, "progressive.perItemNudge", { amount: formatPrice(perItem, lang) })}
           </p>
         )}
       </div>

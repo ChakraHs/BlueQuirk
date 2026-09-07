@@ -106,7 +106,7 @@ export default function CartPage({
                       )}
                     </div>
                     <p className="text-sm font-bold text-gray-900">
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(item.price * item.quantity, lang)}
                     </p>
                   </div>
 
@@ -170,7 +170,7 @@ export default function CartPage({
                 {quote.upsellSetPrice > 0
                   ? t(lang, "bundle.upsell", {
                       count: quote.upsellMinQuantity,
-                      price: formatPrice(quote.upsellSetPrice),
+                      price: formatPrice(quote.upsellSetPrice, lang),
                     })
                   : t(lang, "bundle.pickToComplete", { count: quote.upsellUnitsNeeded })}
               </p>
@@ -182,14 +182,14 @@ export default function CartPage({
           <dl className="mt-5 space-y-3 text-sm">
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.subtotal")}</dt>
-              <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
+              <dd className="font-medium text-gray-900">{formatPrice(total, lang)}</dd>
             </div>
             {bundleDiscount > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(bundleDiscount)}</dd>
+                <dd className="font-medium">−{formatPrice(bundleDiscount, lang)}</dd>
               </div>
             )}
             {progressiveDiscount > 0 && (
@@ -197,13 +197,13 @@ export default function CartPage({
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {t(lang, "progressive.discountLine")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(progressiveDiscount)}</dd>
+                <dd className="font-medium">−{formatPrice(progressiveDiscount, lang)}</dd>
               </div>
             )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
               <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping)}
+                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
               </dd>
             </div>
           </dl>
@@ -211,7 +211,7 @@ export default function CartPage({
           <div className="mt-5 flex justify-between border-t border-gray-200 pt-5">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
             <span className="text-base font-bold text-gray-900">
-              {formatPrice(finalTotal)}
+              {formatPrice(finalTotal, lang)}
             </span>
           </div>
 

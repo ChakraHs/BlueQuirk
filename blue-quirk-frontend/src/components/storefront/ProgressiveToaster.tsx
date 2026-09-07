@@ -46,10 +46,10 @@ export default function ProgressiveToaster({ lang }: { lang: string }) {
 
     const title = quote.progressiveMaxReached
       ? t(lang, "progressive.maxTitle")
-      : t(lang, "progressive.unlockedTitle", { amount: formatPrice(cur) });
+      : t(lang, "progressive.unlockedTitle", { amount: formatPrice(cur, lang) });
     const body = quote.progressiveMaxReached
-      ? t(lang, "progressive.maxBody", { amount: formatPrice(cur) })
-      : t(lang, "progressive.addOneMore", { amount: formatPrice(quote.progressiveNextDiscount) });
+      ? t(lang, "progressive.maxBody", { amount: formatPrice(cur, lang) })
+      : t(lang, "progressive.addOneMore", { amount: formatPrice(quote.progressiveNextDiscount, lang) });
 
     setToast({ title, body });
     setVisible(true);

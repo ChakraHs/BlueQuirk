@@ -161,17 +161,17 @@ export default function BundleBuilder({
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <div className="rounded-xl border border-gray-200 bg-surface px-4 py-3">
           <p className="text-xs font-medium text-gray-500">{t(lang, "bundle.single")}</p>
-          <p className="mt-0.5 text-lg font-bold text-gray-900">{formatPrice(product.price)}</p>
+          <p className="mt-0.5 text-lg font-bold text-gray-900">{formatPrice(product.price, lang)}</p>
         </div>
         <div className="rounded-xl border border-primary/40 bg-primary/[0.06] px-4 py-3">
           <p className="text-xs font-medium text-primary">
             {t(lang, "bundle.setOf", { count: preview.quantity })}
           </p>
           <div className="mt-0.5 flex items-baseline gap-2">
-            <p className="text-lg font-bold text-gray-900">{formatPrice(preview.setPrice)}</p>
+            <p className="text-lg font-bold text-gray-900">{formatPrice(preview.setPrice, lang)}</p>
             {preview.save > 0 && (
               <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                {t(lang, "bundle.save", { amount: formatPrice(preview.save) })}
+                {t(lang, "bundle.save", { amount: formatPrice(preview.save, lang) })}
               </span>
             )}
           </div>
@@ -275,7 +275,7 @@ export default function BundleBuilder({
                       )}
                     </div>
                     <p className="mt-1 truncate text-xs font-medium text-gray-800">{p.name}</p>
-                    <p className="text-xs text-gray-500">{formatPrice(p.price)}</p>
+                    <p className="text-xs text-gray-500">{formatPrice(p.price, lang)}</p>
                   </button>
                 );
               })}
@@ -293,7 +293,7 @@ export default function BundleBuilder({
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white transition hover:bg-primary-hover"
           >
             <Check className="size-4" />
-            {t(lang, "bundle.addSet")} · {formatPrice(preview.setPrice)}
+            {t(lang, "bundle.addSet")} · {formatPrice(preview.setPrice, lang)}
           </button>
         ) : (
           <p className="text-xs font-medium text-gray-500">
@@ -383,7 +383,7 @@ function VariantPicker({
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-base font-semibold text-gray-900">{product.name}</p>
-              <p className="mt-0.5 text-sm font-bold text-gray-900">{formatPrice(product.price)}</p>
+              <p className="mt-0.5 text-sm font-bold text-gray-900">{formatPrice(product.price, lang)}</p>
             </div>
           </div>
 

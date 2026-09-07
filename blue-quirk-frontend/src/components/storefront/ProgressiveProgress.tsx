@@ -31,7 +31,7 @@ export default function ProgressiveProgress({
           {t(lang, "progressive.maxTitle")}
         </p>
         <p className="mt-1 text-xs text-emerald-700">
-          {t(lang, "progressive.maxBody", { amount: formatPrice(state.discount) })}
+          {t(lang, "progressive.maxBody", { amount: formatPrice(state.discount, lang) })}
         </p>
         <Bar fraction={1} tone="emerald" />
       </div>
@@ -39,7 +39,7 @@ export default function ProgressiveProgress({
   }
 
   const headline = state.applied
-    ? t(lang, "progressive.currentUnlocked", { amount: formatPrice(state.discount) })
+    ? t(lang, "progressive.currentUnlocked", { amount: formatPrice(state.discount, lang) })
     : t(lang, "progressive.offerTitle");
 
   return (
@@ -50,7 +50,7 @@ export default function ProgressiveProgress({
       </p>
       <Bar fraction={fraction} tone="primary" />
       <p className="mt-2 text-xs text-gray-600">
-        {t(lang, "progressive.addOneMore", { amount: formatPrice(state.nextDiscount) })}
+        {t(lang, "progressive.addOneMore", { amount: formatPrice(state.nextDiscount, lang) })}
       </p>
     </div>
   );

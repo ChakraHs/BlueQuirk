@@ -340,6 +340,7 @@ export default function ProductDetailClient({
           <ProductPrice
             price={product.price}
             compareAt={product.compareAtPrice}
+            lang={lang}
             size="lg"
             showDiscount
           />
@@ -661,6 +662,7 @@ export default function ProductDetailClient({
             <ProductPrice
               price={product.price}
               compareAt={product.compareAtPrice}
+              lang={lang}
               size="sm"
               className="leading-none"
             />

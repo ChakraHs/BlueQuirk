@@ -20,12 +20,14 @@ const SIZES = {
 export default function ProductPrice({
   price,
   compareAt,
+  lang,
   size = "md",
   showDiscount = false,
   className = "",
 }: {
   price: number;
   compareAt?: number | null;
+  lang?: string;
   size?: keyof typeof SIZES;
   showDiscount?: boolean;
   className?: string;
@@ -37,10 +39,10 @@ export default function ProductPrice({
     <span className={`flex flex-wrap items-baseline gap-x-2 gap-y-0.5 ${className}`}>
       {onSale && previous !== null && (
         <span className={`${s.previous} font-medium text-gray-400 line-through`}>
-          {formatPrice(previous)}
+          {formatPrice(previous, lang)}
         </span>
       )}
-      <span className={`${s.current} font-bold text-gray-900`}>{formatPrice(current)}</span>
+      <span className={`${s.current} font-bold text-gray-900`}>{formatPrice(current, lang)}</span>
       {onSale && showDiscount && (
         <span
           className={`${s.badge} inline-flex shrink-0 items-center rounded-full bg-error/10 font-semibold text-error`}
