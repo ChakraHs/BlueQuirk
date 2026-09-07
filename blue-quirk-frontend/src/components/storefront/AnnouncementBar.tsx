@@ -135,8 +135,15 @@ export default function AnnouncementBar({
   // ---- CAROUSEL (continuous ticker) ----
   if (carousel) {
     const durationSec = Math.max(8, visible.length * initialBar.rotationSeconds * 1.4);
+    // Force LTR layout on the whole bar so the marquee's scroll geometry (block
+    // anchoring + flex origin + translateX(-50%)) is identical regardless of page
+    // direction. Under dir="rtl" the w-max track anchors to the right and the
+    // translate pushes it off-screen, leaving the bar blank in Arabic. The animation
+    // direction still flips per-locale for correct visual flow, and each item's own
+    // text keeps its natural direction via dir="auto".
     return (
       <div
+        dir="ltr"
         className="group relative w-full overflow-hidden"
         style={{ backgroundColor: barBg, color: barText }}
         role="region"
@@ -153,7 +160,7 @@ export default function AnnouncementBar({
           {[0, 1].map((copy) => (
             <div key={copy} aria-hidden={copy === 1} className="flex min-w-[100vw] shrink-0 items-center justify-around gap-6 py-1.5">
               {visible.map((a) => (
-                <span key={`${copy}-${a.id}`} className="flex items-center whitespace-nowrap px-6 text-[12px] leading-none sm:text-[13px]">
+                <span key={`${copy}-${a.id}`} dir="auto" className="flex items-center whitespace-nowrap px-6 text-[12px] leading-none sm:text-[13px]">
                   <Content a={a} lang={lang} Arrow={Arrow} onCtaClick={onCtaClick} />
                 </span>
               ))}
