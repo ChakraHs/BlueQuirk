@@ -19,7 +19,8 @@ import { CategoryService } from "@/services/category.service";
 import { TodifyService } from "@/services/todify.service";
 import { Product, ProductAttribute, ProductImage, ProductVideo } from "@/types/product";
 import { Category } from "@/types/category";
-import { colorOptionsFromAttributes } from "@/lib/colorImages";
+import { colorOptionsFromAttributes, findColorAttribute } from "@/lib/colorImages";
+import { colorSwatch, isLightColor } from "@/lib/colors";
 
 type FormState = {
   name: string;
@@ -50,6 +51,11 @@ export default function EditProductPage() {
     emptyTranslationDrafts()
   );
   const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
+  // Id of the COLOR attribute so its values render as swatches (not text) below.
+  const colorAttributeId = useMemo(
+    () => findColorAttribute(attributes)?.id,
+    [attributes]
+  );
 
   // Flatten the category tree (roots + children) for the checkbox list.
   const flatCategories = useMemo(() => {
@@ -332,7 +338,9 @@ export default function EditProductPage() {
                 Attributes
               </h2>
               <div className="space-y-4">
-                {attributes.map((attr) => (
+                {attributes.map((attr) => {
+                  const isColor = attr.id === colorAttributeId;
+                  return (
                   <div
                     key={attr.id}
                     className="rounded-md border bg-gray-50 p-3"
@@ -341,23 +349,51 @@ export default function EditProductPage() {
                       {attr.name}
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {attr.values.map((v) => (
-                        <button
-                          type="button"
-                          key={v.id}
-                          onClick={() => toggleValue(attr.id, v.id)}
-                          className={`rounded-full border px-3 py-1 text-sm transition ${
-                            v.selected
-                              ? "border-gray-900 bg-gray-900 text-white"
-                              : "border-gray-300 bg-white text-gray-700 hover:border-gray-500"
-                          }`}
-                        >
-                          {v.value}
-                        </button>
-                      ))}
+                      {attr.values.map((v) => {
+                        // Colour values render as a swatch + label so they're
+                        // easy to eyeball at a glance instead of reading names.
+                        if (isColor) {
+                          const hex = colorSwatch(v.value);
+                          const needsBorder = isLightColor(hex);
+                          return (
+                            <button
+                              type="button"
+                              key={v.id}
+                              onClick={() => toggleValue(attr.id, v.id)}
+                              title={v.value}
+                              className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition ${
+                                v.selected
+                                  ? "border-gray-900 bg-gray-900 text-white"
+                                  : "border-gray-300 bg-white text-gray-700 hover:border-gray-500"
+                              }`}
+                            >
+                              <span
+                                className={`size-5 rounded-full ${needsBorder ? "border border-gray-300" : ""}`}
+                                style={{ backgroundColor: hex }}
+                              />
+                              {v.value}
+                            </button>
+                          );
+                        }
+                        return (
+                          <button
+                            type="button"
+                            key={v.id}
+                            onClick={() => toggleValue(attr.id, v.id)}
+                            className={`rounded-full border px-3 py-1 text-sm transition ${
+                              v.selected
+                                ? "border-gray-900 bg-gray-900 text-white"
+                                : "border-gray-300 bg-white text-gray-700 hover:border-gray-500"
+                            }`}
+                          >
+                            {v.value}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
