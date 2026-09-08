@@ -2,10 +2,11 @@
 
 // Fullscreen image lightbox with pinch-to-zoom, pan-while-zoomed, and
 // swipe-between-images — built on Pointer Events so one code path serves touch,
-// pen and mouse. Dependency-free. Shows the ORIGINAL image URLs (not the
-// next/image-optimised variants) so zoom reveals full resolution; off-screen
-// slides stay lazy. Keyboard: ←/→ navigate, Esc closes. Desktop: wheel + double
-// click to zoom.
+// pen and mouse. Dependency-free. Shows whatever image URLs the caller passes;
+// the gallery hands it the already-loaded DISPLAY variant (~1200px) so opening
+// zoom is instant rather than waiting on the multi-MB original. Off-screen slides
+// stay lazy. Keyboard: ←/→ navigate, Esc closes. Desktop: wheel + double click
+// to zoom.
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { X, ChevronLeft, ChevronRight, ZoomIn } from "lucide-react";
 

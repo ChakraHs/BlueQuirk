@@ -2,8 +2,9 @@
 
 // Modern product gallery (Zara / ASOS style), dependency-free.
 // - Desktop: vertical thumbnails (hover/click to switch) + a sliding main image
-//   with smooth transitions, prev/next arrows, and a hover magnifier that loads
-//   the ORIGINAL hi-res image (via background-image) only on hover.
+//   with smooth transitions, prev/next arrows, and a hover magnifier that reuses
+//   the already-loaded DISPLAY image (via background-image), firing no extra
+//   request.
 // - Mobile: finger-following swipe between slides + dot indicators; tap opens a
 //   fullscreen lightbox (pinch-zoom / pan / swipe).
 // An OPTIONAL featured video integrates as the SECOND slide when present (the
@@ -18,7 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronLeft, ChevronRight, Expand, Play } from "lucide-react";
 import type { ProductImage, ProductVideo } from "@/types/product";
-import { displaySrc, originalSrc, thumbSrc } from "@/lib/productImage";
+import { displaySrc, thumbSrc } from "@/lib/productImage";
 import ImageLightbox from "./ImageLightbox";
 import ProductVideoSlide from "./ProductVideoSlide";
 
@@ -64,11 +65,11 @@ export default function ProductGallery({
   //    magnifier reuses this exact URL so hovering fires no extra request).
   //  - thumb: the small side thumbnails + the active-image mirror reported to
   //    the parent (used for the cart line / wishlist).
-  //  - original: full-res, handed to the lightbox and only fetched when the user
-  //    opens fullscreen zoom.
+  // The fullscreen lightbox reuses the DISPLAY variant too — it's already loaded
+  // and good quality (~1200px), so opening zoom is instant instead of waiting on
+  // the multi-MB original.
   const displayUrls = useMemo(() => images.map(displaySrc), [images]);
   const thumbUrls = useMemo(() => images.map(thumbSrc), [images]);
-  const originalUrls = useMemo(() => images.map(originalSrc), [images]);
 
   // Build the ordered slide list: the primary image is FIRST, the video (if any)
   // is inserted as the SECOND slide, then the rest of the images. With no images
@@ -370,7 +371,7 @@ export default function ProductGallery({
 
       {lightboxOpen && activeImageIndex >= 0 && (
         <ImageLightbox
-          images={originalUrls}
+          images={displayUrls}
           startIndex={activeImageIndex}
           alt={alt}
           bgColor={bgColor}
