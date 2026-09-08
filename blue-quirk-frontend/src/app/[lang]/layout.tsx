@@ -103,9 +103,9 @@ export default async function LangLayout({
             />
             <ThemeScript />
             <ThemeStyle />
-            {/* Announcement bar — sits above the header in normal flow so the header's
-                sticky behavior is unaffected. Server-hydrated; renders nothing when
-                disabled or empty. */}
+            {/* Announcement bar — pinned (sticky) at the very top, above the sticky
+                header/search bar which offset themselves by its height (--announce-h).
+                Server-hydrated; renders nothing when disabled or empty. */}
             <AnnouncementBar lang={lang} initialBar={announcementBar} />
             {/* <ShopNavbar /> */}
             <Header

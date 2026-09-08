@@ -111,6 +111,16 @@ export default function AnnouncementBar({
     return () => clearTimeout(id);
   }, [carousel, visible.length, paused, current, index, initialBar.rotationSeconds]);
 
+  // The bar is pinned to the very top (sticky) so it stays visible while
+  // scrolling, sitting above the sticky header/search bar. Because its height
+  // varies (carousel vs one-at-a-time, or absent entirely), publish the measured
+  // height as `--announce-h` on the document root so the header and mobile search
+  // can pin themselves exactly beneath it. Falls back to 0 when the bar is gone.
+  const barRef = useRef<HTMLDivElement>(null);
+  const publishHeight = useCallback((h: number) => {
+    document.documentElement.style.setProperty("--announce-h", `${h}px`);
+  }, []);
+
   // Analytics — announcement_view once per id. In carousel mode every item is on
   // screen, so record all of them; otherwise record the currently shown one.
   const viewed = useRef<Set<number>>(new Set());
@@ -122,6 +132,24 @@ export default function AnnouncementBar({
       track("announcement_view", { meta: { announcementId: a.id, type: a.type } });
     }
   }, [carousel, visible, current]);
+
+  // Keep `--announce-h` in sync with the rendered bar. Re-runs whenever the
+  // render branch/visibility changes; clears to 0 when the bar renders nothing.
+  const willRender = barEnabled && visible.length > 0 && !!current;
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) {
+      publishHeight(0);
+      return;
+    }
+    publishHeight(el.offsetHeight);
+    const ro = new ResizeObserver(() => publishHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => {
+      ro.disconnect();
+      publishHeight(0);
+    };
+  }, [willRender, carousel, publishHeight]);
 
   if (!barEnabled || visible.length === 0 || !current) return null;
 
@@ -143,8 +171,9 @@ export default function AnnouncementBar({
     // text keeps its natural direction via dir="auto".
     return (
       <div
+        ref={barRef}
         dir="ltr"
-        className="group relative w-full overflow-hidden"
+        className="group sticky top-0 z-[70] w-full overflow-hidden"
         style={{ backgroundColor: barBg, color: barText }}
         role="region"
         aria-label={t(lang, "announcement.regionLabel")}
@@ -180,7 +209,8 @@ export default function AnnouncementBar({
 
   return (
     <div
-      className="relative w-full"
+      ref={barRef}
+      className="sticky top-0 z-[70] w-full"
       style={{ backgroundColor: bg, color: text }}
       role="region"
       aria-label={t(lang, "announcement.regionLabel")}
