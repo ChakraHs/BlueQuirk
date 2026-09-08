@@ -5,8 +5,31 @@ import { Star, Trash2, UploadCloud, Loader2, GripVertical, AlertCircle } from "l
 import { ImageService } from "@/services/image.service";
 import type { ProductImage } from "@/types/product";
 import { thumbSrc } from "@/lib/productImage";
+import { compressImage } from "@/lib/imageCompression";
 
 export type ColorOption = { id: number; label: string };
+
+/** Human-readable byte size, e.g. 1.2 MB / 240 KB / 812 B. */
+function formatBytes(n: number): string {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${Math.round(n / 1024)} KB`;
+  return `${(n / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/** Original vs optimized size readout shown under each freshly-added image. */
+function SizeInfo({ original, compressed }: { original: number; compressed: number }) {
+  const saved = original > 0 ? Math.round((1 - compressed / original) * 100) : 0;
+  return (
+    <p
+      className="truncate text-center text-[10px] leading-tight text-gray-500"
+      title={`Original ${formatBytes(original)} → optimized ≈ ${formatBytes(compressed)}`}
+    >
+      {formatBytes(original)} <span className="text-gray-300">→</span>{" "}
+      <span className="font-semibold text-emerald-600">{formatBytes(compressed)}</span>
+      {saved > 0 && <span className="text-emerald-600"> (−{saved}%)</span>}
+    </p>
+  );
+}
 
 /**
  * Admin product image manager: drag & drop / multi-select upload (compressed +
@@ -26,7 +49,13 @@ export default function ProductImageManager({
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
-  const [uploads, setUploads] = useState<{ id: string; name: string; preview: string }[]>([]);
+  const [uploads, setUploads] = useState<
+    { id: string; name: string; preview: string; originalSize: number; compressedSize: number | null }[]
+  >([]);
+  // Per-uploaded-image original vs optimized byte sizes, so the admin sees the
+  // savings before saving the product. Keyed by the returned image id; session-only
+  // (existing images loaded from the DB have no such figure).
+  const [sizes, setSizes] = useState<Record<number, { original: number; compressed: number }>>({});
   const [error, setError] = useState<string | null>(null);
   const dragIndex = useRef<number | null>(null);
 
@@ -50,16 +79,32 @@ export default function ProductImageManager({
         name: f.name,
         preview: URL.createObjectURL(f),
         file: f,
+        originalSize: f.size,
       }));
       setUploads((u) => [
         ...u,
-        ...pending.map((p) => ({ id: p.id, name: p.name, preview: p.preview })),
+        ...pending.map((p) => ({
+          id: p.id,
+          name: p.name,
+          preview: p.preview,
+          originalSize: p.originalSize,
+          compressedSize: null,
+        })),
       ]);
 
       // Upload sequentially so ordering is deterministic and the backend isn't hammered.
       let current = value;
       for (const item of pending) {
         try {
+          // Estimate the optimized ("compressed") size the same way the web display
+          // variant is produced, so the admin can see the saving before saving. The
+          // ORIGINAL file is still uploaded untouched (the server keeps a hi-res
+          // original + generates its own variants) — this is display-only.
+          const optimized = await compressImage(item.file);
+          setUploads((u) =>
+            u.map((x) => (x.id === item.id ? { ...x, compressedSize: optimized.size } : x))
+          );
+
           const uploaded = await ImageService.upload(item.file);
           current = normalize([
             ...current,
@@ -74,6 +119,10 @@ export default function ProductImageManager({
             },
           ]);
           onChange(current);
+          setSizes((s) => ({
+            ...s,
+            [uploaded.id]: { original: item.originalSize, compressed: optimized.size },
+          }));
         } catch {
           setError("Failed to upload an image. Please try again.");
         } finally {
@@ -156,7 +205,8 @@ export default function ProductImageManager({
           Drag & drop images here, or click to browse
         </p>
         <p className="mt-1 text-xs text-gray-400">
-          JPG, PNG, WebP — automatically optimized by the server (thumbnail + display)
+          JPG, PNG, WebP — you&apos;ll see the original vs optimized size for each image
+          before saving; the server keeps a hi-res original + serves optimized variants.
         </p>
         <input
           ref={inputRef}
@@ -234,6 +284,11 @@ export default function ProductImageManager({
                 )}
               </div>
 
+              {/* Original → optimized size (only for images added this session). */}
+              {sizes[img.id] && (
+                <SizeInfo original={sizes[img.id].original} compressed={sizes[img.id].compressed} />
+              )}
+
               {/* per-image color link (only when the product has a color attribute) */}
               {colorOptions.length > 0 && (
                 <select
@@ -257,15 +312,21 @@ export default function ProductImageManager({
 
           {/* in-flight uploads */}
           {uploads.map((u) => (
-            <div
-              key={u.id}
-              className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100"
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={u.preview} alt={u.name} className="h-full w-full object-cover opacity-40" />
-              <span className="absolute inset-0 flex items-center justify-center">
-                <Loader2 className="animate-spin text-gray-600" size={22} />
-              </span>
+            <div key={u.id} className="flex flex-col gap-1.5">
+              <div className="relative aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={u.preview} alt={u.name} className="h-full w-full object-cover opacity-40" />
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 className="animate-spin text-gray-600" size={22} />
+                </span>
+              </div>
+              {u.compressedSize !== null ? (
+                <SizeInfo original={u.originalSize} compressed={u.compressedSize} />
+              ) : (
+                <p className="truncate text-center text-[10px] leading-tight text-gray-400">
+                  {formatBytes(u.originalSize)} · optimizing…
+                </p>
+              )}
             </div>
           ))}
         </div>
