@@ -81,8 +81,12 @@ export default function ProductCard({
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
-        {/* sliding track — fixed height container prevents any layout shift */}
+        {/* sliding track — fixed height container prevents any layout shift.
+            dir="ltr" forces a consistent left-to-right layout so the
+            translateX(-index*100%) math works the same in Arabic (RTL); without it
+            the flex origin flips and only the first image ever shows. */}
         <div
+          dir="ltr"
           className="flex h-full w-full transition-transform duration-300 ease-out"
           style={{ transform: `translateX(-${index * 100}%)` }}
         >
