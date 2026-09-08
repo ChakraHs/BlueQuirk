@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Product } from "@/types/product";
-import { formatPrice } from "@/lib/money";
+import ProductPrice from "./ProductPrice";
 import { thumbSrc } from "@/lib/productImage";
 import { t } from "@/lib/i18n";
 import { colorSwatch, isLightColor } from "@/lib/colors";
@@ -172,10 +172,16 @@ export default function ProductCard({
           {product.name}
         </h3>
 
-        {/* price — the most prominent element */}
-        <p className="mt-1 text-base font-bold text-gray-900">
-          {formatPrice(product.price)}
-        </p>
+        {/* price — the most prominent element; shows the crossed-out previous
+            price + discount when the product is on sale (compareAtPrice). */}
+        <ProductPrice
+          price={product.price}
+          compareAt={product.compareAtPrice}
+          lang={lang}
+          size="sm"
+          showDiscount
+          className="mt-1"
+        />
 
         {/* color selector */}
         {colors.length > 0 && (

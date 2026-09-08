@@ -7,13 +7,16 @@ import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
 import { trackingService } from "@/lib/tracking/service";
-import { formatPrice } from "@/lib/money";
+import ProductPrice from "@/components/ProductPrice";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
 import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
 import { colorSwatch, isLightColor } from "@/lib/colors";
 import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
 import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
+import { useActiveBundles, offerForProductPage } from "@/lib/bundle";
+import BundleBuilder from "@/components/product/BundleBuilder";
+import ProgressiveProductHint from "@/components/product/ProgressiveProductHint";
 import { t } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
@@ -109,6 +112,14 @@ export default function ProductDetailClient({
   const router = useRouter();
 
   const canBuy = product.status === "PUBLISHED";
+
+  // Automatic quantity-bundle offer for this product (display-only; the backend
+  // computes the real discount at cart/checkout). Shown near the purchase actions.
+  const activeBundles = useActiveBundles();
+  const bundleOffer = useMemo(
+    () => offerForProductPage(activeBundles, product),
+    [activeBundles, product]
+  );
 
   // ViewContent — the customer opened this product's detail page. Fires once per
   // product (a ref guard absorbs React StrictMode's double-mount and any
@@ -326,9 +337,13 @@ export default function ProductDetailClient({
             {product.name}
           </h1>
 
-          <p className="text-2xl font-semibold">
-            {formatPrice(product.price)}
-          </p>
+          <ProductPrice
+            price={product.price}
+            compareAt={product.compareAtPrice}
+            lang={lang}
+            size="lg"
+            showDiscount
+          />
 
           {/* Shipping info banner (desktop) — kept directly under the price so the
               md: layout is unchanged. The mobile instance lives below the buttons. */}
@@ -522,10 +537,26 @@ export default function ProductDetailClient({
           </button>
         </div>
 
+        {/* Progressive multi-item discount incentive. Dynamic to the current cart;
+            renders nothing when off or product ineligible. */}
+        {canBuy && <ProgressiveProductHint product={product} lang={lang} />}
+
         {added && (
           <p className="order-4 rounded-sm bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 md:order-5">
             {t(lang, "product.added")}
           </p>
+        )}
+
+        {/* Build-your-set bundle offer — only on eligible, purchasable products. */}
+        {canBuy && bundleOffer && (
+          <div className="order-4 md:order-5">
+            <BundleBuilder
+              product={product}
+              offer={bundleOffer}
+              lang={lang}
+              buildCurrentItem={buildCartItem}
+            />
+          </div>
         )}
 
         {/* Shipping info banner (mobile only) — promoted below the purchase
@@ -628,9 +659,13 @@ export default function ProductDetailClient({
       >
         <div className="flex h-[76px] items-center justify-between gap-3 px-4">
           <div className="min-w-0">
-            <p className="text-xl font-semibold leading-none text-gray-900">
-              {formatPrice(product.price)}
-            </p>
+            <ProductPrice
+              price={product.price}
+              compareAt={product.compareAtPrice}
+              lang={lang}
+              size="sm"
+              className="leading-none"
+            />
             <p className="mt-1 flex items-center gap-1 truncate text-xs text-gray-500">
               <Star className="size-3 shrink-0 fill-amber-400 text-amber-400" />
               {product.material || t(lang, "product.premiumQuality")}

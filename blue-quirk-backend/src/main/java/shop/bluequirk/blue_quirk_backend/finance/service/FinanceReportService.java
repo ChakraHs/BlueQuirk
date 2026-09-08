@@ -57,6 +57,7 @@ public class FinanceReportService {
         double collected = finance.round(num(r[5]));
         double realShippingCost = finance.round(num(r[6]));
         long units = repository.sumUnits(from, to);
+        long totalOrders = repository.totalOrders(from, to);
 
         return new FinanceSummary(
                 from.toString(),
@@ -73,6 +74,7 @@ public class FinanceReportService {
                 realShippingCost,
                 collected,
                 orders,
+                totalOrders,
                 units,
                 finance.averageOrderValue(collected, orders)
         );

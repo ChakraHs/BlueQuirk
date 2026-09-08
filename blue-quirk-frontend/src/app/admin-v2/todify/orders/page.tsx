@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Truck, RefreshCw, Send } from "lucide-react";
+import { Truck, RefreshCw, Send, Hand, Zap, Link2 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { TodifyService } from "@/services/todify.service";
@@ -13,6 +13,7 @@ const SYNC_BADGE: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-700",
   RETRYING: "bg-amber-100 text-amber-700",
   FAILED: "bg-red-100 text-red-700",
+  MANUAL: "bg-indigo-100 text-indigo-700",
   NOT_APPLICABLE: "bg-gray-100 text-gray-500",
 };
 
@@ -64,6 +65,41 @@ export default function TodifyOrdersPage() {
     setBusy(id);
     try {
       patch(await TodifyService.refreshOrder(id));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function setManual(id: number) {
+    setBusy(id);
+    try {
+      patch(await TodifyService.setManual(id));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function setAuto(id: number) {
+    setBusy(id);
+    try {
+      patch(await TodifyService.setAuto(id));
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function linkManual(id: number) {
+    const todifyOrderId = window.prompt(
+      "Paste the Todify order ID (from the order you created by hand in the Todify dashboard):"
+    );
+    if (!todifyOrderId || !todifyOrderId.trim()) return;
+    const referenceCode =
+      window.prompt("Todify reference code (optional):")?.trim() || undefined;
+    setBusy(id);
+    try {
+      patch(
+        await TodifyService.linkTodifyOrder(id, todifyOrderId.trim(), referenceCode)
+      );
     } finally {
       setBusy(null);
     }
@@ -160,15 +196,48 @@ export default function TodifyOrdersPage() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        disabled={busy === o.id}
-                        onClick={() => sync(o.id)}
-                        className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
-                        title="Resend to Todify"
-                      >
-                        <Send size={13} /> Sync
-                      </button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      {o.todifySyncState !== "MANUAL" && (
+                        <button
+                          disabled={busy === o.id}
+                          onClick={() => sync(o.id)}
+                          className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                          title="Send / resend this order to Todify"
+                        >
+                          <Send size={13} /> Send to Todify
+                        </button>
+                      )}
+                      {o.todifySyncState === "MANUAL" ? (
+                        <button
+                          disabled={busy === o.id}
+                          onClick={() => setAuto(o.id)}
+                          className="inline-flex items-center gap-1 rounded-md bg-blue-600 px-2.5 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                          title="Switch back to automatic Todify sync"
+                        >
+                          <Zap size={13} /> Enable auto-sync
+                        </button>
+                      ) : (
+                        o.todifySyncState !== "SENT" && (
+                          <button
+                            disabled={busy === o.id}
+                            onClick={() => setManual(o.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-indigo-300 bg-indigo-50 px-2.5 py-1.5 text-xs font-medium text-indigo-700 hover:bg-indigo-100 disabled:opacity-50"
+                            title="Manage this order yourself — exclude it from automatic Todify sync"
+                          >
+                            <Hand size={13} /> Manage manually
+                          </button>
+                        )
+                      )}
+                      {!o.todifyOrderId && (
+                        <button
+                          disabled={busy === o.id}
+                          onClick={() => linkManual(o.id)}
+                          className="inline-flex items-center gap-1 rounded-md border border-gray-300 px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          title="Link to a Todify order you created by hand in the dashboard"
+                        >
+                          <Link2 size={13} /> Link
+                        </button>
+                      )}
                       <button
                         disabled={busy === o.id || !o.todifyOrderId}
                         onClick={() => refresh(o.id)}

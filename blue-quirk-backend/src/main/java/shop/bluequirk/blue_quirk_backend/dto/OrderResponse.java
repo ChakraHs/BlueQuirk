@@ -36,6 +36,15 @@ public record OrderResponse(
         double discountPercentage,
         String appliedCouponCode,
         Long promotionId,
+        // Automatic quantity-bundle snapshot (bundleDiscount is part of discountAmount).
+        double bundleDiscount,
+        Long bundleOfferId,
+        String bundleLabel,
+        // Progressive multi-item snapshot (progressiveDiscount is part of discountAmount).
+        double progressiveDiscount,
+        int progressiveEligibleCount,
+        double progressivePerItem,
+        int progressiveRuleVersion,
         double total,
         String orderDate,
         // --- Todify fulfillment (null for non-Todify orders) ---
@@ -98,6 +107,13 @@ public record OrderResponse(
                 order.getDiscountPercentage(),
                 order.getAppliedCouponCode(),
                 order.getPromotionId(),
+                order.getBundleDiscount(),
+                order.getBundleOfferId(),
+                order.getBundleLabel(),
+                order.getProgressiveDiscount(),
+                order.getProgressiveEligibleCount(),
+                order.getProgressivePerItem(),
+                order.getProgressiveRuleVersion(),
                 order.getTotal(),
                 order.getOrderDate() != null
                         ? order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,

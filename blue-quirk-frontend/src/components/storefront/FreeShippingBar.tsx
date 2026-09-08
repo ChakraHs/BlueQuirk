@@ -82,7 +82,7 @@ export default function FreeShippingBar({
           {qualified ? <PartyPopper className="size-5" /> : <Truck className="size-5" />}
         </span>
         <p className={`text-sm leading-snug ${qualified ? "text-emerald-800" : "text-gray-700"}`}>
-          {qualified ? t.qualified : t.away(formatPrice(remaining))}
+          {qualified ? t.qualified : t.away(formatPrice(remaining, lang))}
         </p>
       </div>
 

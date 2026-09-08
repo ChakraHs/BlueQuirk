@@ -135,6 +135,43 @@ public class TodifyAdminController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    /** Switch an order to manual (self-managed) fulfillment — excluded from auto-sync. */
+    @PostMapping("/orders/{id}/manual")
+    public ResponseEntity<OrderResponse> markManual(@PathVariable Long id) {
+        todifyService.markManual(id);
+        return orderService.getOrderById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /** Switch an order back to automatic Todify sync (re-queues it, resets attempts). */
+    @PostMapping("/orders/{id}/auto")
+    public ResponseEntity<OrderResponse> markAuto(@PathVariable Long id) {
+        todifyService.markAuto(id);
+        return orderService.getOrderById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Link an order to a Todify order created by hand in the Todify dashboard
+     * (those aren't returned by the Developer API, so they can't be auto-detected).
+     * Marks the order SENT so it is never re-sent and its status can be polled.
+     */
+    @PostMapping("/orders/{id}/link")
+    public ResponseEntity<OrderResponse> linkTodifyOrder(@PathVariable Long id,
+                                                         @RequestBody LinkTodifyOrderRequest body) {
+        if (body == null || body.todifyOrderId() == null || body.todifyOrderId().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "todifyOrderId is required");
+        }
+        todifyService.linkExistingTodifyOrder(id, body.todifyOrderId(), body.referenceCode());
+        return orderService.getOrderById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    public record LinkTodifyOrderRequest(String todifyOrderId, String referenceCode) {}
+
     /**
      * Retry the Todify cancellation for a cancelled order ("Retry Todify
      * Cancellation"). The order service validates state + records the retry in the

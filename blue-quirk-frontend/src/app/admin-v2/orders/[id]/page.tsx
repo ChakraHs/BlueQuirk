@@ -375,6 +375,31 @@ export default function OrderDetailPage() {
               <span>Subtotal</span>
               <span>{formatPrice(order.subtotal)}</span>
             </div>
+            {(order.bundleDiscount ?? 0) > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>{order.bundleLabel || "Quantity bundle"}</span>
+                <span>−{formatPrice(order.bundleDiscount!)}</span>
+              </div>
+            )}
+            {(order.progressiveDiscount ?? 0) > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <span className="inline-flex flex-col">
+                  <span>Multi-item discount</span>
+                  <span className="text-[11px] font-normal text-emerald-600/70">
+                    {order.progressiveEligibleCount} eligible items ·{" "}
+                    {formatPrice(order.progressivePerItem ?? 0)} × {Math.max(0, (order.progressiveEligibleCount ?? 0) - 1)} additional
+                    {order.progressiveRuleVersion ? ` · rule v${order.progressiveRuleVersion}` : ""}
+                  </span>
+                </span>
+                <span>−{formatPrice(order.progressiveDiscount!)}</span>
+              </div>
+            )}
+            {order.appliedCouponCode && (order.discountAmount - (order.bundleDiscount ?? 0) - (order.progressiveDiscount ?? 0)) > 0.001 && (
+              <div className="flex justify-between text-emerald-600">
+                <span>Coupon ({order.appliedCouponCode})</span>
+                <span>−{formatPrice(order.discountAmount - (order.bundleDiscount ?? 0) - (order.progressiveDiscount ?? 0))}</span>
+              </div>
+            )}
             <div className="flex justify-between text-gray-500">
               <span>Shipping</span>
               <span>

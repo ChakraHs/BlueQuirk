@@ -33,6 +33,12 @@ public class OrderAuditLog {
         TODIFY_CANCEL_FAILED,
         /** A manual/admin retry of the Todify cancellation was triggered. */
         TODIFY_CANCEL_RETRIED,
+        /** Admin switched the order to manual (self-managed) fulfillment. */
+        TODIFY_SET_MANUAL,
+        /** Admin switched the order back to automatic Todify sync. */
+        TODIFY_SET_AUTO,
+        /** Admin linked the order to an existing Todify order created by hand. */
+        TODIFY_LINKED,
         /** The order was permanently deleted. */
         DELETED
     }

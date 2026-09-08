@@ -67,7 +67,7 @@ export default function WishlistPage({
                 {item.name}
               </h3>
               <p className="px-1 text-sm font-bold text-gray-900">
-                {formatPrice(item.price)}
+                {formatPrice(item.price, lang)}
               </p>
             </Link>
 

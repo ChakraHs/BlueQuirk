@@ -8,6 +8,8 @@ import ThemeScript from "@/components/ThemeScript";
 import { MetaPixelBase } from "@/components/analytics/MetaPixelBase";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+import AnnouncementBar from "@/components/storefront/AnnouncementBar";
+import { getAnnouncementBar } from "@/lib/announcementBar";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
 // Support/chat widget temporarily disabled — re-enable by restoring this import
 // and the <SupportWidget /> render below.
@@ -83,9 +85,10 @@ export default async function LangLayout({
     notFound();
   }
 
-  const [categories, config] = await Promise.all([
+  const [categories, config, announcementBar] = await Promise.all([
     CategoryService.getAll(lang).catch(() => []),
     getPublicShopConfig(),
+    getAnnouncementBar(lang),
   ]);
   const topCategories = categories.filter((c) => !c.parentId);
 
@@ -100,6 +103,10 @@ export default async function LangLayout({
             />
             <ThemeScript />
             <ThemeStyle />
+            {/* Announcement bar — sits above the header in normal flow so the header's
+                sticky behavior is unaffected. Server-hydrated; renders nothing when
+                disabled or empty. */}
+            <AnnouncementBar lang={lang} initialBar={announcementBar} />
             {/* <ShopNavbar /> */}
             <Header
               lang={lang}

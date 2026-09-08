@@ -54,6 +54,15 @@ public class SecurityConfig {
 	                        "/api/categories/**",
 	                        "/api/attributes/**",
 	                        "/api/shop/config",
+	                        // Active bundle offers (display-only, non-secret) — the
+	                        // storefront reads these to render "build your set" UX.
+	                        "/api/shop/bundles/**",
+	                        // Active progressive multi-item discount config (display-only,
+	                        // non-secret) - storefront "add one more and save" incentives.
+	                        "/api/shop/progressive-discount/**",
+	                        // Storefront announcement bar (display-only, non-secret) -
+	                        // eligible announcements are already schedule/active filtered.
+	                        "/api/shop/announcements/**",
 	                        "/uploads/**").permitAll()
 	                // Guest checkout (COD, open to non-registered visitors by design)
 	                // and public order tracking by reference number
@@ -62,6 +71,9 @@ public class SecurityConfig {
 	                // Coupon preview during checkout — read-only, reprices server-side,
 	                // never mutates usage (see CouponController). Open like guest checkout.
 	                .requestMatchers(HttpMethod.POST, "/api/coupons/validate").permitAll()
+	                // Authoritative cart pricing (subtotal + bundle + optional coupon).
+	                // Read-only, reprices server-side; open like the coupon preview.
+	                .requestMatchers(HttpMethod.POST, "/api/cart/quote").permitAll()
 	                // Storefront analytics beacon
 	                .requestMatchers(HttpMethod.POST, "/api/analytics/event").permitAll()
 	                // Todify webhook — authenticated by HMAC signature in the controller

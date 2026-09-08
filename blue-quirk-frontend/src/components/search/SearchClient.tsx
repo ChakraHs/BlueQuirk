@@ -561,8 +561,8 @@ export default function SearchClient({
                 setMaxPrice("");
               }}
             >
-              {formatPrice(Number(minPrice || facets.priceLo))} —{" "}
-              {formatPrice(Number(maxPrice || facets.priceHi))}
+              {formatPrice(Number(minPrice || facets.priceLo), lang)} —{" "}
+              {formatPrice(Number(maxPrice || facets.priceHi), lang)}
             </Chip>
           )}
           {inStock && <Chip onClear={() => setInStock(false)}>{t.inStock}</Chip>}

@@ -10,10 +10,12 @@ import {
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
+import { useCartQuote } from "@/lib/bundle";
+import { progressiveState } from "@/lib/progressive";
+import ProgressiveIncentive from "@/components/storefront/ProgressiveIncentive";
 import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
-import { validateCoupon, type CouponValidation } from "@/services/promotion.service";
 import LoginModal from "@/components/storefront/LoginModal";
 import { t } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
@@ -26,13 +28,12 @@ type Form = {
   phone: string;
   address: string;
   city: string;
-  postalCode: string;
   note: string;
 };
 
 const EMPTY: Form = {
   firstName: "", lastName: "", email: "", phone: "",
-  address: "", city: "", postalCode: "", note: "",
+  address: "", city: "", note: "",
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -54,14 +55,7 @@ export default function CheckoutPage({
   // --- Coupon state. The server validates + reprices; we only display what it
   // returns and forward the code on submit. The final total is never computed here.
   const [couponInput, setCouponInput] = useState("");
-  const [appliedCoupon, setAppliedCoupon] = useState<CouponValidation | null>(null);
-  const [applyingCoupon, setApplyingCoupon] = useState(false);
-  const [couponError, setCouponError] = useState<string | null>(null);
-
-  const couponActive = appliedCoupon?.valid === true;
-  const discount = couponActive ? appliedCoupon!.discountAmount : 0;
-  const effectiveShipping = couponActive ? appliedCoupon!.shippingFee : shipping;
-  const finalTotal = couponActive ? appliedCoupon!.total : grandTotal;
+  const [appliedCode, setAppliedCode] = useState<string | null>(null);
 
   const [form, setForm] = useState<Form>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof Form, string>>>({});
@@ -71,6 +65,27 @@ export default function CheckoutPage({
   const [placed, setPlaced] = useState<OrderResponse | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+
+  // --- Authoritative pricing from the backend: subtotal + automatic bundle
+  // discount + (optional) coupon, computed exactly as the order will be. We only
+  // display what it returns; the final total is never computed on the client.
+  const quoteItems = useMemo(() => items.map((i) => ({ id: i.id, quantity: i.quantity })), [items]);
+  const { quote, loading: quoting } = useCartQuote(quoteItems, {
+    couponCode: appliedCode ?? undefined,
+    email: form.email.trim() || undefined,
+  });
+
+  const progressive = progressiveState(quote);
+  const progressiveDiscount = quote?.progressiveApplied ? quote.progressiveDiscount : 0;
+  const bundleDiscount = quote?.bundleApplied ? quote.bundleDiscount : 0;
+  const couponActive = quote?.couponValid === true;
+  const couponDiscount = couponActive ? quote!.couponDiscount : 0;
+  const couponError =
+    appliedCode && quote && !quote.couponValid
+      ? quote.couponMessage || t(lang, "checkout.couponInvalid")
+      : null;
+  const effectiveShipping = quote ? quote.shippingFee : shipping;
+  const finalTotal = quote ? quote.total : grandTotal;
 
   // Prefill from the signed-in account if there is one — but never force login.
   useEffect(() => {
@@ -105,7 +120,7 @@ export default function CheckoutPage({
         return PHONE_RE.test(v) ? undefined : t(lang, "checkout.phoneInvalid");
       case "address": return v ? undefined : t(lang, "checkout.addressRequired");
       case "city": return v ? undefined : t(lang, "checkout.cityRequired");
-      default: return undefined; // postalCode + note optional
+      default: return undefined; // note optional
     }
   };
 
@@ -159,56 +174,21 @@ export default function CheckoutPage({
     }
   }, [items]);
 
-  // Cart lines reduced to what the coupon endpoint trusts (ids + quantities).
-  const couponCartItems = useMemo(
-    () => items.map((i) => ({ productId: i.id, quantity: i.quantity })),
-    [items]
-  );
+  // Applying a coupon just records the code; the backend cart quote (above)
+  // validates it against the current cart — already bundle-aware — and returns the
+  // final total. No separate client-side coupon call is needed.
+  const applyingCoupon = quoting && !!appliedCode && !couponActive;
 
-  const handleApplyCoupon = async () => {
+  const handleApplyCoupon = () => {
     const code = couponInput.trim();
     if (!code) return;
-    setApplyingCoupon(true);
-    setCouponError(null);
-    try {
-      const result = await validateCoupon(code, couponCartItems, form.email.trim() || undefined);
-      if (result.valid) {
-        setAppliedCoupon(result);
-        setCouponError(null);
-      } else {
-        setAppliedCoupon(null);
-        setCouponError(result.message || t(lang, "checkout.couponInvalid"));
-      }
-    } catch {
-      setAppliedCoupon(null);
-      setCouponError(t(lang, "checkout.couponInvalid"));
-    } finally {
-      setApplyingCoupon(false);
-    }
+    setAppliedCode(code);
   };
 
   const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
+    setAppliedCode(null);
     setCouponInput("");
-    setCouponError(null);
   };
-
-  // Keep an applied coupon in sync when the cart changes: re-price server-side,
-  // and drop it (with a message) if it no longer qualifies.
-  useEffect(() => {
-    if (!appliedCoupon?.valid || !appliedCoupon.code) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const result = await validateCoupon(appliedCoupon.code!, couponCartItems, form.email.trim() || undefined);
-        if (cancelled) return;
-        if (result.valid) setAppliedCoupon(result);
-        else { setAppliedCoupon(null); setCouponError(result.message); }
-      } catch { /* keep previous state on transient error */ }
-    })();
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [couponCartItems]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -225,9 +205,8 @@ export default function CheckoutPage({
         phone: form.phone.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
-        postalCode: form.postalCode.trim() || undefined,
         note: form.note.trim() || undefined,
-        couponCode: couponActive ? appliedCoupon!.code ?? undefined : undefined,
+        couponCode: couponActive ? appliedCode ?? undefined : undefined,
         lang,
         items: cartToOrderItems(items),
       });
@@ -322,10 +301,7 @@ export default function CheckoutPage({
             <Field icon={<Mail size={18} />} label={t(lang, "checkout.email")} required type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t(lang, "checkout.city")} required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
-              <Field label={`${t(lang, "checkout.postalCode")} (${t(lang, "common.optional")})`} value={form.postalCode} onChange={update("postalCode")} placeholder="20000" autoComplete="postal-code" />
-            </div>
+            <Field label={t(lang, "checkout.city")} required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">{t(lang, "checkout.note")} ({t(lang, "common.optional")})</label>
               <textarea
@@ -365,10 +341,10 @@ export default function CheckoutPage({
                       <span className="text-xs text-gray-500">{attrs.map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>
                     )}
                     <span className="text-xs text-gray-500">
-                      {item.quantity} × {formatPrice(item.price)}
+                      {item.quantity} × {formatPrice(item.price, lang)}
                     </span>
                     <span className="mt-auto text-sm font-bold text-gray-900">
-                      {formatPrice(item.price * item.quantity)}
+                      {formatPrice(item.price * item.quantity, lang)}
                     </span>
                   </div>
                 </li>
@@ -378,6 +354,12 @@ export default function CheckoutPage({
 
           <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
 
+          {/* Progressive multi-item discount incentive — states the discount already
+              unlocked and how much more each added item earns (no progress bar). */}
+          {progressive && (
+            <ProgressiveIncentive state={progressive} lang={lang} className="mt-5" />
+          )}
+
           {/* Coupon — shown only when the admin has enabled the block. */}
           {shippingConfig.couponEnabled && (
           <div className="mt-5 border-t border-gray-100 pt-5">
@@ -385,7 +367,7 @@ export default function CheckoutPage({
               <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2.5">
                 <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-700">
                   <Check size={16} />
-                  <span className="font-mono">{appliedCoupon!.code}</span>
+                  <span className="font-mono">{quote?.couponCode ?? appliedCode}</span>
                   {t(lang, "checkout.couponApplied")}
                 </span>
                 <button
@@ -406,7 +388,7 @@ export default function CheckoutPage({
                     <Tag size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                     <input
                       value={couponInput}
-                      onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                      onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
                       onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleApplyCoupon(); } }}
                       placeholder={t(lang, "checkout.couponPlaceholder")}
                       className="w-full rounded-lg border border-gray-300 bg-surface py-2 pl-9 pr-3 font-mono text-sm uppercase text-gray-900 placeholder:font-sans placeholder:normal-case placeholder:text-gray-400 focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-600/20"
@@ -435,27 +417,43 @@ export default function CheckoutPage({
           <dl className="mt-5 space-y-2 border-t border-gray-100 pt-5 text-sm">
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.subtotal")}</dt>
-              <dd className="font-medium text-gray-900">{formatPrice(total)}</dd>
+              <dd className="font-medium text-gray-900">{formatPrice(total, lang)}</dd>
             </div>
-            {couponActive && discount > 0 && (
+            {bundleDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {quote?.bundleLabel || t(lang, "bundle.applied")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(bundleDiscount, lang)}</dd>
+              </div>
+            )}
+            {progressiveDiscount > 0 && (
+              <div className="flex justify-between text-emerald-600">
+                <dt className="inline-flex items-center gap-1">
+                  <Tag size={13} /> {t(lang, "progressive.discountLine")}
+                </dt>
+                <dd className="font-medium">−{formatPrice(progressiveDiscount, lang)}</dd>
+              </div>
+            )}
+            {couponActive && couponDiscount > 0 && (
               <div className="flex justify-between text-emerald-600">
                 <dt className="inline-flex items-center gap-1">
                   <Tag size={13} /> {t(lang, "checkout.discount")}
                 </dt>
-                <dd className="font-medium">−{formatPrice(discount)}</dd>
+                <dd className="font-medium">−{formatPrice(couponDiscount, lang)}</dd>
               </div>
             )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
               <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping)}
+                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
               </dd>
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
-            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal)}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal, lang)}</span>
           </div>
 
           <button
@@ -527,12 +525,12 @@ function Confirmation({
                 {t(lang, "checkout.discount")}
                 {order.appliedCouponCode ? ` (${order.appliedCouponCode})` : ""}
               </span>
-              <span className="text-sm font-medium text-emerald-600">−{formatPrice(order.discountAmount)}</span>
+              <span className="text-sm font-medium text-emerald-600">−{formatPrice(order.discountAmount, lang)}</span>
             </div>
           )}
           <div className="mt-2 flex items-center justify-between">
             <span className="text-sm text-gray-500">{t(lang, "checkout.totalToPay")}</span>
-            <span className="text-sm font-bold text-gray-900">{formatPrice(order.total)}</span>
+            <span className="text-sm font-bold text-gray-900">{formatPrice(order.total, lang)}</span>
           </div>
         </div>
 
@@ -548,9 +546,9 @@ function Confirmation({
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">{it.name}</p>
                 {it.variant && <p className="text-xs text-gray-500">{it.variant}</p>}
-                <p className="text-xs text-gray-500">{it.quantity} × {formatPrice(it.unitPrice)}</p>
+                <p className="text-xs text-gray-500">{it.quantity} × {formatPrice(it.unitPrice, lang)}</p>
               </div>
-              <span className="text-sm font-semibold text-gray-900">{formatPrice(it.lineTotal)}</span>
+              <span className="text-sm font-semibold text-gray-900">{formatPrice(it.lineTotal, lang)}</span>
             </li>
           ))}
         </ul>

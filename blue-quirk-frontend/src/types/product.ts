@@ -2,6 +2,10 @@ export interface Product {
   id: number;
   name: string;
   price: number;
+  // Optional "compare-at" / previous price shown crossed out when the product is
+  // on sale. Display-only reference — never the charged amount. Null/absent (or
+  // ≤ price) means "no previous price". See lib/productPricing + ProductPrice.
+  compareAtPrice?: number | null;
   description: string;
   // Materials / composition (e.g. "100% Cotton"). Shown in the storefront
   // "Product Highlights" and editable from the admin product form.

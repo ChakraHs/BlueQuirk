@@ -16,7 +16,8 @@ export interface FinanceSummary {
   shipping: number; // customer shipping price charged
   realShippingCost: number; // internal logistics cost (never shown to customers)
   collected: number;
-  orders: number;
+  orders: number; // DELIVERED orders (realized revenue) — drives AOV
+  totalOrders: number; // orders placed in the window, excluding cancelled
   productsSold: number;
   averageOrderValue: number;
 }

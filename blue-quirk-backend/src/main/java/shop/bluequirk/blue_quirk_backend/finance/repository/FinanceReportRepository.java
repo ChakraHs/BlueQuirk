@@ -37,6 +37,18 @@ public interface FinanceReportRepository extends JpaRepository<Order, Long> {
             + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED'")
     List<Object[]> summaryRow(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
+    /**
+     * Count of orders placed in the window across every status EXCEPT cancelled
+     * (pending, confirmed, processing, packed, shipped, delivered) — the
+     * operational "orders received" figure, distinct from the DELIVERED-only count
+     * used for realized revenue. Cancelled orders are excluded (they were never
+     * real, fulfilled orders).
+     */
+    @Query(nativeQuery = true, value =
+            "SELECT COUNT(*) FROM orders "
+            + "WHERE order_date >= :from AND order_date < :to AND status <> 'CANCELLED'")
+    long totalOrders(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
     /** Total units sold in the window (sum of order-item quantities). */
     @Query(nativeQuery = true, value =
             "SELECT COALESCE(SUM(oi.quantity), 0) FROM order_items oi "

@@ -1,6 +1,9 @@
 package shop.bluequirk.blue_quirk_backend.entity;
 
 import jakarta.persistence.*;
+
+import org.hibernate.annotations.ColumnDefault;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -139,6 +142,44 @@ public class Order {
     @Column(name = "promotion_id")
     private Long promotionId;
 
+    // --- Automatic quantity-bundle snapshot (part of discountAmount above) ---
+    // The bundle portion of the total discount, frozen at order time so historical
+    // orders never change when an admin later edits or disables the offer. The
+    // remaining (discountAmount − bundleDiscount) is the coupon portion.
+    // @ColumnDefault("0") backfills the NOT NULL column on existing order rows.
+    @Column(name = "bundle_discount", nullable = false)
+    @ColumnDefault("0")
+    private double bundleDiscount = 0;
+
+    // The bundle offer applied (null if none). Plain id — no FK — so an offer can be
+    // deleted/disabled without orphaning historical orders.
+    @Column(name = "bundle_offer_id")
+    private Long bundleOfferId;
+
+    // The offer's customer-facing name at order time (e.g. "Build Your Bloom Set").
+    @Column(name = "bundle_label")
+    private String bundleLabel;
+
+    // --- Progressive multi-item discount snapshot (part of discountAmount above) ---
+    // Frozen at order time so this order's discount never changes if an admin later
+    // edits or disables the campaign. progressiveRuleVersion records which config
+    // produced it. @ColumnDefault("0") backfills the NOT NULL columns on existing rows.
+    @Column(name = "progressive_discount", nullable = false)
+    @ColumnDefault("0")
+    private double progressiveDiscount = 0;
+
+    @Column(name = "progressive_eligible_count", nullable = false)
+    @ColumnDefault("0")
+    private int progressiveEligibleCount = 0;
+
+    @Column(name = "progressive_per_item", nullable = false)
+    @ColumnDefault("0")
+    private double progressivePerItem = 0;
+
+    @Column(name = "progressive_rule_version", nullable = false)
+    @ColumnDefault("0")
+    private int progressiveRuleVersion = 0;
+
     private LocalDateTime orderDate;
 
     // --- Todify fulfillment sync (all nullable; local order is source of truth) ---
@@ -274,6 +315,27 @@ public class Order {
 
     public Long getPromotionId() { return promotionId; }
     public void setPromotionId(Long promotionId) { this.promotionId = promotionId; }
+
+    public double getBundleDiscount() { return bundleDiscount; }
+    public void setBundleDiscount(double bundleDiscount) { this.bundleDiscount = bundleDiscount; }
+
+    public Long getBundleOfferId() { return bundleOfferId; }
+    public void setBundleOfferId(Long bundleOfferId) { this.bundleOfferId = bundleOfferId; }
+
+    public String getBundleLabel() { return bundleLabel; }
+    public void setBundleLabel(String bundleLabel) { this.bundleLabel = bundleLabel; }
+
+    public double getProgressiveDiscount() { return progressiveDiscount; }
+    public void setProgressiveDiscount(double progressiveDiscount) { this.progressiveDiscount = progressiveDiscount; }
+
+    public int getProgressiveEligibleCount() { return progressiveEligibleCount; }
+    public void setProgressiveEligibleCount(int c) { this.progressiveEligibleCount = c; }
+
+    public double getProgressivePerItem() { return progressivePerItem; }
+    public void setProgressivePerItem(double v) { this.progressivePerItem = v; }
+
+    public int getProgressiveRuleVersion() { return progressiveRuleVersion; }
+    public void setProgressiveRuleVersion(int v) { this.progressiveRuleVersion = v; }
 
     public LocalDateTime getOrderDate() { return orderDate; }
     public void setOrderDate(LocalDateTime orderDate) { this.orderDate = orderDate; }
