@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { LogOut, ExternalLink, Menu } from "lucide-react";
 import { getAuthUser, logout } from "@/lib/auth";
+import NotificationBell from "@/components/admin/NotificationBell";
 
 export default function Topbar({ onMenu }: { onMenu?: () => void }) {
   const [name, setName] = useState("Admin");
@@ -44,6 +45,8 @@ export default function Topbar({ onMenu }: { onMenu?: () => void }) {
           <ExternalLink size={15} />
           View store
         </Link>
+
+        <NotificationBell />
 
         <div className="flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-xs font-semibold text-blue-700">

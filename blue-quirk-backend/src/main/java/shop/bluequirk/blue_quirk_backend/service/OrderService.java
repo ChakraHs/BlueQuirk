@@ -25,6 +25,7 @@ import shop.bluequirk.blue_quirk_backend.identity.user.CurrentUserService;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderCancelledEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.OrderPlacedEvent;
 import shop.bluequirk.blue_quirk_backend.integration.todify.TodifyStatusMapper;
+import shop.bluequirk.blue_quirk_backend.notification.NewOrderNotificationEvent;
 import shop.bluequirk.blue_quirk_backend.bundle.service.AppliedBundle;
 import shop.bluequirk.blue_quirk_backend.bundle.service.BundlePricingService;
 import shop.bluequirk.blue_quirk_backend.progressive.service.AppliedProgressive;
@@ -273,6 +274,13 @@ public class OrderService {
 
         // Best-effort, async — never blocks or fails the order.
         notificationService.sendOrderEmails(response);
+
+        // Real-time admin notification. Published inside the transaction but
+        // delivered AFTER commit, off-thread (see NewOrderNotificationListener), so
+        // it never fires for a rolled-back order and never slows/fails checkout.
+        int itemCount = saved.getItems().stream().mapToInt(OrderItem::getQuantity).sum();
+        events.publishEvent(new NewOrderNotificationEvent(
+                saved.getId(), saved.getOrderNumber(), fullName, finalTotal, itemCount));
 
         // Hand off to Todify AFTER commit, off-thread — checkout is never slowed or
         // failed by Todify. The local order is already durable at this point.
