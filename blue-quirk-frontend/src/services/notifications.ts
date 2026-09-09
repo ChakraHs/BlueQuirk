@@ -47,3 +47,26 @@ export async function markAllNotificationsRead(): Promise<void> {
 export function notificationStreamUrl(token: string): string {
   return `${API_BASE_URL}/admin/notifications/stream?access_token=${encodeURIComponent(token)}`;
 }
+
+// --- Web Push (VAPID) ---------------------------------------------------------
+
+/** VAPID public key + whether the backend has push configured. */
+export async function fetchPushPublicKey(): Promise<{ enabled: boolean; publicKey: string }> {
+  const { data } = await api.get<{ enabled: boolean; publicKey: string }>(
+    "/admin/push/public-key"
+  );
+  return data;
+}
+
+/** Registers this browser's push subscription for the current admin. */
+export async function savePushSubscription(sub: PushSubscriptionJSON): Promise<void> {
+  await api.post("/admin/push/subscribe", {
+    endpoint: sub.endpoint,
+    keys: sub.keys,
+  });
+}
+
+/** Removes this browser's push subscription. */
+export async function deletePushSubscription(endpoint: string): Promise<void> {
+  await api.post("/admin/push/unsubscribe", { endpoint });
+}

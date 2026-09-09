@@ -1,38 +1,9 @@
-// Device-level admin notification helpers: native browser notifications and a
-// subtle sound. Both are per-browser preferences (they depend on this device's
-// permission + hardware), so they live in localStorage — not the shared, server
-// -side store settings. Everything here fails soft: if the Notification API,
-// Web Audio, or a permission is missing, the in-dashboard bell still works.
+// In-app notification sound. The OS/desktop/mobile popup is handled by Web Push
+// (see lib/webPush.ts + the service worker); this module is only the subtle
+// chime played while the dashboard tab is open. Sound is a per-device preference,
+// so it lives in localStorage. Everything fails soft.
 
-import type { AdminNotification } from "@/services/notifications";
-
-const BROWSER_PREF = "rq_admin_browser_notif"; // "on" | "off" (default off — opt-in)
 const SOUND_PREF = "rq_admin_sound"; // "on" | "off" (default on)
-
-// Currency label shown in the (privacy-limited) browser notification body.
-const CURRENCY = "DH";
-
-export function notificationsSupported(): boolean {
-  return typeof window !== "undefined" && "Notification" in window;
-}
-
-export type BrowserPermission = NotificationPermission | "unsupported";
-
-export function getPermission(): BrowserPermission {
-  if (!notificationsSupported()) return "unsupported";
-  return Notification.permission;
-}
-
-/** Browser-notification preference. Default OFF — the admin must opt in. */
-export function getBrowserPref(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem(BROWSER_PREF) === "on";
-}
-
-export function setBrowserPref(on: boolean): void {
-  if (typeof window === "undefined") return;
-  localStorage.setItem(BROWSER_PREF, on ? "on" : "off");
-}
 
 /** Sound preference. Default ON (subtle). */
 export function getSoundPref(): boolean {
@@ -43,54 +14,6 @@ export function getSoundPref(): boolean {
 export function setSoundPref(on: boolean): void {
   if (typeof window === "undefined") return;
   localStorage.setItem(SOUND_PREF, on ? "on" : "off");
-}
-
-/**
- * Requests notification permission. Never re-prompts once the user has decided:
- * if permission is already "denied" (or "granted") it returns that without
- * asking again — the browser would ignore a repeat request anyway.
- */
-export async function requestBrowserPermission(): Promise<BrowserPermission> {
-  if (!notificationsSupported()) return "unsupported";
-  if (Notification.permission !== "default") return Notification.permission;
-  try {
-    return await Notification.requestPermission();
-  } catch {
-    return Notification.permission;
-  }
-}
-
-/**
- * Shows a native browser notification for a new order. Privacy-limited: only the
- * order reference + total + item count — never the customer's personal details
- * (those stay inside the secured dashboard). Uses a per-order `tag` so multiple
- * open tabs coalesce into a single OS notification instead of duplicating it.
- */
-export function showBrowserNotification(
-  n: AdminNotification,
-  onClick?: () => void
-): void {
-  if (!notificationsSupported() || Notification.permission !== "granted" || !getBrowserPref()) {
-    return;
-  }
-  try {
-    const notif = new Notification(`REDQUIRK — ${n.title}`, {
-      body: `${n.total.toFixed(2)} ${CURRENCY} · ${n.itemCount} ${n.itemCount === 1 ? "item" : "items"}`,
-      tag: `rq-order-${n.orderId ?? n.id}`,
-      icon: "/favicon.ico",
-    });
-    notif.onclick = () => {
-      try {
-        window.focus();
-      } catch {
-        /* ignore */
-      }
-      onClick?.();
-      notif.close();
-    };
-  } catch {
-    /* notifications unavailable — ignore */
-  }
 }
 
 // --- Subtle chime via Web Audio (no audio asset needed) ---------------------

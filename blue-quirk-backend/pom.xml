@@ -113,6 +113,35 @@
 		    <artifactId>geoip2</artifactId>
 		    <version>4.2.0</version>
 		</dependency>
+
+		<!-- Web Push (VAPID) for admin browser push notifications — the only way
+		     to deliver background OS notifications (and the only way to reach
+		     iOS/Safari at all). Handles the aes128gcm payload encryption + VAPID
+		     signing. The whole feature degrades to a no-op when no VAPID keys are
+		     configured, so the app runs fine without it. -->
+		<dependency>
+		    <groupId>nl.martijndwars</groupId>
+		    <artifactId>web-push</artifactId>
+		    <version>5.1.1</version>
+		    <exclusions>
+		        <!-- Netty-based async client — pulled in only for PushAsyncService,
+		             which we don't use (we send synchronously via PushService, which
+		             uses the Apache HTTP client). Drop the whole Netty tree so the
+		             image/runtime stays lean. -->
+		        <exclusion>
+		            <groupId>org.asynchttpclient</groupId>
+		            <artifactId>async-http-client</artifactId>
+		        </exclusion>
+		    </exclusions>
+		</dependency>
+		<!-- web-push performs the aes128gcm payload encryption + VAPID EC signing
+		     via the BouncyCastle provider, which it expects to be registered at
+		     runtime (see WebPushService). It is not a transitive dependency. -->
+		<dependency>
+		    <groupId>org.bouncycastle</groupId>
+		    <artifactId>bcprov-jdk18on</artifactId>
+		    <version>1.78.1</version>
+		</dependency>
 	</dependencies>
 	
 	<profiles>

@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { Bell, CheckCheck, Package, Volume2, VolumeX, Monitor } from "lucide-react";
 import { useAdminNotifications } from "@/hooks/useAdminNotifications";
 import type { AdminNotification } from "@/services/notifications";
+import { getSoundPref, setSoundPref } from "@/lib/adminNotify";
 import {
-  BrowserPermission,
-  getBrowserPref,
-  getPermission,
-  getSoundPref,
-  requestBrowserPermission,
-  setBrowserPref,
-  setSoundPref,
-} from "@/lib/adminNotify";
+  disablePush,
+  enablePush,
+  isIOS,
+  isPushEnabled,
+  isStandalone,
+  pushSupported,
+} from "@/lib/webPush";
 
 /** Compact relative time ("Just now", "5m", "3h", "2d"), else a short date. */
 function timeAgo(iso: string): string {
@@ -33,20 +33,29 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
-  // Device preferences (localStorage) — hydrated on mount to avoid SSR mismatch.
-  const [browserPref, setBrowserPrefState] = useState(false);
+  // Device preferences — hydrated on mount to avoid SSR mismatch.
   const [soundPref, setSoundPrefState] = useState(true);
-  const [permission, setPermission] = useState<BrowserPermission>("default");
-  // Over plain HTTP on a phone (e.g. http://192.168.x.x) the browser blocks the
-  // Notification API entirely — permission can never be granted. We detect that
-  // so the UI can explain it instead of looking broken.
+  // Web Push (OS notification) state for this device.
+  const [pushOn, setPushOn] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushNote, setPushNote] = useState<string | undefined>(undefined);
+  const [supported, setSupported] = useState(true);
   const [insecure, setInsecure] = useState(false);
+  // iOS requires the site be installed to the Home Screen (Safari) before any
+  // browser notifications are available — Chrome/other iOS browsers never can.
+  const [iosNeedsInstall, setIosNeedsInstall] = useState(false);
 
   useEffect(() => {
-    setBrowserPrefState(getBrowserPref());
     setSoundPrefState(getSoundPref());
-    setPermission(getPermission());
     setInsecure(typeof window !== "undefined" && !window.isSecureContext);
+    setIosNeedsInstall(isIOS() && !isStandalone());
+    const canPush = pushSupported();
+    setSupported(canPush);
+    if (canPush) {
+      isPushEnabled()
+        .then(setPushOn)
+        .catch(() => {});
+    }
   }, []);
 
   // Close on outside click / Escape.
@@ -73,22 +82,37 @@ export default function NotificationBell() {
     [markRead, router]
   );
 
-  const toggleBrowser = useCallback(async () => {
-    // Turning ON may require asking for OS permission (only ever asked here, on a
-    // click, and never re-asked once decided).
-    if (!browserPref) {
-      const result = await requestBrowserPermission();
-      setPermission(result);
-      if (result === "granted") {
-        setBrowserPref(true);
-        setBrowserPrefState(true);
+  const togglePush = useCallback(async () => {
+    if (pushBusy) return;
+    setPushBusy(true);
+    setPushNote(undefined);
+    try {
+      if (!pushOn) {
+        // Enabling may prompt for OS permission (asked only here, on a click,
+        // and never re-asked once decided) then subscribes to Web Push.
+        const res = await enablePush();
+        if (res === "enabled") {
+          setPushOn(true);
+        } else {
+          setPushOn(false);
+          setPushNote(
+            res === "denied"
+              ? "Blocked in browser settings"
+              : res === "not-configured"
+              ? "Push isn't set up on the server"
+              : res === "unsupported"
+              ? "Not supported on this browser"
+              : "Couldn't enable — please try again"
+          );
+        }
+      } else {
+        await disablePush();
+        setPushOn(false);
       }
-      // denied/unsupported → keep OFF; the UI explains the state below.
-    } else {
-      setBrowserPref(false);
-      setBrowserPrefState(false);
+    } finally {
+      setPushBusy(false);
     }
-  }, [browserPref]);
+  }, [pushBusy, pushOn]);
 
   const toggleSound = useCallback(() => {
     const next = !soundPref;
@@ -210,19 +234,19 @@ export default function NotificationBell() {
           <div className="space-y-1 border-t border-gray-100 bg-gray-50/60 px-3 py-2">
             <PrefRow
               icon={<Monitor size={15} />}
-              label="Desktop notifications"
+              label="Desktop & mobile notifications"
               hint={
                 insecure
                   ? "Needs HTTPS on this device"
-                  : permission === "denied"
-                  ? "Blocked in browser settings"
-                  : permission === "unsupported"
+                  : iosNeedsInstall
+                  ? "iPhone: Safari → Share → Add to Home Screen"
+                  : !supported
                   ? "Not supported on this browser"
-                  : undefined
+                  : pushNote
               }
-              on={browserPref && permission === "granted" && !insecure}
-              disabled={insecure || permission === "denied" || permission === "unsupported"}
-              onToggle={toggleBrowser}
+              on={pushOn}
+              disabled={pushBusy || insecure || iosNeedsInstall || !supported}
+              onToggle={togglePush}
             />
             <PrefRow
               icon={soundPref ? <Volume2 size={15} /> : <VolumeX size={15} />}

@@ -2,6 +2,7 @@ package shop.bluequirk.blue_quirk_backend.notification;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,16 +36,19 @@ public class AdminNotificationService {
 
     private final AdminNotificationRepository repository;
     private final AdminNotificationBroadcaster broadcaster;
+    private final WebPushService webPushService;
     private final UserRepository userRepository;
     private final ObjectMapper mapper = new ObjectMapper();
     private final String currency;
 
     public AdminNotificationService(AdminNotificationRepository repository,
                                     AdminNotificationBroadcaster broadcaster,
+                                    WebPushService webPushService,
                                     UserRepository userRepository,
                                     @Value("${order.currency:DH}") String currency) {
         this.repository = repository;
         this.broadcaster = broadcaster;
+        this.webPushService = webPushService;
         this.userRepository = userRepository;
         this.currency = (currency == null || currency.isBlank()) ? "DH" : currency.trim();
     }
@@ -63,6 +67,9 @@ public class AdminNotificationService {
             return;
         }
 
+        // Same OS-push payload for every admin (privacy-limited: no customer PII).
+        String pushPayload = buildPushPayload(event);
+
         for (User admin : admins) {
             try {
                 if (repository.existsByRecipientUserIdAndOrderIdAndType(
@@ -71,6 +78,8 @@ public class AdminNotificationService {
                 }
                 AdminNotification saved = repository.save(build(admin.getId(), event));
                 deliver(admin.getId(), saved);
+                // Background OS notification (also reaches iOS/closed tabs). Isolated.
+                webPushService.sendToUser(admin.getId(), pushPayload);
             } catch (DataIntegrityViolationException dup) {
                 // Lost a race on the unique constraint — the other writer created it.
             } catch (Exception e) {
@@ -101,6 +110,26 @@ public class AdminNotificationService {
                 ? event.customerName() : "Guest";
         String items = event.itemCount() == 1 ? "1 item" : event.itemCount() + " items";
         return String.format("%s · %.2f %s · %s", name, event.total(), currency, items);
+    }
+
+    /**
+     * Compact JSON payload for the OS push (consumed by the service worker).
+     * Privacy-limited: order reference + total + item count only — no customer
+     * name/phone/address (those stay inside the secured dashboard).
+     */
+    private String buildPushPayload(NewOrderNotificationEvent event) {
+        String ref = event.orderNumber() != null && !event.orderNumber().isBlank()
+                ? event.orderNumber() : "#" + event.orderId();
+        String items = event.itemCount() == 1 ? "1 item" : event.itemCount() + " items";
+        try {
+            return mapper.writeValueAsString(Map.of(
+                    "title", "New order " + ref,
+                    "body", String.format("%.2f %s · %s", event.total(), currency, items),
+                    "tag", "rq-order-" + event.orderId(),
+                    "url", event.orderId() != null ? "/admin-v2/orders/" + event.orderId() : "/admin-v2"));
+        } catch (Exception e) {
+            return "{\"title\":\"New order " + ref + "\",\"url\":\"/admin-v2\"}";
+        }
     }
 
     /** Serializes and pushes a notification to the recipient's live streams. */

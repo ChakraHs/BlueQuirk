@@ -95,6 +95,12 @@ services:
       TODIFY_ENABLED: ${TODIFY_ENABLED:-false}
       TODIFY_API_TOKEN: ${TODIFY_API_TOKEN:-}
       TODIFY_WEBHOOK_SECRET: ${TODIFY_WEBHOOK_SECRET:-}
+      # --- Web Push (optional). The public key ships a default in the app config;
+      # set the matching secret private key to enable background/iOS push. When
+      # empty, Web Push is disabled and the in-app SSE notifications still work. ---
+      WEBPUSH_PRIVATE_KEY: ${WEBPUSH_PRIVATE_KEY:-}
+      WEBPUSH_PUBLIC_KEY: ${WEBPUSH_PUBLIC_KEY:-}
+      WEBPUSH_SUBJECT: ${WEBPUSH_SUBJECT:-mailto:admin@redquirk.com}
       # --- Logging (quiet by default) ---
       LOG_LEVEL_ROOT: ${LOG_LEVEL_ROOT:-INFO}
       LOG_LEVEL_APP: ${LOG_LEVEL_APP:-INFO}

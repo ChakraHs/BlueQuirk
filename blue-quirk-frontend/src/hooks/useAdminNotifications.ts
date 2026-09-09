@@ -10,7 +10,7 @@ import {
   markNotificationRead,
   notificationStreamUrl,
 } from "@/services/notifications";
-import { playChime, showBrowserNotification } from "@/lib/adminNotify";
+import { playChime } from "@/lib/adminNotify";
 
 const LIST_LIMIT = 20;
 const KEEP_IN_MEMORY = 30;
@@ -61,11 +61,10 @@ export function useAdminNotifications() {
     seenRef.current.add(n.id);
     setItems((prev) => [n, ...prev].slice(0, KEEP_IN_MEMORY));
     if (!n.read) setUnread((c) => c + 1);
-    // Side effects only for genuinely new, unread notifications.
+    // In-app sound for the live event. The OS/background popup is delivered
+    // separately via Web Push (service worker), so it also works when this tab
+    // is closed and on iOS — and we don't double-fire a foreground notification.
     playChime();
-    showBrowserNotification(n, () => {
-      if (n.orderId != null) window.location.href = `/admin-v2/orders/${n.orderId}`;
-    });
   }, []);
 
   const connect = useCallback(async () => {
