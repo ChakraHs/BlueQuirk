@@ -87,6 +87,10 @@ export type OrderResponse = {
   progressiveRuleVersion?: number;
   total: number;
   orderDate: string;
+  // When the order was delivered, and whether a post-delivery review request has
+  // already been sent (drives the "Send review request" button state).
+  deliveredAt?: string;
+  reviewRequestSentAt?: string;
   // --- Todify fulfillment (null for non-Todify orders) ---
   todifyOrderId?: string;
   todifyReferenceCode?: string;
@@ -235,6 +239,22 @@ export const OrderService = {
   /** Raw Todify synchronization logs for one order (admin). */
   getTodifyLogs: async (id: number): Promise<TodifySyncLog[]> => {
     const { data } = await api.get<TodifySyncLog[]>(`/orders/${id}/todify/logs`);
+    return data;
+  },
+
+  /**
+   * Manually send (or just mint) a post-delivery review request for one order.
+   * Always returns the copyable review link; `emailSent` is false when only the
+   * link was generated (e.g. sendEmail=false, for sharing over WhatsApp).
+   */
+  sendReviewRequest: async (
+    id: number,
+    sendEmail = true
+  ): Promise<{ reviewUrl: string; emailSent: boolean; email?: string }> => {
+    const { data } = await api.post<{ reviewUrl: string; emailSent: boolean; email?: string }>(
+      `/reviews/orders/${id}/send`,
+      { sendEmail }
+    );
     return data;
   },
 };

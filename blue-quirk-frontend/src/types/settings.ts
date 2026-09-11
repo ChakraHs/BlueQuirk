@@ -70,12 +70,29 @@ export interface MetaSettings {
   metaPixelId: string | null;
 }
 
+// Customer reviews / social proof. `reviewsEnabled` is the public master switch:
+// while false the storefront renders NO review UI at all (empty-state contract).
+// `reviewPhotosEnabled` + `reviewsPerPage` are also public (drive rendering); the
+// rest are admin-only moderation/behaviour knobs (never on /api/shop/config).
+export interface ReviewPublicSettings {
+  reviewsEnabled: boolean;
+  reviewPhotosEnabled: boolean;
+  reviewsPerPage: number;
+}
+
+export interface ReviewAdminSettings extends ReviewPublicSettings {
+  reviewsAutoApprove: boolean;
+  reviewRequestDelayDays: number;
+  reviewRequestEmailEnabled: boolean;
+}
+
 export interface StoreSettings
   extends HeroSettings,
     ThemeColors,
     ClaritySettings,
     CheckoutSettings,
-    MetaSettings {
+    MetaSettings,
+    ReviewAdminSettings {
   id?: number;
   storeName: string;
   logoUrl: string | null;
@@ -94,7 +111,8 @@ export interface PublicShopConfig
     ThemeColors,
     ClaritySettings,
     CheckoutSettings,
-    MetaSettings {
+    MetaSettings,
+    ReviewPublicSettings {
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;

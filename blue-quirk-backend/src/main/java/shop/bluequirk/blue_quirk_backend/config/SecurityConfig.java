@@ -20,9 +20,12 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 public class SecurityConfig {
 
     private final JwtAuthConverter jwtAuthConverter;
+    private final SseBearerTokenResolver sseBearerTokenResolver;
 
-    public SecurityConfig(JwtAuthConverter jwtAuthConverter) {
+    public SecurityConfig(JwtAuthConverter jwtAuthConverter,
+                          SseBearerTokenResolver sseBearerTokenResolver) {
         this.jwtAuthConverter = jwtAuthConverter;
+        this.sseBearerTokenResolver = sseBearerTokenResolver;
     }
 
     @Bean
@@ -38,8 +41,11 @@ public class SecurityConfig {
 	                // Spring Security 6 authorizes every dispatch type. Without
 	                // this, any request that errors (e.g. a 400 on the public
 	                // guest-checkout POST) is re-dispatched to /error, denied
-	                // there, and surfaces as a misleading 401.
-	                .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD).permitAll()
+	                // there, and surfaces as a misleading 401. ASYNC is permitted
+	                // too so the notification SSE stream's async flush dispatch is
+	                // not re-authorized (the initial request dispatch already was).
+	                .dispatcherTypeMatchers(DispatcherType.ERROR, DispatcherType.FORWARD,
+	                        DispatcherType.ASYNC).permitAll()
 	                // CORS preflights never carry credentials
 	                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 	                // Actuator health probes (liveness/readiness) — consumed by the
@@ -63,6 +69,10 @@ public class SecurityConfig {
 	                        // Storefront announcement bar (display-only, non-secret) -
 	                        // eligible announcements are already schedule/active filtered.
 	                        "/api/shop/announcements/**",
+	                        // Public review reads (summary/list/photos/token-info). The
+	                        // service returns empty while reviewsEnabled is off and only
+	                        // ever exposes APPROVED reviews — never drafts/test data.
+	                        "/api/shop/reviews/**",
 	                        "/uploads/**").permitAll()
 	                // Guest checkout (COD, open to non-registered visitors by design)
 	                // and public order tracking by reference number
@@ -76,6 +86,12 @@ public class SecurityConfig {
 	                .requestMatchers(HttpMethod.POST, "/api/cart/quote").permitAll()
 	                // Storefront analytics beacon
 	                .requestMatchers(HttpMethod.POST, "/api/analytics/event").permitAll()
+	                // Customer review submission + photo upload. Not truly anonymous:
+	                // both require a valid single-use delivery token, verified in the
+	                // controller/service (no open review form exists).
+	                .requestMatchers(HttpMethod.POST,
+	                        "/api/shop/reviews/submit",
+	                        "/api/shop/reviews/photo").permitAll()
 	                // Todify webhook — authenticated by HMAC signature in the controller
 	                .requestMatchers("/api/todify/webhook").permitAll()
 	                // API docs (dev convenience; consider locking down in production)
@@ -104,8 +120,12 @@ public class SecurityConfig {
                 .frameOptions(frame -> frame.deny())
                 .referrerPolicy(referrer -> referrer.policy(
                         ReferrerPolicyHeaderWriter.ReferrerPolicy.STRICT_ORIGIN_WHEN_CROSS_ORIGIN)))
-            .oauth2ResourceServer(oauth2 ->
-                oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))
+            .oauth2ResourceServer(oauth2 -> oauth2
+                // Accept the token from the Authorization header everywhere, and
+                // (only for the notification SSE stream) from an ?access_token=
+                // query param, since EventSource cannot set headers.
+                .bearerTokenResolver(sseBearerTokenResolver)
+                .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthConverter))
             );
 
         return http.build();

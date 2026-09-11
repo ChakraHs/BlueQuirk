@@ -47,6 +47,10 @@ public record OrderResponse(
         int progressiveRuleVersion,
         double total,
         String orderDate,
+        // When the order was delivered, and whether a review request was already sent
+        // (drives the "Send review request" button state on the order page).
+        String deliveredAt,
+        String reviewRequestSentAt,
         // --- Todify fulfillment (null for non-Todify orders) ---
         String todifyOrderId,
         String todifyReferenceCode,
@@ -117,6 +121,10 @@ public record OrderResponse(
                 order.getTotal(),
                 order.getOrderDate() != null
                         ? order.getOrderDate().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,
+                order.getDeliveredAt() != null
+                        ? order.getDeliveredAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,
+                order.getReviewRequestSentAt() != null
+                        ? order.getReviewRequestSentAt().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME) : null,
                 order.getTodifyOrderId(),
                 order.getTodifyReferenceCode(),
                 order.getTodifyStatus(),

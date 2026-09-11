@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag, Megaphone, AlertCircle } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag, Megaphone, AlertCircle, Star } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
 import { StoreSettings, ThemeColors } from "@/types/settings";
@@ -58,6 +58,12 @@ type FormState = {
   couponEnabled: boolean;
   metaTrackingEnabled: boolean;
   metaPixelId: string;
+  reviewsEnabled: boolean;
+  reviewsAutoApprove: boolean;
+  reviewPhotosEnabled: boolean;
+  reviewRequestEmailEnabled: boolean;
+  reviewRequestDelayDays: string;
+  reviewsPerPage: string;
 } & { [K in keyof ThemeColors]: string };
 
 // A Meta Pixel (dataset) id is a 15–16 digit number. Mirrors the backend guard
@@ -89,6 +95,12 @@ function toForm(s: StoreSettings): FormState {
     couponEnabled: s.couponEnabled ?? true,
     metaTrackingEnabled: s.metaTrackingEnabled ?? false,
     metaPixelId: s.metaPixelId ?? "",
+    reviewsEnabled: s.reviewsEnabled ?? false,
+    reviewsAutoApprove: s.reviewsAutoApprove ?? false,
+    reviewPhotosEnabled: s.reviewPhotosEnabled ?? true,
+    reviewRequestEmailEnabled: s.reviewRequestEmailEnabled ?? false,
+    reviewRequestDelayDays: String(s.reviewRequestDelayDays ?? 7),
+    reviewsPerPage: String(s.reviewsPerPage ?? 8),
     primaryColor: s.primaryColor ?? "",
     primaryHoverColor: s.primaryHoverColor ?? "",
     secondaryColor: s.secondaryColor ?? "",
@@ -205,6 +217,13 @@ export default function SettingsPage() {
         // Meta Ads (Facebook Pixel): toggle + Pixel id ("" clears it).
         metaTrackingEnabled: form.metaTrackingEnabled,
         metaPixelId: pixelId,
+        // Customer reviews / social proof.
+        reviewsEnabled: form.reviewsEnabled,
+        reviewsAutoApprove: form.reviewsAutoApprove,
+        reviewPhotosEnabled: form.reviewPhotosEnabled,
+        reviewRequestEmailEnabled: form.reviewRequestEmailEnabled,
+        reviewRequestDelayDays: Math.max(0, Math.min(90, Number(form.reviewRequestDelayDays) || 0)),
+        reviewsPerPage: Math.max(1, Math.min(50, Number(form.reviewsPerPage) || 8)),
         // Theme colors: send trimmed value, or "" to clear back to the default.
         primaryColor: form.primaryColor.trim(),
         primaryHoverColor: form.primaryHoverColor.trim(),
@@ -743,6 +762,78 @@ export default function SettingsPage() {
             </label>
           </section>
 
+          {/* Customer reviews / social proof */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <Star size={18} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">Customer reviews</h2>
+            </div>
+            <p className="mb-4 text-xs text-gray-400">
+              The whole review experience is <span className="font-medium">off</span> until you turn
+              it on here. While off, the storefront shows no review section and no ratings — never a
+              placeholder or a fake rating. Only <span className="font-medium">approved</span> reviews
+              are ever shown publicly.
+            </p>
+
+            {/* Master switch */}
+            <Toggle
+              label="Show reviews on the storefront"
+              checked={form.reviewsEnabled}
+              onChange={() => update({ reviewsEnabled: !form.reviewsEnabled })}
+            />
+            <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
+              <Toggle
+                label="Auto-approve new reviews (skip moderation)"
+                hint="Leave off so nothing goes public without your approval."
+                checked={form.reviewsAutoApprove}
+                onChange={() => update({ reviewsAutoApprove: !form.reviewsAutoApprove })}
+              />
+              <Toggle
+                label="Allow customer photo reviews"
+                checked={form.reviewPhotosEnabled}
+                onChange={() => update({ reviewPhotosEnabled: !form.reviewPhotosEnabled })}
+              />
+              <Toggle
+                label="Send review-request emails after delivery"
+                hint="Requires a REVIEW_REQUEST email template. Off = collect via manual links only."
+                checked={form.reviewRequestEmailEnabled}
+                onChange={() => update({ reviewRequestEmailEnabled: !form.reviewRequestEmailEnabled })}
+              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Request delay after delivery (days)
+                  </label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={90}
+                    value={form.reviewRequestDelayDays}
+                    onChange={(e) => update({ reviewRequestDelayDays: e.target.value })}
+                    className="w-full max-w-[10rem] rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">
+                    Never sent immediately — we wait this many days after an order is delivered.
+                  </p>
+                </div>
+                <div>
+                  <label className="mb-1 block text-sm font-medium text-gray-700">
+                    Reviews per page
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={form.reviewsPerPage}
+                    onChange={(e) => update({ reviewsPerPage: e.target.value })}
+                    className="w-full max-w-[10rem] rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-400">How many review cards load at a time.</p>
+                </div>
+              </div>
+            </div>
+          </section>
+
           {error && <p className="text-sm text-rose-600">{error}</p>}
 
           <div className="flex items-center gap-3">
@@ -888,6 +979,43 @@ function MetaAdsSection({
         )}
       </div>
     </section>
+  );
+}
+
+// A labelled on/off switch, matching the inline toggles used elsewhere on this page.
+function Toggle({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <label className="flex cursor-pointer items-start gap-3">
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        onClick={onChange}
+        className={`relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+          checked ? "bg-blue-600" : "bg-gray-300"
+        }`}
+      >
+        <span
+          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+            checked ? "translate-x-5" : "translate-x-0.5"
+          }`}
+        />
+      </button>
+      <span>
+        <span className="block text-sm font-medium text-gray-700">{label}</span>
+        {hint && <span className="mt-0.5 block text-xs text-gray-400">{hint}</span>}
+      </span>
+    </label>
   );
 }
 

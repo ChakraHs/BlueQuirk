@@ -47,5 +47,14 @@ public record StoreSettingsRequest(
         // Meta Ads (Facebook Pixel). enabled null = leave unchanged; pixel id blank
         // clears it. Validated by the service (must be a 15–16 digit number).
         Boolean metaTrackingEnabled,
-        String metaPixelId
+        String metaPixelId,
+        // Customer reviews / social proof. All optional; null = leave unchanged.
+        // reviewsEnabled is the public master switch (default off); the rest are
+        // moderation/behaviour knobs validated by the service.
+        Boolean reviewsEnabled,
+        Boolean reviewsAutoApprove,
+        Boolean reviewPhotosEnabled,
+        Integer reviewRequestDelayDays,
+        Boolean reviewRequestEmailEnabled,
+        Integer reviewsPerPage
 ) {}

@@ -50,17 +50,20 @@ export default function Header({
   };
 
   // Scroll behaviour is pure CSS — no scroll listeners, so there's nothing to
-  // oscillate/flicker:
-  //  • Desktop (md+): the whole header is `sticky top-0`, exactly as before.
+  // oscillate/flicker. Everything pins *below* the announcement bar, which is
+  // itself sticky at top-0 and publishes its height as `--announce-h` (0 when
+  // absent — see AnnouncementBar), so these offsets collapse to top-0 when there
+  // is no bar:
+  //  • Desktop (md+): the whole header is sticky just under the announcement bar.
   //  • Mobile: the header sits in normal flow, so the page content naturally
   //    pushes it up as you scroll. The search bar is a *sibling* of the header
   //    (its containing block is the page body, not the short header), so it
-  //    scrolls up with the content until it reaches the top, then `sticky top-0`
-  //    pins it there for the rest of the page. Scrolling back up lets the header
+  //    scrolls up with the content until it reaches the announcement bar, then
+  //    pins there for the rest of the page. Scrolling back up lets the header
   //    slide naturally into view again.
   return (
     <>
-      <header className="relative z-[60] bg-surface md:sticky md:top-0 md:border-b md:border-gray-200">
+      <header className="relative z-[60] bg-surface md:sticky md:top-[var(--announce-h,0px)] md:border-b md:border-gray-200">
         {/* ---- Top row ---- */}
         <div className="mx-auto max-w-7xl px-4 md:px-6">
           <div className="flex h-16 items-center gap-2 md:gap-4">
@@ -196,7 +199,7 @@ export default function Header({
           containing block is the whole page: it rides up with the content and
           pins to the top the moment it gets there, staying visible for the rest
           of the scroll. */}
-      <div className="sticky top-0 z-50 border-b border-gray-200 bg-surface md:hidden">
+      <div className="sticky top-[var(--announce-h,0px)] z-50 border-b border-gray-200 bg-surface md:hidden">
         <div className="mx-auto max-w-7xl px-4">
           <div className="py-2">
             <SearchBar lang={lang} />

@@ -15,6 +15,10 @@ import {
   RefreshCw,
   ScrollText,
   AlertTriangle,
+  Star,
+  Send,
+  Copy,
+  Check,
 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
@@ -87,6 +91,11 @@ export default function OrderDetailPage() {
   const [trackingNumber, setTrackingNumber] = useState("");
   const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const [savingFulfillment, setSavingFulfillment] = useState(false);
+
+  // Review request (manual send + copyable link).
+  const [reviewBusy, setReviewBusy] = useState<"email" | "link" | null>(null);
+  const [reviewLink, setReviewLink] = useState<string | null>(null);
+  const [reviewCopied, setReviewCopied] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -162,6 +171,39 @@ export default function OrderDetailPage() {
       setError("Failed to save fulfillment details.");
     } finally {
       setSavingFulfillment(false);
+    }
+  };
+
+  const sendReview = async (sendEmail: boolean) => {
+    setReviewBusy(sendEmail ? "email" : "link");
+    setNotice(null);
+    setError(null);
+    try {
+      const res = await OrderService.sendReviewRequest(id, sendEmail);
+      setReviewLink(res.reviewUrl);
+      // Reflect "already sent" without a full refetch.
+      setOrder((o) => (o ? { ...o, reviewRequestSentAt: new Date().toISOString() } : o));
+      if (sendEmail) {
+        setNotice(`Review request emailed to ${res.email}.`);
+      }
+    } catch (e) {
+      setError(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          "Failed to send the review request."
+      );
+    } finally {
+      setReviewBusy(null);
+    }
+  };
+
+  const copyReviewLink = async () => {
+    if (!reviewLink) return;
+    try {
+      await navigator.clipboard.writeText(reviewLink);
+      setReviewCopied(true);
+      setTimeout(() => setReviewCopied(false), 2000);
+    } catch {
+      /* clipboard blocked — the link is visible in the field for manual copy */
     }
   };
 
@@ -564,6 +606,79 @@ export default function OrderDetailPage() {
               </button>
             </div>
           </div>
+
+          {/* Review request — manual send / copyable link. Hidden for cancelled orders. */}
+          {order.status !== "CANCELLED" && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <div className="mb-1 flex items-center gap-2">
+                <Star size={16} className="text-amber-500" />
+                <h2 className="text-sm font-semibold text-gray-700">Customer review</h2>
+              </div>
+              {order.reviewRequestSentAt ? (
+                <p className="mb-3 text-xs text-emerald-600">
+                  Review request sent · {formatDateTime(order.reviewRequestSentAt)}
+                </p>
+              ) : (
+                <p className="mb-3 text-xs text-gray-400">
+                  Ask this customer to review their order. Best after delivery.
+                </p>
+              )}
+
+              <div className="space-y-2">
+                <button
+                  onClick={() => sendReview(true)}
+                  disabled={reviewBusy !== null || !order.email}
+                  title={!order.email ? "This order has no email — use “Get link” instead" : undefined}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                >
+                  {reviewBusy === "email" ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Send size={15} />
+                  )}
+                  {order.reviewRequestSentAt ? "Resend review email" : "Send review email"}
+                </button>
+                <button
+                  onClick={() => sendReview(false)}
+                  disabled={reviewBusy !== null}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {reviewBusy === "link" ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <Copy size={15} />
+                  )}
+                  Get link (for WhatsApp)
+                </button>
+              </div>
+
+              {!order.email && (
+                <p className="mt-2 text-xs text-amber-600">
+                  No email on this order — use “Get link” and share it via WhatsApp/SMS.
+                </p>
+              )}
+
+              {reviewLink && (
+                <div className="mt-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      readOnly
+                      value={reviewLink}
+                      onFocus={(e) => e.currentTarget.select()}
+                      className="w-full rounded-md border border-gray-300 bg-gray-50 px-2 py-1.5 text-xs text-gray-700 outline-none"
+                    />
+                    <button
+                      onClick={copyReviewLink}
+                      className="inline-flex shrink-0 items-center gap-1 rounded-md border border-gray-300 px-2 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      {reviewCopied ? <Check size={13} className="text-emerald-600" /> : <Copy size={13} />}
+                      {reviewCopied ? "Copied" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

@@ -36,9 +36,20 @@ public class EmailService {
             String templateCode,
             Map<String, String> variables
     ) {
+        sendTemplate(to, templateCode, null, variables);
+    }
+
+    /** Same, but resolves the template in {@code lang} (falling back to the default). */
+    public void sendTemplate(
+            String to,
+            String templateCode,
+            String lang,
+            Map<String, String> variables
+    ) {
 
         EmailTemplate template =
-                templateService.getByCode(templateCode);
+                lang == null ? templateService.getByCode(templateCode)
+                             : templateService.getByCode(templateCode, lang);
 
         String subject =
                 TemplateEngine.process(
