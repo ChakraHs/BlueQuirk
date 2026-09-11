@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductPrice from "./ProductPrice";
 import { thumbSrc } from "@/lib/productImage";
@@ -11,6 +11,8 @@ import { t } from "@/lib/i18n";
 import { colorSwatch, isLightColor } from "@/lib/colors";
 import { pickDisplayCategory } from "@/lib/productCategory";
 import { useProductCategoryContext } from "./CategoryTreeProvider";
+import { useShippingConfig } from "@/lib/shipping";
+import { useProductRating } from "./product/useProductRating";
 import WishlistButton from "./WishlistButton";
 
 const FALLBACK_IMAGE =
@@ -33,6 +35,12 @@ export default function ProductCard({
   const touchStartX = useRef<number | null>(null);
 
   const isOutOfStock = product.status === "ARCHIVED";
+
+  // Compact rating badge — only when reviews are enabled AND this product has
+  // approved reviews. reviewsEnabled rides the shared /shop/config fetch, and the
+  // ratings for a whole grid are batched into one request (see useProductRating).
+  const { reviewsEnabled } = useShippingConfig();
+  const rating = useProductRating(product.id, reviewsEnabled);
   // Show the category most relevant to the page being browsed (e.g. "Men
   // T-Shirts" on the Men page, "Women T-Shirts" on the Women page) instead of
   // whichever category happens to be first. See lib/productCategory.
@@ -175,6 +183,16 @@ export default function ProductCard({
         <h3 className="mt-0.5 truncate text-[13px] font-medium text-gray-500 transition-colors group-hover:text-gray-800">
           {product.name}
         </h3>
+
+        {/* rating — renders only when reviews are enabled and this product has
+            approved reviews (never a fake "0" / empty stars). */}
+        {rating && (
+          <span className="mt-1 flex items-center gap-1 text-[11px] leading-none text-gray-500">
+            <Star className="size-3 fill-amber-400 text-amber-400" />
+            <span className="font-semibold text-gray-700">{rating.average.toFixed(1)}</span>
+            <span className="text-gray-400">({rating.total})</span>
+          </span>
+        )}
 
         {/* price — the most prominent element; shows the crossed-out previous
             price + discount when the product is on sale (compareAtPrice). */}

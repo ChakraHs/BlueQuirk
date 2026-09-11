@@ -66,7 +66,13 @@ public class ShopConfigController {
                 s.getClarityProjectId(),
                 s.isCouponEnabled(),
                 s.isMetaTrackingEnabled(),
-                s.getMetaPixelId());
+                s.getMetaPixelId(),
+                // Public-safe review flags. Moderation/delay knobs stay admin-only
+                // (SettingsController); the storefront only needs to know whether to
+                // render reviews at all, whether photos may appear, and the page size.
+                s.isReviewsEnabled(),
+                s.isReviewPhotosEnabled(),
+                s.getReviewsPerPage());
     }
 
     public record ShopConfig(
@@ -110,5 +116,10 @@ public class ShopConfigController {
             // the browser in the pixel tag regardless). Browser pixel only; the CAPI
             // access token is NEVER exposed here.
             boolean metaTrackingEnabled,
-            String metaPixelId) {}
+            String metaPixelId,
+            // Customer reviews — public master switch + whether photos may show +
+            // storefront page size. Non-secret; safe to ship to the browser.
+            boolean reviewsEnabled,
+            boolean reviewPhotosEnabled,
+            int reviewsPerPage) {}
 }

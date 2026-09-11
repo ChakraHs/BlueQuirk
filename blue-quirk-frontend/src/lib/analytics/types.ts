@@ -15,7 +15,14 @@ export type AnalyticsEventType =
   // Storefront announcement bar (presentation-only funnel signals).
   | "announcement_view"
   | "announcement_click"
-  | "announcement_dismiss";
+  | "announcement_dismiss"
+  // Product-page reviews / social proof (only emitted when reviews are enabled).
+  | "review_section_view"
+  | "review_expand"
+  | "review_photo_view"
+  | "review_submission_started"
+  | "review_submitted"
+  | "add_to_cart_after_review_interaction";
 
 /** Optional per-event properties. All fields are optional and small. */
 export type AnalyticsProps = {

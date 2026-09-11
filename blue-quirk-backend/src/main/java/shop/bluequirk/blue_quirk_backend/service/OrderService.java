@@ -383,6 +383,12 @@ public class OrderService {
         boolean cancelling = status == OrderStatus.CANCELLED && previous != OrderStatus.CANCELLED;
         order.setStatus(status);
 
+        // Stamp the delivery time the first time an order enters DELIVERED — the clock
+        // the post-delivery review request is measured from (see ReviewRequestScheduler).
+        if (status == OrderStatus.DELIVERED && order.getDeliveredAt() == null) {
+            order.setDeliveredAt(LocalDateTime.now());
+        }
+
         boolean triggerTodifyCancel = false;
         if (status == OrderStatus.CANCELLED) {
             order.setCancellationReason(trimToNull(reason));
@@ -517,6 +523,11 @@ public class OrderService {
         boolean statusChanged = mapped != null && mapped != order.getStatus();
         if (statusChanged) {
             order.setStatus(mapped);
+            // Stamp delivery time the first time Todify reports DELIVERED (feeds the
+            // post-delivery review request, same as the admin status path).
+            if (mapped == OrderStatus.DELIVERED && order.getDeliveredAt() == null) {
+                order.setDeliveredAt(LocalDateTime.now());
+            }
             // Todify itself cancelled/returned the order → record who/when and mark
             // the Todify cancellation already synchronized (it came from Todify).
             if (mapped == OrderStatus.CANCELLED) {

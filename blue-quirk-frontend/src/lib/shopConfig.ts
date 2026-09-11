@@ -46,6 +46,11 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   // Meta Ads (Facebook Pixel) off by default until an admin enables it.
   metaTrackingEnabled: false,
   metaPixelId: null,
+  // Reviews OFF by default — the storefront shows no review UI until an admin
+  // enables it (and there are genuine approved reviews). Empty-state contract.
+  reviewsEnabled: false,
+  reviewPhotosEnabled: true,
+  reviewsPerPage: 8,
 };
 
 export async function getPublicShopConfig(): Promise<PublicShopConfig> {
@@ -94,6 +99,14 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
       couponEnabled: data.couponEnabled !== false,
       metaTrackingEnabled: data.metaTrackingEnabled === true,
       metaPixelId: data.metaPixelId ?? null,
+      // Default to OFF unless the backend explicitly enables it.
+      reviewsEnabled: data.reviewsEnabled === true,
+      // Photos default ON (only matters once reviews are enabled).
+      reviewPhotosEnabled: data.reviewPhotosEnabled !== false,
+      reviewsPerPage:
+        typeof data.reviewsPerPage === "number" && data.reviewsPerPage > 0
+          ? data.reviewsPerPage
+          : SHOP_CONFIG_DEFAULTS.reviewsPerPage,
     };
   } catch {
     return SHOP_CONFIG_DEFAULTS;

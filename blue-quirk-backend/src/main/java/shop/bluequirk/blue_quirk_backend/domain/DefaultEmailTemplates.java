@@ -69,6 +69,10 @@ public final class DefaultEmailTemplates {
                          + "لأي استفسار، يكفي الرد على هذا البريد الإلكتروني."
                        : "Votre commande <strong>{{orderRef}}</strong> a été annulée. {{cancellationLine}} "
                          + "Pour toute question, répondez simplement à cet e-mail.");
+            case REVIEW_REQUEST -> new Seed(
+                    ar ? "شاركنا رأيك في طلبك {{orderRef}} ✨"
+                       : "Votre avis sur votre commande {{orderRef}} ✨",
+                    reviewRequest(l));
             case ORDER_PLACED_ADMIN -> admin(l,
                     ar ? "طلب جديد {{orderRef}} — {{total}}"
                        : "Nouvelle commande {{orderRef}} — {{total}}",
@@ -135,6 +139,47 @@ public final class DefaultEmailTemplates {
                 + "<div style='padding:18px 28px 26px;border-top:1px solid #f1f2f4;text-align:center'>"
                 + "<p style='margin:0;color:#9ca3af;font-size:12px'>" + footer + "</p>"
                 + "</div></div></div>";
+    }
+
+    /**
+     * Post-delivery review invite — a warm, self-contained email (no order fragments,
+     * since it is sent via the generic template path). A brand bar, a short ask, a
+     * decorative star row and a single prominent button to the customer's single-use
+     * {{reviewUrl}} link. Uses only {{customerName}}, {{storeName}}, {{orderRef}} and
+     * {{reviewUrl}} — all supplied by ReviewRequestService.
+     */
+    private static String reviewRequest(String lang) {
+        boolean ar = "ar".equals(lang);
+        String dir = EmailI18n.dir(lang);
+        String start = EmailI18n.startAlign(lang);
+        String heroTitle = ar ? "كيف كانت تجربتك؟" : "Alors, votre commande vous plaît ?";
+        String intro = ar
+                ? "مرحبًا {{customerName}}، نتمنى أن تكوني قد استلمت طلبك <strong>{{orderRef}}</strong> "
+                  + "وأن ينال إعجابك. رأيك يساعد عميلات أخريات ويعني لنا الكثير."
+                : "Bonjour {{customerName}}, nous espérons que votre commande <strong>{{orderRef}}</strong> "
+                  + "vous plaît. Votre avis aide d'autres clientes et compte énormément pour nous.";
+        String ask = ar
+                ? "هل يمكنك أخذ دقيقة لترك تقييم؟"
+                : "Prendriez-vous une minute pour laisser un avis ?";
+        String btn = ar ? "اترك تقييمك" : "Donner mon avis";
+        String footer = "{{storeName}} — " + EmailI18n.t(lang, "footer.thanks");
+
+        return "<div dir='" + dir + "' style='background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;text-align:" + start + "'>"
+                + "<div style='max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #ececf0;overflow:hidden'>"
+                + "<div style='padding:22px 28px;border-bottom:1px solid #f1f2f4;font-size:22px;font-weight:800;color:#111827'>"
+                + "Red<span style='color:#dc2626'>Quirk</span></div>"
+                + "<div style='padding:34px 28px 6px;text-align:center'>"
+                + "<div style='font-size:30px;letter-spacing:3px;color:#f59e0b'>&#9733;&#9733;&#9733;&#9733;&#9733;</div>"
+                + "<h1 style='margin:14px 0 0;font-size:22px;color:#111827'>" + heroTitle + "</h1></div>"
+                + "<div style='padding:14px 28px 4px'>"
+                + "<p style='margin:0 0 14px;color:#374151;font-size:15px;line-height:1.65'>" + intro + "</p>"
+                + "<p style='margin:0 0 22px;color:#374151;font-size:15px;line-height:1.65'>" + ask + "</p>"
+                + "<div style='text-align:center;margin:6px 0 26px'>"
+                + "<a href='{{reviewUrl}}' style='display:inline-block;background:#dc2626;color:#ffffff;"
+                + "text-decoration:none;font-weight:700;font-size:15px;padding:13px 28px;border-radius:999px'>"
+                + btn + "</a></div></div>"
+                + "<div style='padding:16px 28px 26px;border-top:1px solid #f1f2f4;text-align:center'>"
+                + "<p style='margin:0;color:#9ca3af;font-size:12px'>" + footer + "</p></div></div></div>";
     }
 
     /** Customer-facing layout: header, title, intro, COD badge, tracking + order details. */

@@ -23,6 +23,7 @@ import {
   Gift,
   Megaphone,
   KeyRound,
+  Star,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,7 +52,10 @@ const groups: Group[] = [
   },
   {
     heading: "Customers",
-    items: [{ name: "Customers", href: "/admin-v2/users", icon: Users }],
+    items: [
+      { name: "Customers", href: "/admin-v2/users", icon: Users },
+      { name: "Reviews", href: "/admin-v2/reviews", icon: Star },
+    ],
   },
   {
     heading: "Marketing",

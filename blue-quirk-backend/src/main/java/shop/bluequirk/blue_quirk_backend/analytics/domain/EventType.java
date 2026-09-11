@@ -23,5 +23,13 @@ public enum EventType {
     // Storefront announcement bar (presentation-only funnel signals).
     ANNOUNCEMENT_VIEW,
     ANNOUNCEMENT_CLICK,
-    ANNOUNCEMENT_DISMISS
+    ANNOUNCEMENT_DISMISS,
+    // Product-page reviews / social proof (engagement funnel signals). Only emitted
+    // when reviews are enabled and the section actually renders.
+    REVIEW_SECTION_VIEW,
+    REVIEW_EXPAND,
+    REVIEW_PHOTO_VIEW,
+    REVIEW_SUBMISSION_STARTED,
+    REVIEW_SUBMITTED,
+    ADD_TO_CART_AFTER_REVIEW_INTERACTION
 }

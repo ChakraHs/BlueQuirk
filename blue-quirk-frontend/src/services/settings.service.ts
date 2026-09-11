@@ -32,6 +32,13 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   // Meta Ads (Facebook Pixel). "" clears the pixel id.
   metaTrackingEnabled: boolean;
   metaPixelId: string;
+  // Customer reviews / social proof.
+  reviewsEnabled: boolean;
+  reviewsAutoApprove: boolean;
+  reviewPhotosEnabled: boolean;
+  reviewRequestEmailEnabled: boolean;
+  reviewRequestDelayDays: number;
+  reviewsPerPage: number;
 };
 
 export const SettingsService = {

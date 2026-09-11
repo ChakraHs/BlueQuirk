@@ -30,7 +30,12 @@ public enum EmailEvent {
             "Sent when the order is marked as delivered."),
     ORDER_CANCELLED(
             "Order cancelled",
-            "Sent when the order is cancelled — includes the reason when set.");
+            "Sent when the order is cancelled — includes the reason when set."),
+    REVIEW_REQUEST(
+            "Review request",
+            "Invites the customer to review their order after delivery — carries the "
+            + "single-use {{reviewUrl}} link. Sent automatically (after the configured "
+            + "delay) or manually from an order.");
 
     private final String label;
     private final String description;

@@ -3,7 +3,17 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailClient from "@/components/product/ProductDetailClient";
+import ProductReviews from "@/components/product/reviews/ProductReviews";
+import TrustSignals from "@/components/product/TrustSignals";
 import { ProductService } from "@/services/product.service";
+import {
+  fetchReviewSummary,
+  fetchReviewPage,
+  fetchReviewPhotos,
+  type ReviewSummary,
+  type ReviewPage,
+  type ReviewCard,
+} from "@/services/review.service";
 import { getPublicShopConfig } from "@/lib/shopConfig";
 import { displaySrc } from "@/lib/productImage";
 import { buildAlternates, absoluteUrl } from "@/lib/seo";
@@ -86,11 +96,31 @@ export default async function ProductPage({
       .filter((relatedProduct) => relatedProduct.id !== product.id)
       .slice(0, 4) ?? [];
 
+  // Reviews are fetched ONLY when the store has enabled them — when off we request
+  // nothing and render no review DOM at all (empty-state contract). The first page is
+  // fetched server-side so approved reviews are in the initial HTML for SEO.
+  let reviewSummary: ReviewSummary | null = null;
+  let reviewPage: ReviewPage | null = null;
+  let reviewPhotos: ReviewCard[] = [];
+  if (config.reviewsEnabled) {
+    const [summary, firstPage, photos] = await Promise.all([
+      fetchReviewSummary(product.id),
+      fetchReviewPage(product.id, 0),
+      config.reviewPhotosEnabled
+        ? fetchReviewPhotos(product.id, 12)
+        : Promise.resolve<ReviewPage | null>(null),
+    ]);
+    reviewSummary = summary;
+    reviewPage = firstPage;
+    reviewPhotos = photos?.reviews ?? [];
+  }
+  const hasApprovedReviews = !!reviewSummary?.enabled && reviewSummary.total > 0;
+
   // JSON-LD Product structured data for rich results (price, availability, brand).
   const images = (product.images ?? [])
     .map((img) => displaySrc(img))
     .filter((u): u is string => !!u);
-  const jsonLd = {
+  const jsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
@@ -106,6 +136,26 @@ export default async function ProductPage({
       url: absoluteUrl(`/${lang}/product/${product.id}`),
     },
   };
+  // Emit AggregateRating/Review structured data ONLY when reviews are enabled AND at
+  // least one genuine approved review is actually rendered — never fabricate Google
+  // stars. Mirrors the visible reviews so search results can never overstate them.
+  if (hasApprovedReviews && reviewSummary) {
+    jsonLd.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: reviewSummary.average,
+      reviewCount: reviewSummary.total,
+      bestRating: 5,
+      worstRating: 1,
+    };
+    jsonLd.review = (reviewPage?.reviews ?? []).slice(0, 5).map((r) => ({
+      "@type": "Review",
+      reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5, worstRating: 1 },
+      author: { "@type": "Person", name: r.authorName },
+      datePublished: r.createdAt ?? undefined,
+      name: r.title ?? undefined,
+      reviewBody: r.body,
+    }));
+  }
 
   return (
     <main className="bg-surface">
@@ -121,7 +171,26 @@ export default async function ProductPage({
         <span className="text-gray-900">{t(lang, "breadcrumb.product")}</span>
       </nav>
 
-      <ProductDetailClient product={product} lang={lang} />
+      <ProductDetailClient
+        product={product}
+        lang={lang}
+        reviewSummary={config.reviewsEnabled ? reviewSummary : null}
+      />
+
+      {/* Purchase-reassurance trust strip (real facts only). Always shown, so when
+          reviews are off the page still reads as complete. */}
+      <TrustSignals lang={lang} reviewsEnabled={config.reviewsEnabled} />
+
+      {/* "What our customers say" — rendered only when reviews are enabled. */}
+      {config.reviewsEnabled && reviewSummary && reviewPage && (
+        <ProductReviews
+          productId={product.id}
+          lang={lang}
+          summary={reviewSummary}
+          initial={reviewPage}
+          photos={reviewPhotos}
+        />
+      )}
 
       {!!relatedProducts.length && (
         <section className="mx-auto max-w-7xl px-6 pb-16 pt-4 md:px-12">

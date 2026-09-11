@@ -192,6 +192,28 @@ public class StoreSettingsService {
             }
             s.setMetaPixelId(pixelId);
         }
+        // Customer reviews / social proof: booleans null = unchanged; the two ints are
+        // clamped to sane ranges so a bad admin value can't break the storefront.
+        if (req.reviewsEnabled() != null) {
+            s.setReviewsEnabled(req.reviewsEnabled());
+        }
+        if (req.reviewsAutoApprove() != null) {
+            s.setReviewsAutoApprove(req.reviewsAutoApprove());
+        }
+        if (req.reviewPhotosEnabled() != null) {
+            s.setReviewPhotosEnabled(req.reviewPhotosEnabled());
+        }
+        if (req.reviewRequestEmailEnabled() != null) {
+            s.setReviewRequestEmailEnabled(req.reviewRequestEmailEnabled());
+        }
+        if (req.reviewRequestDelayDays() != null) {
+            // 0–90 days; anything outside is clamped rather than rejected.
+            s.setReviewRequestDelayDays(Math.max(0, Math.min(90, req.reviewRequestDelayDays())));
+        }
+        if (req.reviewsPerPage() != null) {
+            // 1–50 cards per page.
+            s.setReviewsPerPage(Math.max(1, Math.min(50, req.reviewsPerPage())));
+        }
         return repository.save(s);
     }
 

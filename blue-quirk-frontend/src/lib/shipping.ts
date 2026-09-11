@@ -16,6 +16,9 @@ export type ShippingConfig = {
   // number, but it rides on the same /shop/config fetch so checkout can gate the
   // coupon input without a second request.
   couponEnabled: boolean;
+  // Whether customer reviews are enabled (admin toggle). Rides the same fetch so
+  // product cards can gate their rating badge without a second request.
+  reviewsEnabled: boolean;
 };
 
 export const SHIPPING_DEFAULTS: ShippingConfig = {
@@ -23,6 +26,7 @@ export const SHIPPING_DEFAULTS: ShippingConfig = {
   shippingFee: 29,
   freeShippingThreshold: 300,
   couponEnabled: true,
+  reviewsEnabled: false,
 };
 
 const CONFIG_URL = `${API_BASE_URL}/shop/config`;
@@ -51,6 +55,8 @@ export async function fetchShippingConfig(): Promise<ShippingConfig> {
             : SHIPPING_DEFAULTS.freeShippingThreshold,
         // Shown unless the backend explicitly disables it.
         couponEnabled: data.couponEnabled !== false,
+        // Off unless the backend explicitly enables it.
+        reviewsEnabled: data.reviewsEnabled === true,
       };
       return cached;
     })

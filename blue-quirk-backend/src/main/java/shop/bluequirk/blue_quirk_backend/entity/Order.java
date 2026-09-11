@@ -209,6 +209,19 @@ public class Order {
     @Column(name = "todify_sync_attempts", nullable = false)
     private int todifySyncAttempts = 0;
 
+    // --- Post-delivery review request (nullable; independent of the order flow) ---
+    // When the order first entered DELIVERED — the clock the review-request delay is
+    // measured from. Null until delivered. Nullable so the column is added
+    // non-destructively to existing rows.
+    @Column(name = "delivered_at")
+    private LocalDateTime deliveredAt;
+
+    // When the automated post-delivery review request was processed for this order
+    // (email sent, or token minted for a manual/other channel). Null = not yet
+    // requested; set once so the scheduler never re-processes the same order.
+    @Column(name = "review_request_sent_at")
+    private LocalDateTime reviewRequestSentAt;
+
     public Order() {}
 
     public void addItem(OrderItem item) {
@@ -360,4 +373,10 @@ public class Order {
 
     public int getTodifySyncAttempts() { return todifySyncAttempts; }
     public void setTodifySyncAttempts(int todifySyncAttempts) { this.todifySyncAttempts = todifySyncAttempts; }
+
+    public LocalDateTime getDeliveredAt() { return deliveredAt; }
+    public void setDeliveredAt(LocalDateTime deliveredAt) { this.deliveredAt = deliveredAt; }
+
+    public LocalDateTime getReviewRequestSentAt() { return reviewRequestSentAt; }
+    public void setReviewRequestSentAt(LocalDateTime reviewRequestSentAt) { this.reviewRequestSentAt = reviewRequestSentAt; }
 }

@@ -196,6 +196,47 @@ public class StoreSettings {
     @ColumnDefault("5")
     private int announcementBarRotationSeconds = 5;
 
+    // --- Customer reviews / social proof --------------------------------------
+    // Master switch for the WHOLE customer-facing review experience. Defaults to
+    // FALSE: the store must never show reviews (or empty review UI) until there are
+    // genuine, admin-approved reviews and an admin explicitly turns this on. When
+    // false the storefront renders no review DOM and the public review endpoints
+    // return empty. @ColumnDefault('false') backfills the column on the existing row.
+    @Column(name = "reviews_enabled", nullable = false)
+    @ColumnDefault("false")
+    private boolean reviewsEnabled = false;
+
+    // When true, a submitted review is published immediately (skips moderation).
+    // Defaults to FALSE — nothing is public without an admin approving it.
+    @Column(name = "reviews_auto_approve", nullable = false)
+    @ColumnDefault("false")
+    private boolean reviewsAutoApprove = false;
+
+    // Whether customer photo reviews are accepted + shown. Photos still require
+    // approval; this only controls whether the photo pipeline is offered at all.
+    @Column(name = "review_photos_enabled", nullable = false)
+    @ColumnDefault("true")
+    private boolean reviewPhotosEnabled = true;
+
+    // Days to wait after an order is DELIVERED before the review-request email is
+    // sent (never immediately after order creation). 0 = as soon as the next tick runs.
+    @Column(name = "review_request_delay_days", nullable = false)
+    @ColumnDefault("7")
+    private int reviewRequestDelayDays = 7;
+
+    // Master switch for automated post-delivery review-request emails. Defaults to
+    // FALSE so no customer email goes out until an admin opts in (they can also just
+    // copy review links manually). Independent of reviewsEnabled: an admin may start
+    // collecting reviews (requests ON) before flipping the public display ON.
+    @Column(name = "review_request_email_enabled", nullable = false)
+    @ColumnDefault("false")
+    private boolean reviewRequestEmailEnabled = false;
+
+    // How many review cards the storefront loads per page ("load more").
+    @Column(name = "reviews_per_page", nullable = false)
+    @ColumnDefault("8")
+    private int reviewsPerPage = 8;
+
     public StoreSettings() {}
 
     public Long getId() { return id; }
@@ -319,4 +360,22 @@ public class StoreSettings {
 
     public int getAnnouncementBarRotationSeconds() { return announcementBarRotationSeconds; }
     public void setAnnouncementBarRotationSeconds(int v) { this.announcementBarRotationSeconds = v; }
+
+    public boolean isReviewsEnabled() { return reviewsEnabled; }
+    public void setReviewsEnabled(boolean reviewsEnabled) { this.reviewsEnabled = reviewsEnabled; }
+
+    public boolean isReviewsAutoApprove() { return reviewsAutoApprove; }
+    public void setReviewsAutoApprove(boolean reviewsAutoApprove) { this.reviewsAutoApprove = reviewsAutoApprove; }
+
+    public boolean isReviewPhotosEnabled() { return reviewPhotosEnabled; }
+    public void setReviewPhotosEnabled(boolean reviewPhotosEnabled) { this.reviewPhotosEnabled = reviewPhotosEnabled; }
+
+    public int getReviewRequestDelayDays() { return reviewRequestDelayDays; }
+    public void setReviewRequestDelayDays(int reviewRequestDelayDays) { this.reviewRequestDelayDays = reviewRequestDelayDays; }
+
+    public boolean isReviewRequestEmailEnabled() { return reviewRequestEmailEnabled; }
+    public void setReviewRequestEmailEnabled(boolean v) { this.reviewRequestEmailEnabled = v; }
+
+    public int getReviewsPerPage() { return reviewsPerPage; }
+    public void setReviewsPerPage(int reviewsPerPage) { this.reviewsPerPage = reviewsPerPage; }
 }

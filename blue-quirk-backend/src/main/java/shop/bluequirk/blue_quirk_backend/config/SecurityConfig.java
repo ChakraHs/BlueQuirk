@@ -69,6 +69,10 @@ public class SecurityConfig {
 	                        // Storefront announcement bar (display-only, non-secret) -
 	                        // eligible announcements are already schedule/active filtered.
 	                        "/api/shop/announcements/**",
+	                        // Public review reads (summary/list/photos/token-info). The
+	                        // service returns empty while reviewsEnabled is off and only
+	                        // ever exposes APPROVED reviews — never drafts/test data.
+	                        "/api/shop/reviews/**",
 	                        "/uploads/**").permitAll()
 	                // Guest checkout (COD, open to non-registered visitors by design)
 	                // and public order tracking by reference number
@@ -82,6 +86,12 @@ public class SecurityConfig {
 	                .requestMatchers(HttpMethod.POST, "/api/cart/quote").permitAll()
 	                // Storefront analytics beacon
 	                .requestMatchers(HttpMethod.POST, "/api/analytics/event").permitAll()
+	                // Customer review submission + photo upload. Not truly anonymous:
+	                // both require a valid single-use delivery token, verified in the
+	                // controller/service (no open review form exists).
+	                .requestMatchers(HttpMethod.POST,
+	                        "/api/shop/reviews/submit",
+	                        "/api/shop/reviews/photo").permitAll()
 	                // Todify webhook — authenticated by HMAC signature in the controller
 	                .requestMatchers("/api/todify/webhook").permitAll()
 	                // API docs (dev convenience; consider locking down in production)

@@ -21,6 +21,8 @@ import { t } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
+import RatingSummary from "@/components/product/reviews/RatingSummary";
+import type { ReviewSummary } from "@/services/review.service";
 
 /** The product's SIZE attribute, by type (preferred) or a name match. */
 function findSizeAttribute<T extends { name: string; type?: string }>(attributes: T[]): T | undefined {
@@ -60,9 +62,13 @@ function getInitialSelection(attributes: ProductAttribute[]) {
 export default function ProductDetailClient({
   product,
   lang,
+  reviewSummary = null,
 }: {
   product: Product;
   lang: string;
+  // Null when reviews are disabled or the store returned nothing. RatingSummary
+  // itself renders nothing for a disabled/zero-review product (empty-state contract).
+  reviewSummary?: ReviewSummary | null;
 }) {
   const allImages: ProductImage[] = useMemo(
     () => (product.images?.length ? product.images : [{ id: -1, url: FALLBACK_IMAGE }]),
@@ -336,6 +342,9 @@ export default function ProductDetailClient({
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
             {product.name}
           </h1>
+
+          {/* Compact rating line — renders nothing until there are approved reviews. */}
+          {reviewSummary && <RatingSummary summary={reviewSummary} lang={lang} />}
 
           <ProductPrice
             price={product.price}
