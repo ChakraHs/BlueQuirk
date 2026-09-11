@@ -52,9 +52,11 @@ public class ReviewRequestService {
     private final EmailService emailService;
 
     /**
-     * Storefront origin used to build the review link in the email. Empty by default
-     * → a relative "/{lang}/review/{token}" path is used (still valid behind the
-     * reverse proxy). Set {@code review.request.base-url} in prod (e.g. https://redquirk.com).
+     * Storefront origin used to build the absolute review link in the email/WhatsApp
+     * link. Reuses the same {@code app.frontend-base-url} property that password-reset
+     * and order emails use (set per-deployment via APP_FRONTEND_BASE_URL, e.g.
+     * https://redquirk.com; defaults to http://localhost:3000 for local dev) — so the
+     * link is always absolute and consistent with every other customer email.
      */
     private final String baseUrl;
 
@@ -62,7 +64,7 @@ public class ReviewRequestService {
                                 ReviewRequestTokenRepository tokens,
                                 StoreSettingsService settingsService,
                                 EmailService emailService,
-                                @Value("${review.request.base-url:}") String baseUrl) {
+                                @Value("${app.frontend-base-url:http://localhost:3000}") String baseUrl) {
         this.orders = orders;
         this.tokens = tokens;
         this.settingsService = settingsService;
