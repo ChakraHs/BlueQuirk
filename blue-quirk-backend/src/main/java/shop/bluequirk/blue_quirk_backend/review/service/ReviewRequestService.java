@@ -173,10 +173,17 @@ public class ReviewRequestService {
     /** Result of a manual send — the link (always) plus whether an email actually went out. */
     public record ManualSendResult(String reviewUrl, boolean emailSent, String email) {}
 
-    /** Idempotent token per order — reused on retry so a failed email never duplicates it. */
+    /**
+     * The token to put in a review link for an order. Reuses the latest one while it
+     * is still redeemable (so a failed email / retry doesn't mint duplicates), but
+     * mints a FRESH token once the previous one is used or expired — so a "resend"
+     * after the customer already submitted still yields a working link.
+     */
     @Transactional
     public ReviewRequestToken getOrCreateToken(Long orderId) {
-        return tokens.findFirstByOrderId(orderId).orElseGet(() -> mintToken(orderId));
+        return tokens.findFirstByOrderIdOrderByIdDesc(orderId)
+                .filter(ReviewRequestToken::isRedeemable)
+                .orElseGet(() -> mintToken(orderId));
     }
 
     private ReviewRequestToken mintToken(Long orderId) {

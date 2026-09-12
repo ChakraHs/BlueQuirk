@@ -14,6 +14,8 @@ import {
   type ReviewPage,
   type ReviewCard,
 } from "@/services/review.service";
+import { CategoryService } from "@/services/category.service";
+import { buildCategoryPath } from "@/lib/productCategory";
 import { getPublicShopConfig } from "@/lib/shopConfig";
 import { displaySrc } from "@/lib/productImage";
 import { buildAlternates, absoluteUrl } from "@/lib/seo";
@@ -87,14 +89,19 @@ export default async function ProductPage({
     notFound();
   }
 
-  const [relatedResponse, config] = await Promise.all([
+  const [relatedResponse, config, categoryTree] = await Promise.all([
     ProductService.getAll(0, 8, lang, "PUBLISHED").catch(() => null),
     getPublicShopConfig(),
+    CategoryService.getAll(lang).catch(() => []),
   ]);
   const relatedProducts =
     relatedResponse?.content
       .filter((relatedProduct) => relatedProduct.id !== product.id)
       .slice(0, 4) ?? [];
+
+  // Category breadcrumb: broadest → most specific, each linking to that category's
+  // listing so shoppers can browse all products of the same category.
+  const categoryPath = buildCategoryPath(categoryTree, product.categories);
 
   // Reviews are fetched ONLY when the store has enabled them — when off we request
   // nothing and render no review DOM at all (empty-state contract). The first page is
@@ -163,12 +170,37 @@ export default async function ProductPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <nav className="mx-auto flex max-w-7xl items-center gap-2 px-6 pt-6 text-sm text-gray-500 md:px-12">
-        <Link href={`/${lang}`} className="hover:text-gray-900">
-          {t(lang, "breadcrumb.home")}
-        </Link>
-        <span>/</span>
-        <span className="text-gray-900">{t(lang, "breadcrumb.product")}</span>
+      {/* Category breadcrumb — broadest → most specific. Every crumb links to that
+          category's listing (all products of the same category). Falls back to a
+          Home link only when the product has no category. */}
+      <nav
+        aria-label="Breadcrumb"
+        className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-2 gap-y-1 px-6 pt-6 text-sm text-gray-500 md:px-12"
+      >
+        {categoryPath.length > 0 ? (
+          categoryPath.map((crumb, i) => {
+            const isLast = i === categoryPath.length - 1;
+            return (
+              <span key={crumb.id} className="flex items-center gap-2">
+                <Link
+                  href={`/${lang}/category/${crumb.id}`}
+                  className={
+                    isLast
+                      ? "font-semibold text-gray-900 hover:text-blue-600"
+                      : "hover:text-gray-900"
+                  }
+                >
+                  {crumb.name}
+                </Link>
+                {!isLast && <span className="text-gray-300">/</span>}
+              </span>
+            );
+          })
+        ) : (
+          <Link href={`/${lang}`} className="hover:text-gray-900">
+            {t(lang, "breadcrumb.home")}
+          </Link>
+        )}
       </nav>
 
       <ProductDetailClient
