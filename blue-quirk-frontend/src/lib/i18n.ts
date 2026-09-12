@@ -293,6 +293,7 @@ const fr: Dict = {
   // Added-to-cart slide-over
   "cartsheet.added": "Ajouté au panier",
   "cartsheet.inCart": "{n} article(s) dans votre panier",
+  "cartsheet.justAdded": "Ajouté",
 };
 
 const en: Dict = {
@@ -552,6 +553,7 @@ const en: Dict = {
   // Added-to-cart slide-over
   "cartsheet.added": "Added to cart",
   "cartsheet.inCart": "{n} item(s) in your cart",
+  "cartsheet.justAdded": "Added",
 };
 
 const ar: Dict = {
@@ -810,6 +812,7 @@ const ar: Dict = {
   // Added-to-cart slide-over
   "cartsheet.added": "تمت الإضافة إلى السلة",
   "cartsheet.inCart": "{n} عنصر في سلتك",
+  "cartsheet.justAdded": "أُضيف",
 };
 
 const messages: Record<string, Dict> = { fr, en, ar };

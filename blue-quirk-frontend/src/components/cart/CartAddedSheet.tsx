@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Check, Gift, ShoppingBag, X } from "lucide-react";
-import { CART_ADD_EVENT, useCart, cartTotal, cartCount, type CartItem } from "@/lib/cart";
+import { CART_ADD_EVENT, useCart, cartTotal, cartCount, cartItemKey, type CartItem } from "@/lib/cart";
 import { useCartQuote } from "@/lib/bundle";
 import { useProgressiveConfig, progressiveState } from "@/lib/progressive";
 import { ProductService } from "@/services/product.service";
@@ -95,12 +95,12 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
   }
 
   const similarProducts = similar.filter((p) => !items.some((i) => i.id === p.id)).slice(0, 6);
-  const variantLabel = justAdded
-    ? Object.entries(justAdded.attributes ?? {})
-        .filter(([, v]) => v)
-        .map(([k, v]) => `${k}: ${v}`)
-        .join(" · ")
-    : "";
+  const addedKey = justAdded ? cartItemKey(justAdded) : null;
+  const variantOf = (attrs: Record<string, string>) =>
+    Object.entries(attrs ?? {})
+      .filter(([, v]) => v)
+      .map(([k, v]) => `${k}: ${v}`)
+      .join(" · ");
 
   const close = () => setOpen(false);
 
@@ -135,28 +135,55 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
 
         {/* Scrollable content */}
         <div className="flex-1 overflow-y-auto px-5 py-4">
-          {/* Just-added product */}
-          {justAdded && (
-            <div className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/60 p-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={justAdded.image || FALLBACK_IMAGE}
-                alt=""
-                className="size-16 shrink-0 rounded-xl border border-gray-100 bg-white object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold text-gray-900">{justAdded.name}</p>
-                {variantLabel && <p className="truncate text-xs text-gray-500">{variantLabel}</p>}
-                <p className="mt-0.5 text-xs text-gray-500">
-                  {justAdded.quantity} × {formatPrice(justAdded.price, lang)}
-                </p>
-              </div>
-            </div>
-          )}
-
-          {count > (justAdded?.quantity ?? 0) && (
-            <p className="mt-2 text-xs text-gray-400">{t(lang, "cartsheet.inCart", { n: count })}</p>
-          )}
+          {/* All cart lines — the just-added one highlighted + listed first. */}
+          <p className="mb-2 text-xs font-medium text-gray-400">
+            {t(lang, "cartsheet.inCart", { n: count })}
+          </p>
+          <div className="space-y-2">
+            {[...items]
+              .sort((a, b) =>
+                cartItemKey(a) === addedKey ? -1 : cartItemKey(b) === addedKey ? 1 : 0
+              )
+              .map((line) => {
+                const key = cartItemKey(line);
+                const isAdded = key === addedKey;
+                const vlabel = variantOf(line.attributes);
+                return (
+                  <div
+                    key={key}
+                    className={`flex items-center gap-3 rounded-2xl border p-3 ${
+                      isAdded
+                        ? "border-primary/40 bg-primary/[0.03] ring-1 ring-primary/20"
+                        : "border-gray-200 bg-gray-50/60"
+                    }`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={line.image || FALLBACK_IMAGE}
+                      alt=""
+                      className="size-16 shrink-0 rounded-xl border border-gray-100 bg-white object-cover"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="truncate text-sm font-semibold text-gray-900">{line.name}</p>
+                        {isAdded && (
+                          <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                            {t(lang, "cartsheet.justAdded")}
+                          </span>
+                        )}
+                      </div>
+                      {vlabel && <p className="truncate text-xs text-gray-500">{vlabel}</p>}
+                      <p className="mt-0.5 text-xs text-gray-500">
+                        {line.quantity} × {formatPrice(line.price, lang)}
+                      </p>
+                    </div>
+                    <span className="shrink-0 text-sm font-semibold text-gray-900">
+                      {formatPrice(line.price * line.quantity, lang)}
+                    </span>
+                  </div>
+                );
+              })}
+          </div>
 
           {/* Automatic-discount nudge */}
           {discountMsg && (
