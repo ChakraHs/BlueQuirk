@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ChevronRight } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailClient from "@/components/product/ProductDetailClient";
 import ProductReviews from "@/components/product/reviews/ProductReviews";
@@ -170,37 +171,34 @@ export default async function ProductPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      {/* Category breadcrumb — broadest → most specific. Every crumb links to that
-          category's listing (all products of the same category). Falls back to a
-          Home link only when the product has no category. */}
+      {/* Breadcrumb — Category › … › Product. Every category is a clickable link to
+          its listing (browse all products of that category); the product name is the
+          current (non-link) crumb. Falls back to a Home link when the product has no
+          category. */}
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-2 gap-y-1 px-6 pt-6 text-sm text-gray-500 md:px-12"
+        className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-1.5 gap-y-1 px-6 pt-6 text-sm md:px-12"
       >
-        {categoryPath.length > 0 ? (
-          categoryPath.map((crumb, i) => {
-            const isLast = i === categoryPath.length - 1;
-            return (
-              <span key={crumb.id} className="flex items-center gap-2">
-                <Link
-                  href={`/${lang}/category/${crumb.id}`}
-                  className={
-                    isLast
-                      ? "font-semibold text-gray-900 hover:text-blue-600"
-                      : "hover:text-gray-900"
-                  }
-                >
-                  {crumb.name}
-                </Link>
-                {!isLast && <span className="text-gray-300">/</span>}
-              </span>
-            );
-          })
-        ) : (
-          <Link href={`/${lang}`} className="hover:text-gray-900">
-            {t(lang, "breadcrumb.home")}
-          </Link>
-        )}
+        {(categoryPath.length > 0
+          ? categoryPath.map((c) => ({ id: c.id, name: c.name, href: `/${lang}/category/${c.id}` }))
+          : [{ id: 0, name: t(lang, "breadcrumb.home"), href: `/${lang}` }]
+        ).map((crumb) => (
+          <span key={crumb.id} className="inline-flex items-center gap-1.5">
+            <Link
+              href={crumb.href}
+              className="font-medium text-gray-500 underline-offset-4 transition-colors hover:text-primary hover:underline"
+            >
+              {crumb.name}
+            </Link>
+            <ChevronRight className="size-3.5 shrink-0 text-gray-300" aria-hidden />
+          </span>
+        ))}
+        <span
+          aria-current="page"
+          className="max-w-[60vw] truncate font-semibold text-gray-900 sm:max-w-sm"
+        >
+          {product.name}
+        </span>
       </nav>
 
       <ProductDetailClient
