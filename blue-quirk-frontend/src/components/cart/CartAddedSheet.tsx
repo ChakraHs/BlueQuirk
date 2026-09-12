@@ -106,14 +106,16 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
 
   return (
     <div
-      className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4"
+      className="fixed inset-0 z-[70] flex items-end justify-center"
       role="dialog"
       aria-modal="true"
       aria-label={t(lang, "cartsheet.added")}
     >
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[1px]" onClick={close} />
 
-      <div className="relative flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl sm:rounded-3xl">
+      {/* Full-width bottom sheet: spans the whole width and rises 80% of the viewport
+          height from the bottom edge (top corners rounded). */}
+      <div className="relative flex h-[80vh] w-full flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
           <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
