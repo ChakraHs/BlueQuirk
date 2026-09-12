@@ -16,6 +16,10 @@ export type CartItem = {
 
 const KEY = "bluequirk_cart";
 export const CART_EVENT = "bluequirk_cart_change";
+// Fired (with the added line as `detail`) right after a successful add — drives the
+// "added to cart" slide-over. Separate from CART_EVENT (which is any change, incl.
+// quantity edits / removals) so the sheet only pops on a real add.
+export const CART_ADD_EVENT = "bluequirk_cart_added";
 
 export function readCart(): CartItem[] {
   if (typeof window === "undefined") return [];
@@ -47,6 +51,10 @@ export function addToCart(item: CartItem) {
     cart.push(item);
   }
   writeCart(cart);
+  // Announce the specific line that was just added (for the "added to cart" sheet).
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(CART_ADD_EVENT, { detail: item }));
+  }
   // Native business-metrics event (internal pipeline).
   track("add_to_cart", { productId: item.id, value: item.quantity });
   // Marketing/ads AddToCart — fired here, AFTER the cart mutation succeeds, so it
