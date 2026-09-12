@@ -70,6 +70,52 @@ export function pickDisplayCategory(
   return categories[0];
 }
 
+/**
+ * Build the category breadcrumb path for a product — ordered from the BROADEST
+ * (root) category down to the MOST SPECIFIC one the product belongs to. Ancestors
+ * are resolved from the category tree, so the full path shows even when the product
+ * is only assigned to a leaf category (e.g. root "Femme" → "T-shirts" → "Floral").
+ * Falls back to the product's first assigned category alone if the tree is missing.
+ */
+export function buildCategoryPath(
+  tree: Category[] | undefined | null,
+  productCategories: CategoryRef[] | undefined | null,
+): CategoryRef[] {
+  if (!productCategories || productCategories.length === 0) return [];
+
+  // Flatten the tree: id -> { name, parentId, depth }.
+  const byId = new Map<number, { name: string; parentId: number | null; depth: number }>();
+  const walk = (node: Category, parentId: number | null, depth: number) => {
+    byId.set(node.id, { name: node.name, parentId, depth });
+    for (const child of node.children ?? []) walk(child, node.id, depth + 1);
+  };
+  for (const root of tree ?? []) walk(root, null, 0);
+
+  // Anchor on the product's DEEPEST category that exists in the tree.
+  let leafId: number | null = null;
+  let leafDepth = -1;
+  for (const c of productCategories) {
+    const info = byId.get(c.id);
+    if (info && info.depth > leafDepth) {
+      leafDepth = info.depth;
+      leafId = c.id;
+    }
+  }
+  if (leafId == null) return [productCategories[0]]; // tree unavailable → single crumb
+
+  // Climb to the root, then reverse to get root → leaf.
+  const path: CategoryRef[] = [];
+  const seen = new Set<number>();
+  let cur: number | null = leafId;
+  while (cur != null && byId.has(cur) && !seen.has(cur)) {
+    seen.add(cur);
+    const info = byId.get(cur)!;
+    path.push({ id: cur, name: info.name });
+    cur = info.parentId;
+  }
+  return path.reverse();
+}
+
 export type CategoryTreeIndex = {
   /** categoryId -> depth in the tree (roots = 0). */
   depths: Map<number, number>;

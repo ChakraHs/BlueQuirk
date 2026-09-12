@@ -96,18 +96,14 @@ function ReviewForm({
   const [productId, setProductId] = useState<number>(info.products[0]?.productId ?? 0);
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
-  const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
-  const [name, setName] = useState("");
-  const [size, setSize] = useState("");
-  const [color, setColor] = useState("");
   const [photo, setPhoto] = useState<{ url: string; thumbnailUrl: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const optional = t(lang, "review.submit.optional");
-  const canSubmit = rating >= 1 && body.trim().length > 0 && name.trim().length > 0 && !submitting;
+  const canSubmit = rating >= 1 && body.trim().length > 0 && !submitting;
 
   const chosenProduct = useMemo(
     () => info.products.find((p) => p.productId === productId),
@@ -139,11 +135,7 @@ function ReviewForm({
         token,
         productId,
         rating,
-        title: title.trim() || undefined,
         body: body.trim(),
-        authorName: name.trim(),
-        sizePurchased: size.trim() || undefined,
-        variantColor: color.trim() || undefined,
         photoUrl: photo?.url,
         photoThumbnailUrl: photo?.thumbnailUrl,
         lang,
@@ -226,16 +218,6 @@ function ReviewForm({
           </div>
         </div>
 
-        {/* Title */}
-        <Field label={`${t(lang, "review.submit.titleLabel")} (${optional})`}>
-          <input
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            maxLength={140}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </Field>
-
         {/* Body */}
         <Field label={t(lang, "review.submit.bodyLabel")}>
           <textarea
@@ -247,35 +229,6 @@ function ReviewForm({
             className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
           />
         </Field>
-
-        {/* Name */}
-        <Field label={t(lang, "review.submit.nameLabel")}>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            maxLength={120}
-            className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-          />
-        </Field>
-
-        <div className="grid grid-cols-2 gap-4">
-          <Field label={`${t(lang, "review.submit.sizeLabel")} (${optional})`}>
-            <input
-              value={size}
-              onChange={(e) => setSize(e.target.value)}
-              maxLength={40}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </Field>
-          <Field label={`${t(lang, "review.submit.colorLabel")} (${optional})`}>
-            <input
-              value={color}
-              onChange={(e) => setColor(e.target.value)}
-              maxLength={60}
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </Field>
-        </div>
 
         {/* Optional photo */}
         <div>

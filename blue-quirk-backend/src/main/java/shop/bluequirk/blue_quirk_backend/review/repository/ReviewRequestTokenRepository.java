@@ -16,6 +16,6 @@ public interface ReviewRequestTokenRepository extends JpaRepository<ReviewReques
     /** Guards against issuing a second token for an order the scheduler already processed. */
     boolean existsByOrderId(Long orderId);
 
-    /** The (idempotent) token minted for an order, if any. */
-    Optional<ReviewRequestToken> findFirstByOrderId(Long orderId);
+    /** The most recently minted token for an order, if any. */
+    Optional<ReviewRequestToken> findFirstByOrderIdOrderByIdDesc(Long orderId);
 }

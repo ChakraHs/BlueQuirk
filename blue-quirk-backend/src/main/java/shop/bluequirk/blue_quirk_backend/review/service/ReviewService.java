@@ -187,7 +187,12 @@ public class ReviewService {
         int rating = req.rating() == null ? 0 : req.rating();
         if (rating < 1 || rating > 5) throw badRequest("Please choose a rating from 1 to 5 stars.");
         String body = requireText(req.body(), MAX_BODY, "review");
-        String author = requireText(req.authorName(), MAX_NAME, "name");
+        // The form no longer asks for a name — use the (verified) order's first name
+        // so the card still shows a real reviewer. Falls back to the customer name,
+        // then a neutral label. Never blank.
+        String author = trimToNull(req.authorName());
+        if (author == null) author = displayNameFromOrder(order);
+        author = author.length() > MAX_NAME ? author.substring(0, MAX_NAME) : author;
 
         StoreSettings s = settingsService.getOrCreate();
 
@@ -401,6 +406,15 @@ public class ReviewService {
 
     private String trimToNull(String s) {
         return (s != null && !s.isBlank()) ? s.trim() : null;
+    }
+
+    /** A display name for a review from its order: first name, else first word of the full name. */
+    private String displayNameFromOrder(Order order) {
+        String first = trimToNull(order.getFirstName());
+        if (first != null) return first;
+        String full = trimToNull(order.getCustomerName());
+        if (full != null) return full.split("\\s+")[0]; // just the first word, for privacy
+        return "Client";
     }
 
     private String normalizeLang(String lang) {
