@@ -2,8 +2,17 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Check, Gift, ShoppingBag, X } from "lucide-react";
-import { CART_ADD_EVENT, useCart, cartTotal, cartCount, cartItemKey, type CartItem } from "@/lib/cart";
+import { Check, Gift, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
+import {
+  CART_ADD_EVENT,
+  useCart,
+  cartTotal,
+  cartCount,
+  cartItemKey,
+  setQuantity,
+  removeFromCart,
+  type CartItem,
+} from "@/lib/cart";
 import { useCartQuote } from "@/lib/bundle";
 import { useProgressiveConfig, progressiveState } from "@/lib/progressive";
 import { ProductService } from "@/services/product.service";
@@ -57,6 +66,11 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
       document.body.style.overflow = prev;
     };
   }, [open]);
+
+  // If the cart is emptied (all lines removed) while the sheet is open, close it.
+  useEffect(() => {
+    if (open && items.length === 0) setOpen(false);
+  }, [open, items.length]);
 
   // Fetch "you may also like" once, the first time the sheet opens.
   useEffect(() => {
@@ -154,7 +168,7 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
                 return (
                   <div
                     key={key}
-                    className={`flex items-center gap-3 rounded-2xl border p-3 ${
+                    className={`flex items-start gap-3 rounded-2xl border p-3 ${
                       isAdded
                         ? "border-primary/40 bg-primary/[0.03] ring-1 ring-primary/20"
                         : "border-gray-200 bg-gray-50/60"
@@ -167,22 +181,59 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
                       className="size-16 shrink-0 rounded-xl border border-gray-100 bg-white object-cover"
                     />
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="truncate text-sm font-semibold text-gray-900">{line.name}</p>
-                        {isAdded && (
-                          <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                            {t(lang, "cartsheet.justAdded")}
-                          </span>
-                        )}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="truncate text-sm font-semibold text-gray-900">{line.name}</p>
+                            {isAdded && (
+                              <span className="shrink-0 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                                {t(lang, "cartsheet.justAdded")}
+                              </span>
+                            )}
+                          </div>
+                          {vlabel && <p className="truncate text-xs text-gray-500">{vlabel}</p>}
+                          <p className="mt-0.5 text-xs text-gray-400">{formatPrice(line.price, lang)}</p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold text-gray-900">
+                          {formatPrice(line.price * line.quantity, lang)}
+                        </span>
                       </div>
-                      {vlabel && <p className="truncate text-xs text-gray-500">{vlabel}</p>}
-                      <p className="mt-0.5 text-xs text-gray-500">
-                        {line.quantity} × {formatPrice(line.price, lang)}
-                      </p>
+
+                      {/* Quantity stepper + remove */}
+                      <div className="mt-2 flex items-center justify-between">
+                        <div className="inline-flex h-8 items-center overflow-hidden rounded-full border border-gray-300 bg-surface">
+                          <button
+                            type="button"
+                            onClick={() => setQuantity(key, line.quantity - 1)}
+                            disabled={line.quantity <= 1}
+                            aria-label={t(lang, "product.decreaseQty")}
+                            className="flex h-full w-8 items-center justify-center text-gray-600 transition hover:bg-gray-100 disabled:opacity-40"
+                          >
+                            <Minus className="size-3.5" />
+                          </button>
+                          <span className="w-7 text-center text-sm font-semibold tabular-nums">
+                            {line.quantity}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setQuantity(key, line.quantity + 1)}
+                            aria-label={t(lang, "product.increaseQty")}
+                            className="flex h-full w-8 items-center justify-center text-gray-600 transition hover:bg-gray-100"
+                          >
+                            <Plus className="size-3.5" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => removeFromCart(key)}
+                          aria-label={t(lang, "cart.remove")}
+                          className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-gray-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          <Trash2 className="size-3.5" />
+                          {t(lang, "cart.remove")}
+                        </button>
+                      </div>
                     </div>
-                    <span className="shrink-0 text-sm font-semibold text-gray-900">
-                      {formatPrice(line.price * line.quantity, lang)}
-                    </span>
                   </div>
                 );
               })}
