@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import AnnouncementBar from "@/components/storefront/AnnouncementBar";
 import { getAnnouncementBar } from "@/lib/announcementBar";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
+import CartAddedSheet from "@/components/cart/CartAddedSheet";
 // Support/chat widget temporarily disabled — re-enable by restoring this import
 // and the <SupportWidget /> render below.
 // import SupportWidget from "@/components/support/SupportWidget";
@@ -124,6 +125,8 @@ export default async function LangLayout({
               storeName={config.storeName}
               logoUrl={config.logoUrl}
             />
+            {/* Redbubble-style "added to cart" slide-over — opens on any add-to-cart. */}
+            <CartAddedSheet lang={lang} />
             {/* Support/chat widget temporarily disabled.
             <SupportWidget
               lang={lang}

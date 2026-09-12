@@ -84,16 +84,25 @@ export default function Footer({
             </p>
 
             <div className="mt-5 flex items-center gap-3">
-              {[Instagram, Facebook, Twitter, Youtube].map((Icon, i) => (
-                <a
-                  key={i}
-                  href="#"
-                  className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-gray-600 ring-1 ring-gray-200 transition hover:text-blue-600 hover:ring-blue-300"
-                  aria-label="Social link"
-                >
-                  <Icon size={18} />
-                </a>
-              ))}
+              {[
+                { Icon: Instagram, href: "https://www.instagram.com/redquirkstyle/", label: "Instagram" },
+                { Icon: Facebook, href: "#", label: "Facebook" },
+                { Icon: Twitter, href: "#", label: "X (Twitter)" },
+                { Icon: Youtube, href: "#", label: "YouTube" },
+              ].map(({ Icon, href, label }) => {
+                const external = href.startsWith("http");
+                return (
+                  <a
+                    key={label}
+                    href={href}
+                    {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                    className="flex h-9 w-9 items-center justify-center rounded-full bg-surface text-gray-600 ring-1 ring-gray-200 transition hover:text-blue-600 hover:ring-blue-300"
+                    aria-label={label}
+                  >
+                    <Icon size={18} />
+                  </a>
+                );
+              })}
             </div>
           </div>
 

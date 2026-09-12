@@ -290,6 +290,10 @@ const fr: Dict = {
   "review.submit.invalidBody": "Ce lien d'avis est invalide, expiré ou déjà utilisé.",
   "review.submit.error": "Une erreur s'est produite. Veuillez réessayer.",
   "review.submit.optional": "facultatif",
+  // Added-to-cart slide-over
+  "cartsheet.added": "Ajouté au panier",
+  "cartsheet.inCart": "{n} article(s) dans votre panier",
+  "cartsheet.justAdded": "Ajouté",
 };
 
 const en: Dict = {
@@ -546,6 +550,10 @@ const en: Dict = {
   "review.submit.invalidBody": "This review link is invalid, expired or already used.",
   "review.submit.error": "Something went wrong. Please try again.",
   "review.submit.optional": "optional",
+  // Added-to-cart slide-over
+  "cartsheet.added": "Added to cart",
+  "cartsheet.inCart": "{n} item(s) in your cart",
+  "cartsheet.justAdded": "Added",
 };
 
 const ar: Dict = {
@@ -801,6 +809,10 @@ const ar: Dict = {
   "review.submit.invalidBody": "رابط التقييم غير صالح أو منتهٍ أو مُستخدم من قبل.",
   "review.submit.error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
   "review.submit.optional": "اختياري",
+  // Added-to-cart slide-over
+  "cartsheet.added": "تمت الإضافة إلى السلة",
+  "cartsheet.inCart": "{n} عنصر في سلتك",
+  "cartsheet.justAdded": "أُضيف",
 };
 
 const messages: Record<string, Dict> = { fr, en, ar };
