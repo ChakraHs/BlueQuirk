@@ -12,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import shop.bluequirk.blue_quirk_backend.domain.DefaultEmailTemplates;
 import shop.bluequirk.blue_quirk_backend.domain.EmailEvent;
 import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
@@ -104,17 +103,17 @@ public class OrderNotificationService {
         if (template.isEmpty() && !EmailI18n.DEFAULT_LANG.equals(lang)) {
             template = templateRepository.findByCodeAndLangAndActiveTrue(event.code(), EmailI18n.DEFAULT_LANG);
         }
-
-        String subject;
-        String body;
-        if (template.isPresent()) {
-            subject = template.get().getSubject();
-            body = template.get().getBody();
-        } else {
-            DefaultEmailTemplates.Seed seed = DefaultEmailTemplates.forEvent(event, lang);
-            subject = seed.subject();
-            body = seed.body();
+        if (template.isEmpty()) {
+            // No ACTIVE template for this event (in the customer's language or the
+            // default) → the email is intentionally disabled: an admin turned it off
+            // in Email templates. Skip it — do NOT fall back to the built-in seed.
+            // This makes the template's `active` flag the per-email on/off switch
+            // (e.g. muting the low-value "processing"/"packed" status emails).
+            LOG.info("Skipping {} email to {} — no active template (disabled).", event.code(), to);
+            return;
         }
+        String subject = template.get().getSubject();
+        String body = template.get().getBody();
         trySend(to, TemplateEngine.process(subject, vars), TemplateEngine.process(body, vars));
     }
 
