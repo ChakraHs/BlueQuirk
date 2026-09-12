@@ -116,25 +116,28 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
       {/* Full-width bottom sheet: spans the whole width and rises 80% of the viewport
           height from the bottom edge (top corners rounded). */}
       <div className="relative flex h-[80vh] w-full flex-col overflow-hidden rounded-t-3xl bg-surface shadow-2xl">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-gray-100 px-5 py-3.5">
-          <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
-            <span className="flex size-5 items-center justify-center rounded-full bg-emerald-100">
-              <Check className="size-3.5" />
+        {/* Header (full-width divider, centered content) */}
+        <div className="border-b border-gray-100">
+          <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5">
+            <span className="inline-flex items-center gap-2 text-sm font-semibold text-emerald-700">
+              <span className="flex size-5 items-center justify-center rounded-full bg-emerald-100">
+                <Check className="size-3.5" />
+              </span>
+              {t(lang, "cartsheet.added")}
             </span>
-            {t(lang, "cartsheet.added")}
-          </span>
-          <button
-            onClick={close}
-            aria-label={t(lang, "reviews.close")}
-            className="rounded-full p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
-          >
-            <X className="size-5" />
-          </button>
+            <button
+              onClick={close}
+              aria-label={t(lang, "reviews.close")}
+              className="rounded-full p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
+            >
+              <X className="size-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Scrollable content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4">
+        {/* Scrollable content (centered, readable width on large screens) */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-3xl px-5 py-4">
           {/* All cart lines — the just-added one highlighted + listed first. */}
           <p className="mb-2 text-xs font-medium text-gray-400">
             {t(lang, "cartsheet.inCart", { n: count })}
@@ -217,7 +220,7 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
               <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
                 {t(lang, "product.relatedTitle")}
               </h3>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 lg:grid-cols-6">
                 {similarProducts.map((p) => {
                   const img = p.images?.[0] ? thumbSrc(p.images[0]) : FALLBACK_IMAGE;
                   return (
@@ -248,13 +251,15 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
               </div>
             </div>
           )}
+          </div>
         </div>
 
-        {/* Sticky footer */}
-        <div
-          className="space-y-2 border-t border-gray-100 p-4"
-          style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
-        >
+        {/* Sticky footer (full-width divider, centered content) */}
+        <div className="border-t border-gray-100">
+          <div
+            className="mx-auto max-w-3xl space-y-2 p-4"
+            style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}
+          >
           <Link
             href={`/${lang}/checkout`}
             onClick={close}
@@ -269,6 +274,7 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
           >
             {t(lang, "cart.continue")}
           </button>
+          </div>
         </div>
       </div>
     </div>
