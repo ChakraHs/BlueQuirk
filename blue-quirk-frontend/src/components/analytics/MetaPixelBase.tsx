@@ -30,12 +30,17 @@ export function MetaPixelBase({
   const id = resolved.replace(/[^0-9]/g, "");
   if (!id) return null;
 
-  const snippet = `!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  // Wrapped in an IIFE that bails out for a logged-in admin: their storefront
+  // visits are test traffic, so the pixel must not init or fire PageView for them.
+  // The check reads the JWT admin role from localStorage and fails OPEN — any
+  // error, or no token (a real customer), still loads the pixel normally.
+  const snippet = `(function(){try{var _t=window.localStorage&&localStorage.getItem('access_token');if(_t){var _s=_t.split('.')[1];if(_s){var _p=JSON.parse(decodeURIComponent(atob(_s.replace(/-/g,'+').replace(/_/g,'/')).split('').map(function(c){return '%'+('00'+c.charCodeAt(0).toString(16)).slice(-2)}).join('')));var _r=(_p&&(_p.roles||(_p.realm_access&&_p.realm_access.roles)))||[];if(_r.indexOf('admin')>-1)return;}}}catch(e){}
+!function(f,b,e,v,n,t,s){if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};if(!f._fbq)f._fbq=n;
 n.push=n;n.loaded=!0;n.version='2.0';n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
-fbq('init','${id}');fbq('track','PageView');`;
+fbq('init','${id}');fbq('track','PageView');})();`;
 
   return (
     <>

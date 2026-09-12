@@ -84,7 +84,8 @@ export function buildCategoryPath(
   if (!productCategories || productCategories.length === 0) return [];
 
   // Flatten the tree: id -> { name, parentId, depth }.
-  const byId = new Map<number, { name: string; parentId: number | null; depth: number }>();
+  type Node = { name: string; parentId: number | null; depth: number };
+  const byId = new Map<number, Node>();
   const walk = (node: Category, parentId: number | null, depth: number) => {
     byId.set(node.id, { name: node.name, parentId, depth });
     for (const child of node.children ?? []) walk(child, node.id, depth + 1);
@@ -107,9 +108,10 @@ export function buildCategoryPath(
   const path: CategoryRef[] = [];
   const seen = new Set<number>();
   let cur: number | null = leafId;
-  while (cur != null && byId.has(cur) && !seen.has(cur)) {
+  while (cur !== null && !seen.has(cur)) {
+    const info: Node | undefined = byId.get(cur);
+    if (!info) break;
     seen.add(cur);
-    const info = byId.get(cur)!;
     path.push({ id: cur, name: info.name });
     cur = info.parentId;
   }

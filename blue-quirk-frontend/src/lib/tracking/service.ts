@@ -11,6 +11,7 @@
 //     does zero work.
 //   • Purchase is idempotent (see `purchase`) — the same order can't emit two
 //     conversion events across refresh / back-forward / re-render / re-render.
+import { isAdmin } from "@/lib/auth";
 import type { CommerceContent, CommerceEvent, TrackingContext, TrackingProvider } from "./types";
 
 const PURCHASED_KEY = "bq_meta_purchased"; // order ids already counted as Purchase
@@ -92,6 +93,13 @@ function dispatch(event: CommerceEvent): void {
 
 /** Emit an event: dispatch now if a provider exists, otherwise buffer it. */
 function emit(event: CommerceEvent): void {
+  // A logged-in admin browsing the storefront is just testing — never send their
+  // AddToCart/Purchase/ViewContent/etc. to Meta, so ads reporting + optimization
+  // stay based on real customers only. Dropped before buffering so nothing replays.
+  if (isAdmin()) {
+    log("skip (admin)", event.type);
+    return;
+  }
   if (providers.length === 0) {
     pending.push(event);
     if (pending.length > PENDING_MAX) pending = pending.slice(-PENDING_MAX);

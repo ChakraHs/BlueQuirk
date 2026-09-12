@@ -53,9 +53,12 @@ export interface ReviewSubmission {
   token: string;
   productId: number;
   rating: number;
-  title?: string;
   body: string;
-  authorName: string;
+  // All optional — the form only collects rating + body (+ photo). The author name
+  // is derived server-side from the verified order; title/size/color are unused now
+  // but kept so an admin/legacy caller could still supply them.
+  title?: string;
+  authorName?: string;
   sizePurchased?: string;
   variantColor?: string;
   photoUrl?: string;

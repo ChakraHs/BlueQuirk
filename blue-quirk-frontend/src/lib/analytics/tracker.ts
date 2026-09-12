@@ -14,6 +14,7 @@
 // session id rotates after 30 minutes of inactivity. Neither is ever read back
 // from the server, and the backend never returns them.
 import { API_BASE_URL } from "@/lib/config";
+import { isAdmin } from "@/lib/auth";
 import type { AnalyticsEventType, AnalyticsProps, EventBatch, QueuedEvent } from "./types";
 
 const VISITOR_KEY = "bq_vid";
@@ -93,6 +94,9 @@ function isEnabled(): boolean {
   if (process.env.NEXT_PUBLIC_ANALYTICS_ENABLED === "false") return false;
   // Never track the admin dashboard itself.
   if (window.location.pathname.startsWith("/admin")) return false;
+  // Never track a logged-in admin browsing the storefront — those are test visits
+  // and would pollute business metrics (page views, add-to-cart, purchases, …).
+  if (isAdmin()) return false;
   return true;
 }
 
