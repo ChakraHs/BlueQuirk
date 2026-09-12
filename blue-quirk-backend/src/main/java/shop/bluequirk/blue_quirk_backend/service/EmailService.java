@@ -63,7 +63,9 @@ public class EmailService {
                         variables
                 );
 
-        emailProvider.sendEmail(
+        // Template bodies are HTML (seeded from DefaultEmailTemplates), so send as
+        // HTML — otherwise the raw markup shows in the recipient's inbox.
+        emailProvider.sendHtmlEmail(
                 to,
                 subject,
                 body
