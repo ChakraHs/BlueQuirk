@@ -20,7 +20,10 @@ export type OrderItemPayload = {
 export type CreateOrderPayload = {
   firstName: string;
   lastName: string;
-  email: string;
+  // Optional for cash-on-delivery — the customer is reached by phone. When
+  // omitted, no confirmation/status email is sent and the backend keys the
+  // customer record by a phone-derived placeholder.
+  email?: string;
   phone: string;
   city: string;
   address: string;

@@ -116,15 +116,24 @@ public class OrderService {
                 : (user != null ? user.getEmail() : null);
 
         require(notBlank(fullName), "Your name is required");
-        require(notBlank(email), "Email is required");
         require(notBlank(req.phone()), "Phone number is required");
         require(notBlank(req.city()), "City is required");
         require(notBlank(req.address()), "Address is required");
         require(req.items() != null && !req.items().isEmpty(), "Your cart is empty");
 
+        // Email is OPTIONAL for cash-on-delivery: the phone number is the reliable
+        // way to reach a customer in this market, and every order email is already
+        // guarded on a present address (silently skipped when absent). We still need
+        // a Customer row — its email column is NOT NULL + UNIQUE — so when no email
+        // is given we key the customer by a stable, non-deliverable placeholder
+        // derived from the phone. That placeholder lives ONLY on the customer record
+        // (to de-dupe repeat guests); the order's own email stays null, so no
+        // confirmation/status mail is ever sent to a fabricated address.
+        String customerKey = notBlank(email) ? email : guestEmailForPhone(req.phone());
+
         // Create or reuse the Customer (independent of any login account).
         Customer customer = customerService.findOrCreateByEmail(
-                email, firstName, lastName, req.phone(),
+                customerKey, firstName, lastName, req.phone(),
                 req.address(), req.city(), req.postalCode(), user);
 
         Order order = new Order();
@@ -612,6 +621,21 @@ public class OrderService {
     private String joinName(String first, String last) {
         String joined = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
         return joined.isEmpty() ? null : joined;
+    }
+
+    /**
+     * A stable, non-deliverable placeholder email used only to key/de-dupe a guest
+     * Customer when the shopper left the (optional) email blank. Derived from the
+     * phone number — the reliable identifier for cash-on-delivery — so the same
+     * phone reuses the same Customer. It is never used as a send address: the
+     * order's own email stays null and all mail is guarded on a present address.
+     */
+    private String guestEmailForPhone(String phone) {
+        String digits = phone == null ? "" : phone.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            digits = Long.toString(Math.abs((long) String.valueOf(phone).hashCode()));
+        }
+        return "guest+" + digits + "@no-email.redquirk.local";
     }
 
     private double round(double value) {
