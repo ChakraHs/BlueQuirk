@@ -17,6 +17,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -349,8 +350,69 @@ public class ProductService {
      */
     @Transactional(readOnly = true)
     public Page<AdminProductResponse> getAdminProducts(int page, int size, ProductStatus status) {
-        Page<Product> products = productRepository.findAllWithRelations(PageRequest.of(page, size), status);
-        return products.map(this::toAdminProductResponse);
+        return getAdminProducts(page, size, status, null, null, null, null);
+    }
+
+    /**
+     * Server-paged admin catalog with optional name search, category filter and
+     * column sort. Pages product ids at the DB level (no fetch joins), then loads
+     * the page's relations in one query and maps in the page order — so it scales
+     * to a large catalog instead of loading everything into memory.
+     */
+    @Transactional(readOnly = true)
+    public Page<AdminProductResponse> getAdminProducts(int page, int size, ProductStatus status,
+                                                       String search, Long categoryId,
+                                                       String sortKey, String dir) {
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size),
+                adminSort(sortKey, dir));
+        String q = (search == null || search.isBlank()) ? null
+                : "%" + search.trim().toLowerCase() + "%";
+        Page<Product> pageProducts = productRepository.adminSearch(status, q, categoryId, pageable);
+
+        List<Long> ids = pageProducts.getContent().stream().map(Product::getId).toList();
+        if (ids.isEmpty()) {
+            return new org.springframework.data.domain.PageImpl<>(
+                    List.of(), pageable, pageProducts.getTotalElements());
+        }
+        // Load relations once, then restore the paged order (the IN query is unordered).
+        java.util.Map<Long, Product> byId = productRepository
+                .findAllByIdInWithImagesAndCategories(ids).stream()
+                .collect(Collectors.toMap(Product::getId, p -> p, (a, b) -> a));
+        List<AdminProductResponse> content = ids.stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .map(this::toAdminProductResponse)
+                .toList();
+        return new org.springframework.data.domain.PageImpl<>(
+                content, pageable, pageProducts.getTotalElements());
+    }
+
+    /**
+     * Whitelisted admin sort. Column-backed keys use a plain property Sort; the
+     * derived margin keys use a safe, fixed SQL expression (never client input) via
+     * {@code JpaSort.unsafe}. Unknown/blank → newest first (createdAt, id).
+     */
+    private org.springframework.data.domain.Sort adminSort(String key, String dir) {
+        org.springframework.data.domain.Sort.Direction d =
+                "asc".equalsIgnoreCase(dir) ? org.springframework.data.domain.Sort.Direction.ASC
+                                            : org.springframework.data.domain.Sort.Direction.DESC;
+        if (key == null || key.isBlank()) {
+            return org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Order.desc("createdAt"),
+                    org.springframework.data.domain.Sort.Order.desc("id"));
+        }
+        return switch (key) {
+            case "name" -> org.springframework.data.domain.Sort.by(d, "name");
+            case "price" -> org.springframework.data.domain.Sort.by(d, "price");
+            case "cost" -> org.springframework.data.domain.Sort.by(d, "cost");
+            case "stock" -> org.springframework.data.domain.Sort.by(d, "stockQuantity");
+            case "margin" -> org.springframework.data.jpa.domain.JpaSort.unsafe(d, "(price - cost)");
+            case "marginPct" -> org.springframework.data.jpa.domain.JpaSort.unsafe(
+                    d, "(case when price > 0 then (price - cost) / price else 0 end)");
+            default -> org.springframework.data.domain.Sort.by(
+                    org.springframework.data.domain.Sort.Order.desc("createdAt"),
+                    org.springframework.data.domain.Sort.Order.desc("id"));
+        };
     }
 
     /** Admin-only single product including cost + margins (for the edit form). */
@@ -460,6 +522,34 @@ public class ProductService {
         return products.stream()
                 .map(p -> toProductResponse(p, attributes, lang))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Server-paged storefront category listing. Pages product ids at the DB level
+     * (no fetch joins), loads the page's relations in one query, and maps in the
+     * paged order (newest first) — so a big category never loads everything at once.
+     */
+    @Transactional(readOnly = true)
+    public Page<ProductResponse> getProductsByCategoryPaged(Long categoryId, String lang,
+                                                            ProductStatus status, int page, int size) {
+        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size),
+                org.springframework.data.domain.Sort.by(
+                        org.springframework.data.domain.Sort.Order.desc("createdAt"),
+                        org.springframework.data.domain.Sort.Order.desc("id")));
+        Page<Product> idPage = productRepository.pageByCategory(categoryId, status, pageable);
+        List<Long> ids = idPage.getContent().stream().map(Product::getId).toList();
+        if (ids.isEmpty()) {
+            return new org.springframework.data.domain.PageImpl<>(List.of(), pageable, idPage.getTotalElements());
+        }
+        List<Attribute> attributes = attributeRepository.findAllWithValues();
+        Map<Long, Product> byId = productRepository.findAllByIdInWithRelations(ids).stream()
+                .collect(Collectors.toMap(Product::getId, p -> p, (a, b) -> a));
+        List<ProductResponse> content = ids.stream()
+                .map(byId::get)
+                .filter(java.util.Objects::nonNull)
+                .map(p -> toProductResponse(p, attributes, lang))
+                .toList();
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, idPage.getTotalElements());
     }
     
     

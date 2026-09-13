@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { formatPrice } from "@/lib/money";
+import { getPublicShopConfig } from "@/lib/shopConfig";
 import {
   ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS,
 } from "@/types/order";
@@ -24,6 +25,18 @@ function TrackingInner() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+  // Store branding (logo + name) from the admin settings, so the header shows the
+  // real store logo instead of a hardcoded wordmark.
+  const [brand, setBrand] = useState<{ logoUrl: string | null; storeName: string }>({
+    logoUrl: null,
+    storeName: "RedQuirk",
+  });
+
+  useEffect(() => {
+    getPublicShopConfig()
+      .then((c) => setBrand({ logoUrl: c.logoUrl, storeName: c.storeName }))
+      .catch(() => {});
+  }, []);
 
   const runSearch = async (orderNumber: string) => {
     const ref = orderNumber.trim();
@@ -64,8 +77,19 @@ function TrackingInner() {
       {/* Header */}
       <header className="border-b border-gray-200 bg-surface">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
-          <Link href="/" className="text-xl font-bold tracking-tight text-gray-900">
-            Blue<span className="text-blue-600">Quirk</span>
+          <Link href="/" className="flex items-center" aria-label={brand.storeName}>
+            {brand.logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={brand.logoUrl}
+                alt={brand.storeName}
+                className="h-8 w-auto max-w-[160px] object-contain"
+              />
+            ) : (
+              <span className="text-xl font-bold tracking-tight text-gray-900">
+                {brand.storeName}
+              </span>
+            )}
           </Link>
           <Link href="/" className="text-sm font-medium text-blue-600 hover:text-blue-700">
             Boutique

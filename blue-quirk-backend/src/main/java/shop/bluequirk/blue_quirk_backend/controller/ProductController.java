@@ -150,6 +150,20 @@ public class ProductController {
                 productService.getProductsByCategory(categoryId, lang, status)
         );
     }
+
+    /** Server-paged category listing for the storefront (numbered pages). */
+    @GetMapping("/category/{categoryId}/paged")
+    public ResponseEntity<shop.bluequirk.blue_quirk_backend.dto.response.PageResponse<ProductResponse>> getByCategoryPaged(
+            @PathVariable Long categoryId,
+            @RequestParam(required = false) String lang,
+            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "24") int size) {
+        var result = productService.getProductsByCategoryPaged(categoryId, lang, status, page, size);
+        return ResponseEntity.ok(new shop.bluequirk.blue_quirk_backend.dto.response.PageResponse<>(
+                result.getContent(), result.getNumber(), result.getSize(),
+                result.getTotalElements(), result.getTotalPages()));
+    }
     
     
     // Add images to a product

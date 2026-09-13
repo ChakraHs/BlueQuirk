@@ -34,8 +34,13 @@ public class AdminProductController {
     public ResponseEntity<PageResponse<AdminProductResponse>> list(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size,
-            @RequestParam(required = false) ProductStatus status) {
-        Page<AdminProductResponse> result = productService.getAdminProducts(page, size, status);
+            @RequestParam(required = false) ProductStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String sort,
+            @RequestParam(required = false) String dir) {
+        Page<AdminProductResponse> result =
+                productService.getAdminProducts(page, size, status, search, categoryId, sort, dir);
         return ResponseEntity.ok(new PageResponse<>(
                 result.getContent(),
                 result.getNumber(),

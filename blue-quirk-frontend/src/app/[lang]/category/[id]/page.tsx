@@ -61,36 +61,58 @@ export async function generateMetadata({
 async function getCategory(id: string, lang: string): Promise<CategoryWithProducts> {
   const res = await fetch(
     `${API_BASE_URL}/categories/${id}?lang=${encodeURIComponent(lang)}`,
-    {
-      cache: "no-store",
-    }
+    { cache: "no-store" }
   );
+  return (await res.json()) as CategoryWithProducts;
+}
 
-  const category: CategoryWithProducts = await res.json();
+const CATEGORY_PAGE_SIZE = 24;
 
-  if (category.children?.length === 0) {
-    const productsRes = await fetch(
-      `${API_BASE_URL}/products/category/${id}?lang=${encodeURIComponent(lang)}&status=PUBLISHED`,
-      {
-        cache: "no-store",
-      }
+type PagedProducts = {
+  content: Product[];
+  number: number;
+  totalPages: number;
+  totalElements: number;
+};
+
+/** One page of a category's published products (server-paginated). */
+async function getCategoryProductsPaged(
+  id: string,
+  lang: string,
+  page: number
+): Promise<PagedProducts> {
+  try {
+    const res = await fetch(
+      `${API_BASE_URL}/products/category/${id}/paged?lang=${encodeURIComponent(lang)}` +
+        `&status=PUBLISHED&page=${Math.max(0, page - 1)}&size=${CATEGORY_PAGE_SIZE}`,
+      { cache: "no-store" }
     );
-    category.products = await productsRes.json();
+    if (!res.ok) throw new Error(`paged ${res.status}`);
+    return (await res.json()) as PagedProducts;
+  } catch {
+    return { content: [], number: 0, totalPages: 0, totalElements: 0 };
   }
-
-
-  return category;
 }
 
 export default async function CategoryPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ lang: string; id: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
   const { lang, id } = await params;
+  const { page: pageParam } = await searchParams;
+  const currentPage = Math.max(1, Number(pageParam) || 1);
 
   const category = await getCategory(id, lang);
   const description = plainText(category.description);
+
+  // Only leaf categories list products; fetch the requested page server-side.
+  const hasChildrenEarly = (category.children?.length ?? 0) > 0;
+  const productPage = hasChildrenEarly
+    ? { content: [], number: 0, totalPages: 0, totalElements: 0 }
+    : await getCategoryProductsPaged(id, lang, currentPage);
 
   const benefits = [
     {
@@ -242,9 +264,86 @@ export default async function CategoryPage({
         </div>
       ) : (
         <div className="mt-8">
-          <ProductsGrid products={category.products ?? []} lang={lang} />
+          <ProductsGrid products={productPage.content} lang={lang} />
+          <CategoryPagination
+            lang={lang}
+            id={id}
+            currentPage={currentPage}
+            totalPages={productPage.totalPages}
+          />
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Numbered, SSR pagination for a category listing. Each page is a plain link
+ * (`?page=N`) so it stays server-rendered and crawlable — no client fetching.
+ */
+function CategoryPagination({
+  lang,
+  id,
+  currentPage,
+  totalPages,
+}: {
+  lang: string;
+  id: string;
+  currentPage: number;
+  totalPages: number;
+}) {
+  if (totalPages <= 1) return null;
+  const base = `/${lang}/category/${id}`;
+  const href = (p: number) => (p <= 1 ? base : `${base}?page=${p}`);
+  // A compact window of page numbers around the current page.
+  const pages: number[] = [];
+  const from = Math.max(1, currentPage - 2);
+  const to = Math.min(totalPages, currentPage + 2);
+  for (let p = from; p <= to; p++) pages.push(p);
+
+  const linkCls =
+    "inline-flex h-10 min-w-10 items-center justify-center rounded-lg border px-3 text-sm font-medium transition";
+
+  return (
+    <nav className="mt-10 flex items-center justify-center gap-1.5" aria-label="Pagination">
+      {currentPage > 1 && (
+        <Link href={href(currentPage - 1)} className={`${linkCls} border-gray-300 text-gray-700 hover:border-gray-900`} rel="prev">
+          ‹
+        </Link>
+      )}
+      {from > 1 && (
+        <>
+          <Link href={href(1)} className={`${linkCls} border-gray-300 text-gray-700 hover:border-gray-900`}>1</Link>
+          {from > 2 && <span className="px-1 text-gray-400">…</span>}
+        </>
+      )}
+      {pages.map((p) => (
+        <Link
+          key={p}
+          href={href(p)}
+          aria-current={p === currentPage ? "page" : undefined}
+          className={`${linkCls} ${
+            p === currentPage
+              ? "border-primary bg-primary text-white"
+              : "border-gray-300 text-gray-700 hover:border-gray-900"
+          }`}
+        >
+          {p}
+        </Link>
+      ))}
+      {to < totalPages && (
+        <>
+          {to < totalPages - 1 && <span className="px-1 text-gray-400">…</span>}
+          <Link href={href(totalPages)} className={`${linkCls} border-gray-300 text-gray-700 hover:border-gray-900`}>
+            {totalPages}
+          </Link>
+        </>
+      )}
+      {currentPage < totalPages && (
+        <Link href={href(currentPage + 1)} className={`${linkCls} border-gray-300 text-gray-700 hover:border-gray-900`} rel="next">
+          ›
+        </Link>
+      )}
+    </nav>
   );
 }
