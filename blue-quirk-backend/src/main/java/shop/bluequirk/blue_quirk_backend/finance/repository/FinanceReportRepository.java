@@ -23,7 +23,7 @@ public interface FinanceReportRepository extends JpaRepository<Order, Long> {
     /**
      * One aggregate row for the window. Columns:
      * [orders, revenue(subtotal), cost(cost_total), discount, shipping, collected(total),
-     *  realShipping(real_shipping_cost)].
+     *  realShipping(real_shipping_cost), packaging(packaging_cost)].
      */
     @Query(nativeQuery = true, value =
             "SELECT COUNT(*) AS orders, "
@@ -32,7 +32,8 @@ public interface FinanceReportRepository extends JpaRepository<Order, Long> {
             + "COALESCE(SUM(discount_amount), 0) AS discount, "
             + "COALESCE(SUM(shipping_fee), 0) AS shipping, "
             + "COALESCE(SUM(total), 0) AS collected, "
-            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping "
+            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping, "
+            + "COALESCE(SUM(packaging_cost), 0) AS packaging "
             + "FROM orders "
             + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED'")
     List<Object[]> summaryRow(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
@@ -56,25 +57,27 @@ public interface FinanceReportRepository extends JpaRepository<Order, Long> {
             + "WHERE o.order_date >= :from AND o.order_date < :to AND o.status = 'DELIVERED'")
     long sumUnits(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Per-day series. Row = [day 'YYYY-MM-DD', orders, revenue, cost, collected, realShipping]. */
+    /** Per-day series. Row = [day 'YYYY-MM-DD', orders, revenue, cost, collected, realShipping, packaging]. */
     @Query(nativeQuery = true, value =
             "SELECT DATE_FORMAT(order_date, '%Y-%m-%d') AS period, COUNT(*) AS orders, "
             + "COALESCE(SUM(subtotal), 0) AS revenue, "
             + "COALESCE(SUM(cost_total), 0) AS cost, "
             + "COALESCE(SUM(total), 0) AS collected, "
-            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping "
+            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping, "
+            + "COALESCE(SUM(packaging_cost), 0) AS packaging "
             + "FROM orders "
             + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED' "
             + "GROUP BY period ORDER BY period")
     List<Object[]> dailyFinancials(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 
-    /** Per-month series. Row = [month 'YYYY-MM', orders, revenue, cost, collected, realShipping]. */
+    /** Per-month series. Row = [month 'YYYY-MM', orders, revenue, cost, collected, realShipping, packaging]. */
     @Query(nativeQuery = true, value =
             "SELECT DATE_FORMAT(order_date, '%Y-%m') AS period, COUNT(*) AS orders, "
             + "COALESCE(SUM(subtotal), 0) AS revenue, "
             + "COALESCE(SUM(cost_total), 0) AS cost, "
             + "COALESCE(SUM(total), 0) AS collected, "
-            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping "
+            + "COALESCE(SUM(real_shipping_cost), 0) AS real_shipping, "
+            + "COALESCE(SUM(packaging_cost), 0) AS packaging "
             + "FROM orders "
             + "WHERE order_date >= :from AND order_date < :to AND status = 'DELIVERED' "
             + "GROUP BY period ORDER BY period")

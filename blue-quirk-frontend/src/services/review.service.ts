@@ -51,7 +51,10 @@ export interface ReviewTokenInfo {
 
 export interface ReviewSubmission {
   token: string;
-  productId: number;
+  // A customer may review one product or several/all from the order. `productIds`
+  // carries the multi-select; `productId` stays for the single-product case.
+  productId?: number;
+  productIds?: number[];
   rating: number;
   body: string;
   // All optional — the form only collects rating + body (+ photo). The author name

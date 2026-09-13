@@ -56,17 +56,18 @@ export type QuoteLine = { id: number; quantity: number };
  */
 export function useCartQuote(
   items: QuoteLine[],
-  opts: { couponCode?: string; email?: string } = {}
+  opts: { couponCode?: string; email?: string; city?: string } = {}
 ): { quote: CartQuote | null; loading: boolean } {
-  const { couponCode, email } = opts;
+  const { couponCode, email, city } = opts;
   const key = useMemo(
     () =>
       JSON.stringify({
         items: items.map((i) => [i.id, i.quantity]),
         couponCode: couponCode ?? null,
         email: email ?? null,
+        city: city ?? null,
       }),
-    [items, couponCode, email]
+    [items, couponCode, email, city]
   );
 
   const [quote, setQuote] = useState<CartQuote | null>(null);
@@ -82,7 +83,7 @@ export function useCartQuote(
     const handle = setTimeout(() => {
       fetchCartQuote(
         items.map((i) => ({ productId: i.id, quantity: i.quantity })),
-        { couponCode, email }
+        { couponCode, email, city }
       )
         .then((q) => {
           if (alive) setQuote(q);

@@ -11,13 +11,14 @@ public record FinanceSummary(
         double revenue,            // Σ goods revenue (subtotal, pre-discount)
         double cost,               // Σ product cost
         double grossProfit,        // revenue − cost (goods only)
-        double netProfit,          // collected − cost − realShippingCost (bottom line)
+        double netProfit,          // collected − cost − realShippingCost − packagingCost (bottom line)
         double marginPercent,      // grossProfit / revenue
         double netSales,           // revenue − discounts
         double operationalRevenue, // revenue + shipping
         double discount,
         double shipping,           // Σ customer shipping price charged
         double realShippingCost,   // Σ internal shipping cost (never shown to customers)
+        double packagingCost,      // Σ per-order packaging + confirmation cost (internal)
         double collected,          // Σ amount customers paid (final total)
         long orders,               // DELIVERED orders (realized revenue) — drives AOV
         long totalOrders,          // orders placed in the window, excluding cancelled

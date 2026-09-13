@@ -125,7 +125,7 @@ export default function FinanceKpis() {
             value={formatPrice(current.netProfit)}
             icon={TrendingUp}
             accent="blue"
-            hint={`Cost ${formatPrice(current.cost)} · Real shipping ${formatPrice(current.realShippingCost)}`}
+            hint={`Cost ${formatPrice(current.cost)} · Real shipping ${formatPrice(current.realShippingCost)} · Packaging ${formatPrice(current.packagingCost)}`}
           />
           <StatCard
             label="Profit Margin"

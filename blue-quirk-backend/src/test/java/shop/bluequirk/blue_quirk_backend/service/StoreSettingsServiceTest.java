@@ -53,7 +53,9 @@ class StoreSettingsServiceTest {
                 null, null, null,
                 enabled, pixelId,
                 // Review fields — not under test here; left unchanged (null).
-                null, null, null, null, null, null);
+                null, null, null, null, null, null,
+                // packagingCost — not under test; left unchanged (null).
+                null);
     }
 
     @Test

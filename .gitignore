@@ -53,3 +53,4 @@ docker/volumes/backups/*
 
 # GeoIP database (downloaded separately, see analytics docs)
 **/geoip/
+db-dumps/

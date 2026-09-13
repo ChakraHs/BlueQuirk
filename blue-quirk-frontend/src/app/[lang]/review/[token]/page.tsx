@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Star, Loader2, Check, ImagePlus, X } from "lucide-react";
@@ -93,7 +93,11 @@ function ReviewForm({
   info: ReviewTokenInfo;
   onDone: () => void;
 }) {
-  const [productId, setProductId] = useState<number>(info.products[0]?.productId ?? 0);
+  // Multi-select: a customer can review one product or all of them at once. Default
+  // to every product on the order selected — the friendliest starting point.
+  const [selectedIds, setSelectedIds] = useState<number[]>(
+    info.products.map((p) => p.productId)
+  );
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [body, setBody] = useState("");
@@ -103,12 +107,19 @@ function ReviewForm({
   const [error, setError] = useState<string | null>(null);
 
   const optional = t(lang, "review.submit.optional");
-  const canSubmit = rating >= 1 && body.trim().length > 0 && !submitting;
+  const canSubmit = rating >= 1 && body.trim().length > 0 && selectedIds.length > 0 && !submitting;
 
-  const chosenProduct = useMemo(
-    () => info.products.find((p) => p.productId === productId),
-    [info.products, productId]
-  );
+  const allSelected = selectedIds.length === info.products.length;
+
+  const toggleProduct = (id: number) =>
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+
+  const toggleAll = () =>
+    setSelectedIds(allSelected ? [] : info.products.map((p) => p.productId));
+
+  const soleProduct = info.products.length === 1 ? info.products[0] : undefined;
 
   const handlePhoto = async (file: File) => {
     setUploading(true);
@@ -128,19 +139,27 @@ function ReviewForm({
       setError(t(lang, "review.submit.ratingRequired"));
       return;
     }
+    if (selectedIds.length === 0) {
+      setError(t(lang, "review.submit.productRequired"));
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       await submitReview({
         token,
-        productId,
+        productIds: selectedIds,
         rating,
         body: body.trim(),
         photoUrl: photo?.url,
         photoThumbnailUrl: photo?.thumbnailUrl,
         lang,
       });
-      track("review_submitted", { productId });
+      track("review_submitted", {
+        productId: selectedIds[0],
+        value: selectedIds.length,
+        meta: { productIds: selectedIds },
+      });
       onDone();
     } catch {
       setError(t(lang, "review.submit.error"));
@@ -155,41 +174,64 @@ function ReviewForm({
       <p className="mt-1 text-sm text-gray-500">{t(lang, "review.submit.subtitle")}</p>
 
       <div className="mt-8 space-y-6">
-        {/* Product picker (only when the order had more than one product) */}
+        {/* Product picker — multi-select when the order had more than one product,
+            so a customer can review one, several, or all of them at once. */}
         {info.products.length > 1 && (
           <div>
-            <label className="mb-2 block text-sm font-medium text-gray-700">
-              {t(lang, "review.submit.chooseProduct")}
-            </label>
+            <div className="mb-2 flex items-center justify-between">
+              <label className="block text-sm font-medium text-gray-700">
+                {t(lang, "review.submit.chooseProducts")}
+              </label>
+              <button
+                type="button"
+                onClick={toggleAll}
+                className="text-sm font-medium text-blue-600 hover:underline"
+              >
+                {allSelected
+                  ? t(lang, "review.submit.selectNone")
+                  : t(lang, "review.submit.selectAll")}
+              </button>
+            </div>
             <div className="space-y-2">
-              {info.products.map((p) => (
-                <button
-                  key={p.productId}
-                  type="button"
-                  onClick={() => setProductId(p.productId)}
-                  className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition ${
-                    productId === p.productId
-                      ? "border-blue-600 ring-1 ring-blue-600"
-                      : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  {p.imageUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={p.imageUrl} alt="" className="size-12 rounded-lg object-cover" />
-                  )}
-                  <span className="text-sm font-medium text-gray-800">{p.name}</span>
-                </button>
-              ))}
+              {info.products.map((p) => {
+                const checked = selectedIds.includes(p.productId);
+                return (
+                  <button
+                    key={p.productId}
+                    type="button"
+                    onClick={() => toggleProduct(p.productId)}
+                    aria-pressed={checked}
+                    className={`flex w-full items-center gap-3 rounded-xl border p-2.5 text-left transition ${
+                      checked
+                        ? "border-blue-600 ring-1 ring-blue-600"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`flex size-5 shrink-0 items-center justify-center rounded-md border transition ${
+                        checked ? "border-blue-600 bg-blue-600 text-white" : "border-gray-300"
+                      }`}
+                    >
+                      {checked && <Check className="size-3.5" />}
+                    </span>
+                    {p.imageUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.imageUrl} alt="" className="size-12 rounded-lg object-cover" />
+                    )}
+                    <span className="text-sm font-medium text-gray-800">{p.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
-        {info.products.length === 1 && chosenProduct && (
+        {soleProduct && (
           <div className="flex items-center gap-3 rounded-xl border border-gray-200 p-2.5">
-            {chosenProduct.imageUrl && (
+            {soleProduct.imageUrl && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={chosenProduct.imageUrl} alt="" className="size-12 rounded-lg object-cover" />
+              <img src={soleProduct.imageUrl} alt="" className="size-12 rounded-lg object-cover" />
             )}
-            <span className="text-sm font-medium text-gray-800">{chosenProduct.name}</span>
+            <span className="text-sm font-medium text-gray-800">{soleProduct.name}</span>
           </div>
         )}
 

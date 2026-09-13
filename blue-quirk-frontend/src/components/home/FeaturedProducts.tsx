@@ -26,9 +26,13 @@ export default async function FeaturedProducts({ lang }: { lang: string }) {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-2 gap-y-6 sm:gap-x-4 sm:gap-y-8 lg:grid-cols-4">
+        {/* Edge-to-edge across the narrow 2-column range (phones + small tablets)
+            for bigger, more visual cards; padding restored at md and up. The negative
+            margin matches the container padding at each breakpoint (px-3 → px-4) so no
+            residual gap remains. The gap between cards stays. */}
+        <div className="-mx-3 grid grid-cols-2 gap-x-1 gap-y-4 sm:-mx-4 sm:gap-x-2 sm:gap-y-6 md:mx-0 lg:grid-cols-4">
           {products.map((product) => (
-            <ProductCard key={product.id} product={product} lang={lang} />
+            <ProductCard key={product.id} product={product} lang={lang} flushMobile />
           ))}
         </div>
 

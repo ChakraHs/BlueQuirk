@@ -60,6 +60,9 @@ public class SecurityConfig {
 	                        "/api/categories/**",
 	                        "/api/attributes/**",
 	                        "/api/shop/config",
+                        // Active deliverable cities (name + customer fee only) for the
+                        // checkout ville selector. Internal real cost is never exposed.
+                        "/api/shop/cities",
 	                        // Active bundle offers (display-only, non-secret) — the
 	                        // storefront reads these to render "build your set" UX.
 	                        "/api/shop/bundles/**",

@@ -1,10 +1,14 @@
 package shop.bluequirk.blue_quirk_backend.controller;
 
+import java.util.List;
+
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import shop.bluequirk.blue_quirk_backend.dto.PublicCityResponse;
 import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
+import shop.bluequirk.blue_quirk_backend.service.CityService;
 import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 
 /**
@@ -20,9 +24,21 @@ import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 public class ShopConfigController {
 
     private final StoreSettingsService settingsService;
+    private final CityService cityService;
 
-    public ShopConfigController(StoreSettingsService settingsService) {
+    public ShopConfigController(StoreSettingsService settingsService, CityService cityService) {
         this.settingsService = settingsService;
+        this.cityService = cityService;
+    }
+
+    /**
+     * Active deliverable cities for the checkout selector — name + CUSTOMER delivery
+     * fee only (the internal real cost is never exposed). Empty until an admin adds
+     * cities, in which case the checkout falls back to a plain text field.
+     */
+    @GetMapping("/cities")
+    public List<PublicCityResponse> cities() {
+        return cityService.listActivePublic();
     }
 
     @GetMapping("/config")

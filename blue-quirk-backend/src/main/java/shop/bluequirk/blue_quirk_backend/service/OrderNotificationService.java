@@ -42,6 +42,7 @@ public class OrderNotificationService {
 
     private final EmailProvider emailProvider;
     private final EmailTemplateRepository templateRepository;
+    private final StoreSettingsService storeSettingsService;
     private final String adminEmail;
     private final String currency;
     private final String storeName;
@@ -50,12 +51,14 @@ public class OrderNotificationService {
     public OrderNotificationService(
             EmailProvider emailProvider,
             EmailTemplateRepository templateRepository,
+            StoreSettingsService storeSettingsService,
             @Value("${order.admin-email:}") String adminEmail,
             @Value("${order.currency:$}") String currency,
             @Value("${app.store-name:RedQuirk}") String storeName,
             @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
         this.emailProvider = emailProvider;
         this.templateRepository = templateRepository;
+        this.storeSettingsService = storeSettingsService;
         this.adminEmail = adminEmail == null ? "" : adminEmail.trim();
         this.currency = currency;
         this.storeName = (storeName == null || storeName.isBlank()) ? "RedQuirk" : storeName.trim();
@@ -150,6 +153,7 @@ public class OrderNotificationService {
     /** All template variables for an order, rendered in the given language. */
     private Map<String, String> buildVars(OrderResponse o, String lang) {
         Map<String, String> v = new LinkedHashMap<>();
+        v.put("brandHeader", storeSettingsService.emailBrandHeaderHtml());
         v.put("storeName", storeName);
         v.put("orderRef", ref(o));
         v.put("customerName", esc(o.customerName()));

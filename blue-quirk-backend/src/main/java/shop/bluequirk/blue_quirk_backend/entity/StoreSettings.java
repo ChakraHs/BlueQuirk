@@ -41,6 +41,12 @@ public class StoreSettings {
     @Column(name = "real_shipping_cost", nullable = false)
     private double realShippingCost;
 
+    // Flat per-order packaging + confirmation cost (e.g. box, call-center
+    // confirmation). Internal only, one per order — used in profit alongside the
+    // real shipping cost. Snapshotted onto each order at creation.
+    @Column(name = "packaging_cost", nullable = false)
+    private double packagingCost = 10;
+
     @Column(nullable = false)
     private double freeShippingThreshold;
 
@@ -253,6 +259,9 @@ public class StoreSettings {
 
     public double getRealShippingCost() { return realShippingCost; }
     public void setRealShippingCost(double realShippingCost) { this.realShippingCost = realShippingCost; }
+
+    public double getPackagingCost() { return packagingCost; }
+    public void setPackagingCost(double packagingCost) { this.packagingCost = packagingCost; }
 
     public double getFreeShippingThreshold() { return freeShippingThreshold; }
     public void setFreeShippingThreshold(double freeShippingThreshold) {

@@ -18,8 +18,9 @@ public record OrderFinancialsResponse(
         double shipping,
         double finalTotal,     // amount the customer pays
         double realShippingCost,   // internal logistics cost (never shown to customer)
+        double packagingCost,  // flat per-order packaging + confirmation cost (internal)
         double grossProfit,    // sellingTotal − costTotal (goods only)
-        double netProfit,      // finalTotal − costTotal − realShippingCost (bottom line)
+        double netProfit,      // finalTotal − costTotal − realShippingCost − packagingCost
         double marginPercent,  // grossProfit / sellingTotal
         double netSales,       // sellingTotal − discount
         double operationalRevenue, // sellingTotal + shipping

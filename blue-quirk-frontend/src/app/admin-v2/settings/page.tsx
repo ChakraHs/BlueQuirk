@@ -39,6 +39,7 @@ type FormState = {
   logoUrl: string | null;
   shippingFee: string;
   realShippingCost: string;
+  packagingCost: string;
   freeShippingThreshold: string;
   currency: string;
   defaultLang: string;
@@ -76,6 +77,7 @@ function toForm(s: StoreSettings): FormState {
     logoUrl: s.logoUrl ?? null,
     shippingFee: String(s.shippingFee ?? 0),
     realShippingCost: String(s.realShippingCost ?? 0),
+    packagingCost: String(s.packagingCost ?? 10),
     freeShippingThreshold: String(s.freeShippingThreshold ?? 0),
     currency: s.currency ?? "DH",
     defaultLang: s.defaultLang ?? "fr",
@@ -195,6 +197,7 @@ export default function SettingsPage() {
         logoUrl: form.logoUrl ?? "",
         shippingFee: Math.max(0, Number(form.shippingFee) || 0),
         realShippingCost: Math.max(0, Number(form.realShippingCost) || 0),
+        packagingCost: Math.max(0, Number(form.packagingCost) || 0),
         freeShippingThreshold: Math.max(0, Number(form.freeShippingThreshold) || 0),
         currency: form.currency.trim() || "DH",
         defaultLang: form.defaultLang,
@@ -609,6 +612,23 @@ export default function SettingsPage() {
                 <p className="mt-1 text-xs text-gray-400">
                   Internal logistics cost used only for profit calculations. Never displayed
                   to customers.
+                </p>
+              </div>
+              <div>
+                <label className="mb-1 block text-sm font-medium text-gray-700">
+                  Packaging &amp; confirmation cost ({form.currency || "DH"})
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={form.packagingCost}
+                  onChange={(e) => update({ packagingCost: e.target.value })}
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+                <p className="mt-1 text-xs text-gray-400">
+                  Flat cost per order (packaging + call-center confirmation). Charged once per
+                  order (not per product); internal — used in profit alongside real shipping.
                 </p>
               </div>
               <div>

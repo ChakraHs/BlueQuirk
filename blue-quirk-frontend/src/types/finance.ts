@@ -15,6 +15,7 @@ export interface FinanceSummary {
   discount: number;
   shipping: number; // customer shipping price charged
   realShippingCost: number; // internal logistics cost (never shown to customers)
+  packagingCost: number; // per-order packaging + confirmation cost (internal)
   collected: number;
   orders: number; // DELIVERED orders (realized revenue) — drives AOV
   totalOrders: number; // orders placed in the window, excluding cancelled
@@ -57,8 +58,9 @@ export interface OrderFinancials {
   shipping: number;
   finalTotal: number;
   realShippingCost: number; // internal logistics cost (never shown to customer)
+  packagingCost: number; // per-order packaging + confirmation cost (internal)
   grossProfit: number; // sellingTotal − costTotal (goods only)
-  netProfit: number; // finalTotal − costTotal − realShippingCost (bottom line)
+  netProfit: number; // finalTotal − costTotal − realShippingCost − packagingCost
   marginPercent: number;
   netSales: number;
   operationalRevenue: number;

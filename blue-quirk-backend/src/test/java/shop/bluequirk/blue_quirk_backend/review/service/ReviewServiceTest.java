@@ -92,7 +92,7 @@ class ReviewServiceTest {
         when(tokens.findByToken("nope")).thenReturn(java.util.Optional.empty());
 
         assertThatThrownBy(() -> service.submit(new ReviewSubmissionRequest(
-                "nope", 1L, 5, "t", "great", "Sara", null, null, null, null, "fr")))
+                "nope", 1L, null, 5, "t", "great", "Sara", null, null, null, null, "fr")))
                 .isInstanceOf(ResponseStatusException.class);
 
         verify(reviews, never()).save(any());

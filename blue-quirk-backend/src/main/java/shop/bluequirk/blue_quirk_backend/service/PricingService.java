@@ -9,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import shop.bluequirk.blue_quirk_backend.entity.Product;
-import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
 
 /**
@@ -24,13 +23,16 @@ public class PricingService {
     private final ProductRepository productRepository;
     private final StoreSettingsService storeSettingsService;
     private final CampaignPricing campaignPricing;
+    private final CityService cityService;
 
     public PricingService(ProductRepository productRepository,
                           StoreSettingsService storeSettingsService,
-                          CampaignPricing campaignPricing) {
+                          CampaignPricing campaignPricing,
+                          CityService cityService) {
         this.productRepository = productRepository;
         this.storeSettingsService = storeSettingsService;
         this.campaignPricing = campaignPricing;
+        this.cityService = cityService;
     }
 
     /** A single client cart line — only the product id and quantity are trusted. */
@@ -42,12 +44,19 @@ public class PricingService {
     /** The fully priced cart: server-computed subtotal and shipping. */
     public record PricedCart(List<PricedLine> lines, double subtotal, double shippingFee) {}
 
-    /**
-     * Prices a cart from the catalog. Throws 400 if the cart is empty or any
-     * product no longer exists.
-     */
+    /** Prices a cart with the flat (default) shipping — no city context. */
     @Transactional(readOnly = true)
     public PricedCart price(List<LineInput> inputs) {
+        return price(inputs, null);
+    }
+
+    /**
+     * Prices a cart from the catalog, resolving shipping for the given delivery
+     * {@code city} (its per-city fee when listed, else the flat settings fee).
+     * Throws 400 if the cart is empty or any product no longer exists.
+     */
+    @Transactional(readOnly = true)
+    public PricedCart price(List<LineInput> inputs, String city) {
         if (inputs == null || inputs.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Your cart is empty");
         }
@@ -70,20 +79,26 @@ public class PricingService {
             lines.add(new PricedLine(product, unitPrice, qty, lineTotal));
         }
 
-        return new PricedCart(lines, round(subtotal), computeShipping(subtotal));
+        return new PricedCart(lines, round(subtotal), computeShipping(subtotal, city));
+    }
+
+    /** Flat (default-city) shipping for a subtotal. */
+    public double computeShipping(double subtotal) {
+        return computeShipping(subtotal, null);
     }
 
     /**
-     * Free shipping kicks in once the subtotal reaches the configured threshold
-     * (threshold ≤ 0 disables the perk). Mirrors the storefront so totals match.
+     * The customer shipping price for a subtotal + delivery city. The per-city fee
+     * (or the flat settings fee when the city isn't listed) is the base; free shipping
+     * still waives it once the subtotal reaches the configured threshold (threshold
+     * ≤ 0 disables the perk). Mirrors the storefront so totals match.
      */
-    public double computeShipping(double subtotal) {
-        // The customer shipping price is the admin setting (single source of truth).
-        // A fee of 0 means free shipping is charged everywhere; the threshold still
-        // waives a non-zero fee once the subtotal qualifies.
-        StoreSettings settings = storeSettingsService.getOrCreate();
-        double fee = settings.getShippingFee();
-        double threshold = settings.getFreeShippingThreshold();
+    public double computeShipping(double subtotal, String city) {
+        // Per-city customer fee, falling back to the settings default for unlisted
+        // cities. A fee of 0 means free everywhere; the threshold still waives a
+        // non-zero fee once the subtotal qualifies.
+        double fee = cityService.customerShippingFee(city);
+        double threshold = storeSettingsService.getOrCreate().getFreeShippingThreshold();
         return (threshold > 0 && subtotal >= threshold) ? 0.0 : fee;
     }
 

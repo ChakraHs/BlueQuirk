@@ -60,6 +60,7 @@ public class OrderService {
     private final ProgressiveDiscountService progressiveDiscountService;
     private final FinancialCalculationService finance;
     private final StoreSettingsService storeSettingsService;
+    private final CityService cityService;
     private final CurrentUserService currentUserService;
     private final OrderAuditLogRepository auditRepository;
     private final TodifySyncLogRepository todifyLogRepository;
@@ -76,6 +77,7 @@ public class OrderService {
                         ProgressiveDiscountService progressiveDiscountService,
                         FinancialCalculationService finance,
                         StoreSettingsService storeSettingsService,
+                        CityService cityService,
                         CurrentUserService currentUserService,
                         OrderAuditLogRepository auditRepository,
                         TodifySyncLogRepository todifyLogRepository) {
@@ -89,6 +91,7 @@ public class OrderService {
         this.progressiveDiscountService = progressiveDiscountService;
         this.finance = finance;
         this.storeSettingsService = storeSettingsService;
+        this.cityService = cityService;
         this.currentUserService = currentUserService;
         this.auditRepository = auditRepository;
         this.todifyLogRepository = todifyLogRepository;
@@ -159,7 +162,9 @@ public class OrderService {
         List<LineInput> lineInputs = req.items().stream()
                 .map(i -> new LineInput(i.productId(), i.quantity()))
                 .toList();
-        PricedCart cart = pricingService.price(lineInputs);
+        // Price with the delivery city so shipping is the per-city customer fee
+        // (falls back to the flat settings fee for unlisted cities).
+        PricedCart cart = pricingService.price(lineInputs, order.getCity());
         double subtotal = cart.subtotal();
         double shippingFee = cart.shippingFee();
 
@@ -239,8 +244,12 @@ public class OrderService {
         order.setShippingFee(shippingFee);
         order.setCostTotal(round(costTotal));
         // Snapshot the internal Real Shipping Cost so this order's profit is frozen
-        // and immune to later changes of the admin setting. Internal only.
-        order.setRealShippingCost(Math.max(0, storeSettingsService.getOrCreate().getRealShippingCost()));
+        // and immune to later changes. Per delivery city (its own real cost when
+        // listed, else the flat settings cost). Internal only.
+        order.setRealShippingCost(Math.max(0, cityService.realShippingCost(order.getCity())));
+        // Flat per-order packaging + confirmation cost, snapshotted so profit stays
+        // frozen. One per order (not per product); internal only.
+        order.setPackagingCost(Math.max(0, storeSettingsService.getOrCreate().getPackagingCost()));
         order.setOriginalTotal(originalTotal);
         order.setDiscountAmount(discount);
         order.setDiscountPercentage(discountPercentage);
@@ -345,6 +354,7 @@ public class OrderService {
             double selling = order.getSubtotal();
             double cost = order.getCostTotal();
             double realShipping = order.getRealShippingCost();
+            double packaging = order.getPackagingCost();
             return new OrderFinancialsResponse(
                     order.getId(),
                     order.getOrderNumber(),
@@ -354,8 +364,9 @@ public class OrderService {
                     order.getShippingFee(),
                     order.getTotal(),
                     realShipping,
+                    packaging,
                     finance.grossProfit(selling, cost),
-                    finance.netProfit(order.getTotal(), cost, realShipping),
+                    finance.netProfit(order.getTotal(), cost, realShipping, packaging),
                     finance.marginPercent(selling, cost),
                     finance.netSales(selling, order.getDiscountAmount()),
                     finance.operationalRevenue(selling, order.getShippingFee()),

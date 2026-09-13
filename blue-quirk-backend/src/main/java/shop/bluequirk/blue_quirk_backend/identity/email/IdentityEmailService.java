@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import shop.bluequirk.blue_quirk_backend.provider.EmailProvider;
+import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 import shop.bluequirk.blue_quirk_backend.utility.EmailI18n;
 
 /**
@@ -23,11 +24,14 @@ public class IdentityEmailService {
     private static final Logger LOG = LoggerFactory.getLogger(IdentityEmailService.class);
 
     private final EmailProvider emailProvider;
+    private final StoreSettingsService storeSettingsService;
     private final String frontendBaseUrl;
 
     public IdentityEmailService(EmailProvider emailProvider,
+                                StoreSettingsService storeSettingsService,
                                 @Value("${app.frontend-base-url:http://localhost:3000}") String frontendBaseUrl) {
         this.emailProvider = emailProvider;
+        this.storeSettingsService = storeSettingsService;
         this.frontendBaseUrl = frontendBaseUrl.replaceAll("/+$", "");
     }
 
@@ -94,7 +98,7 @@ public class IdentityEmailService {
         return "<div dir='" + EmailI18n.dir(lang) + "' style='font-family:Arial,Helvetica,sans-serif;"
                 + "max-width:520px;margin:0 auto;color:#111827;text-align:" + EmailI18n.startAlign(lang) + "'>"
                 + "<div style='font-size:22px;font-weight:800;padding:8px 0'>"
-                + "Red<span style='color:#dc2626'>Quirk</span></div>"
+                + storeSettingsService.emailBrandHeaderHtml() + "</div>"
                 + inner + "</div>";
     }
 
