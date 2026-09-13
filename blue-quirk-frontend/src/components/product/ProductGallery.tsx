@@ -179,7 +179,13 @@ export default function ProductGallery({
   };
 
   return (
-    <div className="flex gap-3 sm:gap-4">
+    // Force the whole gallery LTR: it's a physical horizontal carousel
+    // (translateX-driven track + dot indicators + prev/next arrows). Under RTL
+    // (Arabic) the dots/arrows would otherwise reverse and no longer match the
+    // LTR image order, making navigation feel backwards (appearing to start from
+    // the last image). LTR keeps images, dots and arrows moving the same way in
+    // every language; the images themselves are direction-agnostic.
+    <div dir="ltr" className="flex gap-3 sm:gap-4">
       {/* desktop vertical thumbnails (in slide order) */}
       {count > 1 && (
         <div className="hidden max-h-[600px] w-16 shrink-0 flex-col gap-3 overflow-y-auto sm:flex md:w-20">

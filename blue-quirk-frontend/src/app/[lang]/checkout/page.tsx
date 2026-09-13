@@ -23,8 +23,7 @@ import { track } from "@/lib/analytics/tracker";
 import { trackingService } from "@/lib/tracking/service";
 
 type Form = {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone: string;
   address: string;
@@ -33,9 +32,16 @@ type Form = {
 };
 
 const EMPTY: Form = {
-  firstName: "", lastName: "", email: "", phone: "",
+  fullName: "", email: "", phone: "",
   address: "", city: "", note: "",
 };
+
+/** Split a full name into a first name (first word) + last name (the rest). */
+function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Moroccan-friendly: optional +, digits/spaces/dashes, at least 9 digits.
@@ -102,10 +108,10 @@ export default function CheckoutPage({
   }, []);
 
   function applyUser(user: AuthUser) {
+    const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
     setForm((f) => ({
       ...f,
-      firstName: user.firstName || f.firstName,
-      lastName: user.lastName || f.lastName,
+      fullName: name || f.fullName,
       email: user.email || f.email,
     }));
   }
@@ -113,8 +119,7 @@ export default function CheckoutPage({
   const validateField = (field: keyof Form, value: string): string | undefined => {
     const v = value.trim();
     switch (field) {
-      case "firstName": return v ? undefined : t(lang, "checkout.firstNameRequired");
-      case "lastName": return v ? undefined : t(lang, "checkout.lastNameRequired");
+      case "fullName": return v ? undefined : t(lang, "checkout.fullNameRequired");
       case "email":
         // Optional for COD — an empty email is fine (we reach the customer by
         // phone). Only validate the format when something was actually typed.
@@ -158,7 +163,7 @@ export default function CheckoutPage({
   const canSubmit = useMemo(
     () =>
       // Email is intentionally NOT required — COD reaches the customer by phone.
-      form.firstName.trim() && form.lastName.trim() &&
+      form.fullName.trim() &&
       form.phone.trim() && form.address.trim() && form.city.trim() &&
       items.length > 0,
     [form, items]
@@ -204,9 +209,10 @@ export default function CheckoutPage({
 
     setLoading(true);
     try {
+      const { firstName, lastName } = splitName(form.fullName);
       const order = await OrderService.create({
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
+        firstName,
+        lastName,
         email: form.email.trim() || undefined,
         phone: form.phone.trim(),
         city: form.city.trim(),
@@ -300,10 +306,7 @@ export default function CheckoutPage({
           )}
 
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.firstName")} required value={form.firstName} onChange={update("firstName")} onBlur={blur("firstName")} error={errors.firstName} placeholder="Jean" autoComplete="given-name" />
-              <Field label={t(lang, "checkout.lastName")} required value={form.lastName} onChange={update("lastName")} onBlur={blur("lastName")} error={errors.lastName} placeholder="Dupont" autoComplete="family-name" />
-            </div>
+            <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.fullName")} required value={form.fullName} onChange={update("fullName")} onBlur={blur("fullName")} error={errors.fullName} placeholder={t(lang, "checkout.fullName")} autoComplete="name" />
             <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />

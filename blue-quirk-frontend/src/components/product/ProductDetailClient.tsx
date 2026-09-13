@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShieldCheck, ShoppingBag, Sparkles, Star, Truck, Zap } from "lucide-react";
+import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShoppingBag, Sparkles, Star, Truck, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
@@ -619,20 +619,6 @@ export default function ProductDetailClient({
           </div>
         </div>
 
-        <div className="order-8 grid gap-3 border-t border-gray-200 pt-6 text-sm text-gray-600 sm:grid-cols-3 md:order-7">
-          <div className="flex items-start gap-2">
-            <Truck className="mt-0.5 size-4 text-gray-900" />
-            <span>{t(lang, "product.delivery")}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <ShieldCheck className="mt-0.5 size-4 text-gray-900" />
-            <span>{t(lang, "product.secure")}</span>
-          </div>
-          <div className="flex items-start gap-2">
-            <RotateCcw className="mt-0.5 size-4 text-gray-900" />
-            <span>{t(lang, "product.returns")}</span>
-          </div>
-        </div>
       </section>
 
       <SizeGuideModal
