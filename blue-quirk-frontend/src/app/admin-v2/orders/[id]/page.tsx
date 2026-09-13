@@ -522,7 +522,7 @@ export default function OrderDetailPage() {
                   <span>
                     {formatPrice(financials.netProfit)}
                     <span className="ml-2 text-sm font-medium">
-                      ({formatPercent(financials.marginPercent)})
+                      ({formatPercent(financials.finalTotal > 0 ? (financials.netProfit / financials.finalTotal) * 100 : 0)})
                     </span>
                   </span>
                 </div>

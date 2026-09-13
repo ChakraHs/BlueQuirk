@@ -129,10 +129,10 @@ export default function FinanceKpis() {
           />
           <StatCard
             label="Profit Margin"
-            value={formatPercent(current.marginPercent)}
+            value={formatPercent(current.collected > 0 ? (current.netProfit / current.collected) * 100 : 0)}
             icon={Percent}
             accent="violet"
-            hint="Gross profit ÷ revenue"
+            hint="Net profit ÷ revenue (incl. shipping)"
           />
           <StatCard
             label="Orders"
