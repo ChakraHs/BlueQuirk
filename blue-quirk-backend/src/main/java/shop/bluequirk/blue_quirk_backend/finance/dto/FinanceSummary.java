@@ -19,6 +19,8 @@ public record FinanceSummary(
         double shipping,           // Σ customer shipping price charged
         double realShippingCost,   // Σ internal shipping cost (never shown to customers)
         double packagingCost,      // Σ per-order packaging + confirmation cost (internal)
+        double expenses,           // Σ business expenses in the window (ads/hosting/UGC/…)
+        double realProfit,         // netProfit − expenses (true bottom line after all costs)
         double collected,          // Σ amount customers paid (final total)
         long orders,               // DELIVERED orders (realized revenue) — drives AOV
         long totalOrders,          // orders placed in the window, excluding cancelled

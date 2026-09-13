@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import shop.bluequirk.blue_quirk_backend.finance.dto.FinanceSummary;
 import shop.bluequirk.blue_quirk_backend.finance.dto.FinanceTimePoint;
 import shop.bluequirk.blue_quirk_backend.finance.dto.ProductFinancialRow;
+import shop.bluequirk.blue_quirk_backend.finance.repository.ExpenseRepository;
 import shop.bluequirk.blue_quirk_backend.finance.repository.FinanceReportRepository;
 
 /**
@@ -35,11 +36,14 @@ public class FinanceReportService {
     public enum Granularity { DAY, MONTH }
 
     private final FinanceReportRepository repository;
+    private final ExpenseRepository expenseRepository;
     private final FinancialCalculationService finance;
 
     public FinanceReportService(FinanceReportRepository repository,
+                                ExpenseRepository expenseRepository,
                                 FinancialCalculationService finance) {
         this.repository = repository;
+        this.expenseRepository = expenseRepository;
         this.finance = finance;
     }
 
@@ -60,13 +64,18 @@ public class FinanceReportService {
         long units = repository.sumUnits(from, to);
         long totalOrders = repository.totalOrders(from, to);
 
+        double netProfit = finance.netProfit(collected, cost, realShippingCost, packagingCost);
+        // Business expenses (ads/hosting/UGC/…) in the same window → real bottom line.
+        double expenses = finance.round(expenseRepository.sumBetween(from.toLocalDate(), to.toLocalDate()));
+        double realProfit = finance.round(netProfit - expenses);
+
         return new FinanceSummary(
                 from.toString(),
                 to.toString(),
                 revenue,
                 cost,
                 finance.grossProfit(revenue, cost),
-                finance.netProfit(collected, cost, realShippingCost, packagingCost),
+                netProfit,
                 finance.marginPercent(revenue, cost),
                 finance.netSales(revenue, discount),
                 finance.operationalRevenue(revenue, shipping),
@@ -74,6 +83,8 @@ public class FinanceReportService {
                 shipping,
                 realShippingCost,
                 packagingCost,
+                expenses,
+                realProfit,
                 collected,
                 orders,
                 totalOrders,
@@ -89,6 +100,15 @@ public class FinanceReportService {
                 ? repository.monthlyFinancials(from, to)
                 : repository.dailyFinancials(from, to);
 
+        // Business expenses per bucket (ads/hosting/UGC/…), keyed by the same period.
+        List<Object[]> expenseRows = granularity == Granularity.MONTH
+                ? expenseRepository.monthlyExpenses(from.toLocalDate(), to.toLocalDate())
+                : expenseRepository.dailyExpenses(from.toLocalDate(), to.toLocalDate());
+        Map<String, Double> expenseByPeriod = new HashMap<>();
+        for (Object[] e : expenseRows) {
+            expenseByPeriod.put(str(e[0]), finance.round(num(e[1])));
+        }
+
         // Index the buckets that actually have orders by their period key.
         Map<String, FinanceTimePoint> byPeriod = new HashMap<>();
         for (Object[] r : rows) {
@@ -98,11 +118,12 @@ public class FinanceReportService {
             double realShipping = finance.round(num(r[5]));
             double packaging = finance.round(num(r[6]));
             String period = str(r[0]);
-            // The series "profit" line is the bottom line (net profit): what was
-            // collected minus product cost, the internal real shipping cost and the
-            // per-order packaging + confirmation cost.
+            double netProfit = finance.netProfit(collected, cost, realShipping, packaging);
+            double expenses = expenseByPeriod.getOrDefault(period, 0.0);
+            double realProfit = finance.round(netProfit - expenses);
+            // "profit" = net profit (before expenses); "realProfit" = after expenses.
             byPeriod.put(period, new FinanceTimePoint(period, lng(r[1]), revenue, collected, cost,
-                    finance.netProfit(collected, cost, realShipping, packaging), finance.marginPercent(revenue, cost)));
+                    netProfit, finance.marginPercent(revenue, cost), expenses, realProfit));
         }
 
         // Emit a CONTINUOUS series: every bucket in [from, to], zero-filled where
@@ -115,7 +136,7 @@ public class FinanceReportService {
             YearMonth end = YearMonth.from(to);
             while (!cursor.isAfter(end)) {
                 String key = cursor.format(fmt);
-                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0, 0.0)));
+                series.add(pointFor(key, byPeriod, expenseByPeriod));
                 cursor = cursor.plusMonths(1);
             }
         } else {
@@ -124,11 +145,25 @@ public class FinanceReportService {
             LocalDate end = to.toLocalDate();
             while (!cursor.isAfter(end)) {
                 String key = cursor.format(fmt);
-                series.add(byPeriod.getOrDefault(key, new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0, 0.0)));
+                series.add(pointFor(key, byPeriod, expenseByPeriod));
                 cursor = cursor.plusDays(1);
             }
         }
         return series;
+    }
+
+    /**
+     * The bucket for a period: the order-derived point when the period had orders,
+     * otherwise an empty bucket that still carries any expenses booked that period
+     * (so a month with costs but no delivered orders shows a negative real profit,
+     * not a flat zero).
+     */
+    private FinanceTimePoint pointFor(String key, Map<String, FinanceTimePoint> byPeriod,
+                                      Map<String, Double> expenseByPeriod) {
+        FinanceTimePoint p = byPeriod.get(key);
+        if (p != null) return p;
+        double expenses = expenseByPeriod.getOrDefault(key, 0.0);
+        return new FinanceTimePoint(key, 0L, 0.0, 0.0, 0.0, 0.0, 0.0, expenses, finance.round(-expenses));
     }
 
     /**

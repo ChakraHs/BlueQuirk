@@ -25,6 +25,7 @@ import {
   KeyRound,
   Star,
   MapPin,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -37,6 +38,7 @@ const groups: Group[] = [
     items: [
       { name: "Dashboard", href: "/admin-v2", icon: LayoutDashboard },
       { name: "Analytics", href: "/admin-v2/analytics", icon: BarChart3 },
+      { name: "Dépenses / Coûts", href: "/admin-v2/expenses", icon: Wallet },
     ],
   },
   {
