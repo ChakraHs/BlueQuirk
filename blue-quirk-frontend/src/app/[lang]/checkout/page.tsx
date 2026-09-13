@@ -17,6 +17,7 @@ import FreeShippingBar from "@/components/storefront/FreeShippingBar";
 import { isAuthenticated, getAuthUser, type AuthUser } from "@/lib/auth";
 import { OrderService, cartToOrderItems, type OrderResponse } from "@/services/order.service";
 import LoginModal from "@/components/storefront/LoginModal";
+import CitySelect from "@/components/checkout/CitySelect";
 import { t } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
 import { trackingService } from "@/lib/tracking/service";
@@ -73,6 +74,8 @@ export default function CheckoutPage({
   const { quote, loading: quoting } = useCartQuote(quoteItems, {
     couponCode: appliedCode ?? undefined,
     email: form.email.trim() || undefined,
+    // The selected city drives the per-city shipping fee in the authoritative quote.
+    city: form.city.trim() || undefined,
   });
 
   const progressive = progressiveState(quote);
@@ -113,7 +116,9 @@ export default function CheckoutPage({
       case "firstName": return v ? undefined : t(lang, "checkout.firstNameRequired");
       case "lastName": return v ? undefined : t(lang, "checkout.lastNameRequired");
       case "email":
-        if (!v) return t(lang, "checkout.emailRequired");
+        // Optional for COD — an empty email is fine (we reach the customer by
+        // phone). Only validate the format when something was actually typed.
+        if (!v) return undefined;
         return EMAIL_RE.test(v) ? undefined : t(lang, "checkout.emailInvalid");
       case "phone":
         if (!v) return t(lang, "checkout.phoneRequired");
@@ -152,7 +157,8 @@ export default function CheckoutPage({
 
   const canSubmit = useMemo(
     () =>
-      form.firstName.trim() && form.lastName.trim() && form.email.trim() &&
+      // Email is intentionally NOT required — COD reaches the customer by phone.
+      form.firstName.trim() && form.lastName.trim() &&
       form.phone.trim() && form.address.trim() && form.city.trim() &&
       items.length > 0,
     [form, items]
@@ -201,7 +207,7 @@ export default function CheckoutPage({
       const order = await OrderService.create({
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
-        email: form.email.trim(),
+        email: form.email.trim() || undefined,
         phone: form.phone.trim(),
         city: form.city.trim(),
         address: form.address.trim(),
@@ -298,10 +304,22 @@ export default function CheckoutPage({
               <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.firstName")} required value={form.firstName} onChange={update("firstName")} onBlur={blur("firstName")} error={errors.firstName} placeholder="Jean" autoComplete="given-name" />
               <Field label={t(lang, "checkout.lastName")} required value={form.lastName} onChange={update("lastName")} onBlur={blur("lastName")} error={errors.lastName} placeholder="Dupont" autoComplete="family-name" />
             </div>
-            <Field icon={<Mail size={18} />} label={t(lang, "checkout.email")} required type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
+            <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
-            <Field label={t(lang, "checkout.city")} required value={form.city} onChange={update("city")} onBlur={blur("city")} error={errors.city} placeholder="Casablanca" autoComplete="address-level2" />
+            <CitySelect
+              label={t(lang, "checkout.city")}
+              lang={lang}
+              required
+              value={form.city}
+              onChange={(v) => {
+                setForm((prev) => ({ ...prev, city: v }));
+                if (touched.city) setErrors((prev) => ({ ...prev, city: validateField("city", v) }));
+              }}
+              onBlur={blur("city")}
+              error={errors.city}
+              placeholder="Casablanca"
+            />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-gray-700">{t(lang, "checkout.note")} ({t(lang, "common.optional")})</label>
               <textarea

@@ -72,7 +72,17 @@ public class FinancialCalculationService {
      * real logistics cost here.
      */
     public double netProfit(double total, double cost, double realShippingCost) {
-        return round(total - cost - realShippingCost);
+        return netProfit(total, cost, realShippingCost, 0);
+    }
+
+    /**
+     * Net profit including the flat per-order packaging + confirmation cost:
+     * {@code total − cost − realShippingCost − packagingCost}. Packaging is an
+     * internal per-order expense (one per order, never per product), deducted here
+     * alongside the real shipping cost.
+     */
+    public double netProfit(double total, double cost, double realShippingCost, double packagingCost) {
+        return round(total - cost - realShippingCost - packagingCost);
     }
 
     /** Net sales: Revenue − Discounts. */

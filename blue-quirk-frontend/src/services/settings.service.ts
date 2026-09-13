@@ -10,6 +10,7 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   logoUrl: string | null;
   shippingFee: number; // Customer Shipping Price (0 = free shipping)
   realShippingCost: number; // internal only — never shown to customers
+  packagingCost: number; // flat per-order packaging + confirmation cost (internal)
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string;

@@ -21,10 +21,20 @@ const FALLBACK_IMAGE =
 export default function ProductCard({
   product,
   lang = "fr",
+  flushMobile = false,
 }: {
   product: Product;
   lang?: string;
+  /**
+   * When the card sits in an edge-to-edge grid (home/category on phones + small
+   * tablets), square off the corners below `md` so the image is truly flush with
+   * the screen edge — a rounded corner against the edge looks like a gap. Corners
+   * are restored to rounded from `md` up, where the grid regains side padding.
+   */
+  flushMobile?: boolean;
 }) {
+  // Corner radius: squared while full-bleed, rounded again from md up.
+  const radius = flushMobile ? "rounded-none md:rounded-2xl" : "rounded-2xl";
   // Cards only ever need the lightweight thumbnail variant — never the display
   // or original — so listings stay fast and cheap on bandwidth.
   const images =
@@ -77,7 +87,7 @@ export default function ProductCard({
   return (
     <Link
       href={`/${lang}/product/${product.id}`}
-      className="group block overflow-hidden rounded-2xl bg-surface transition-all duration-300 hover:-translate-y-1"
+      className={`group block overflow-hidden ${radius} bg-surface transition-all duration-300 hover:-translate-y-1`}
     >
       {/* IMAGE / carousel — the printed artwork is the hero, so it takes the
           lion's share of the card. A single fixed neutral background is used for
@@ -85,7 +95,7 @@ export default function ProductCard({
           the image is zoomed slightly so the tee fills the frame — the source
           padding already gives us room to crop into. */}
       <div
-        className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-xl"
+        className={`relative aspect-[4/5] overflow-hidden ${radius} bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-xl`}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >
@@ -149,8 +159,10 @@ export default function ProductCard({
         />
       </div>
 
-      {/* INFO — compact, 8px rhythm, strong price-first hierarchy */}
-      <div className="px-1 pt-2 pb-1">
+      {/* INFO — compact, 8px rhythm, strong price-first hierarchy. Slightly more
+          side padding on mobile so text isn't glued to the screen edge when the
+          grid runs edge-to-edge; tighter on ≥sm where cards aren't at the edge. */}
+      <div className="px-2 pt-2 pb-1 sm:px-1">
         {/* image pagination dots */}
         {hasMultiple && (
           <div className="mb-2 flex justify-center gap-1">

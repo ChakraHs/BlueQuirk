@@ -56,5 +56,8 @@ public record StoreSettingsRequest(
         Boolean reviewPhotosEnabled,
         Integer reviewRequestDelayDays,
         Boolean reviewRequestEmailEnabled,
-        Integer reviewsPerPage
+        Integer reviewsPerPage,
+        // Flat per-order packaging + confirmation cost (internal; profit only). Null
+        // leaves it unchanged.
+        Double packagingCost
 ) {}

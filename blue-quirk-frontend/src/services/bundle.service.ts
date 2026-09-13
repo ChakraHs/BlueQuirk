@@ -147,12 +147,14 @@ export async function fetchActiveBundles(): Promise<PublicBundleOffer[]> {
 /** Authoritative price for a cart (server-computed bundle + optional coupon). */
 export async function fetchCartQuote(
   items: { productId: number; quantity: number }[],
-  opts: { couponCode?: string; email?: string } = {}
+  opts: { couponCode?: string; email?: string; city?: string } = {}
 ): Promise<CartQuote> {
   const { data } = await api.post<CartQuote>("/cart/quote", {
     items,
     couponCode: opts.couponCode,
     email: opts.email,
+    // Delivery city so the quote's shipping/total reflect the per-city fee.
+    city: opts.city,
   });
   return data;
 }

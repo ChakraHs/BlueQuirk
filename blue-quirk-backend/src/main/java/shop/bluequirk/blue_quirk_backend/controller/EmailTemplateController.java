@@ -11,6 +11,7 @@ import shop.bluequirk.blue_quirk_backend.domain.EmailEvent;
 import shop.bluequirk.blue_quirk_backend.domain.EmailTemplateCatalog;
 import shop.bluequirk.blue_quirk_backend.entity.EmailTemplate;
 import shop.bluequirk.blue_quirk_backend.repository.EmailTemplateRepository;
+import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
 import shop.bluequirk.blue_quirk_backend.utility.EmailI18n;
 import shop.bluequirk.blue_quirk_backend.utility.TemplateEngine;
 
@@ -19,9 +20,12 @@ import shop.bluequirk.blue_quirk_backend.utility.TemplateEngine;
 public class EmailTemplateController {
 
     private final EmailTemplateRepository repository;
+    private final StoreSettingsService storeSettingsService;
 
-    public EmailTemplateController(EmailTemplateRepository repository) {
+    public EmailTemplateController(EmailTemplateRepository repository,
+                                   StoreSettingsService storeSettingsService) {
         this.repository = repository;
+        this.storeSettingsService = storeSettingsService;
     }
 
     /** One entry per email event, with whether a template is assigned/active for the language. */
@@ -77,6 +81,8 @@ public class EmailTemplateController {
     public PreviewResponse preview(@PathVariable Long id) {
         EmailTemplate t = repository.findById(id).orElseThrow(this::notFound);
         Map<String, String> vars = EmailTemplateCatalog.sampleVariables();
+        // Show the real configured branding (logo or wordmark) in the preview.
+        vars.put("brandHeader", storeSettingsService.emailBrandHeaderHtml());
         return new PreviewResponse(
                 TemplateEngine.process(t.getSubject(), vars),
                 TemplateEngine.process(t.getBody(), vars));

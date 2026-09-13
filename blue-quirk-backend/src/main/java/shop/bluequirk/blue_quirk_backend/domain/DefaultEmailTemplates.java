@@ -116,7 +116,7 @@ public final class DefaultEmailTemplates {
                 + "border:1px solid #ececf0;overflow:hidden'>"
                 // Brand bar
                 + "<div style='padding:22px 28px;border-bottom:1px solid #f1f2f4;font-size:22px;"
-                + "font-weight:800;color:#111827'>Red<span style='color:#dc2626'>Quirk</span></div>"
+                + "font-weight:800;color:#111827'>{{brandHeader}}</div>"
                 // Hero
                 + "<div style='padding:36px 28px 4px;text-align:center'>"
                 + "<div style='width:66px;height:66px;margin:0 auto 18px;border-radius:50%;background:#ecfdf5'>"
@@ -164,10 +164,14 @@ public final class DefaultEmailTemplates {
         String btn = ar ? "اترك تقييمك" : "Donner mon avis";
         String footer = "{{storeName}} — " + EmailI18n.t(lang, "footer.thanks");
 
+        // A self-contained card layout, deliberately DISTINCT from the shared
+        // order-email wrapper: Gmail collapses a short message behind "..." when its
+        // body matches boilerplate seen in other emails, so this unique structure
+        // keeps the review invite rendering in full. Brand bar uses the store logo.
         return "<div dir='" + dir + "' style='background:#f3f4f6;padding:24px 12px;font-family:Arial,Helvetica,sans-serif;text-align:" + start + "'>"
                 + "<div style='max-width:560px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #ececf0;overflow:hidden'>"
                 + "<div style='padding:22px 28px;border-bottom:1px solid #f1f2f4;font-size:22px;font-weight:800;color:#111827'>"
-                + "Red<span style='color:#dc2626'>Quirk</span></div>"
+                + "{{brandHeader}}</div>"
                 + "<div style='padding:34px 28px 6px;text-align:center'>"
                 + "<div style='font-size:30px;letter-spacing:3px;color:#f59e0b'>&#9733;&#9733;&#9733;&#9733;&#9733;</div>"
                 + "<h1 style='margin:14px 0 0;font-size:22px;color:#111827'>" + heroTitle + "</h1></div>"
@@ -214,7 +218,7 @@ public final class DefaultEmailTemplates {
         return "<div dir='" + EmailI18n.dir(lang) + "' style='font-family:Arial,Helvetica,sans-serif;"
                 + "max-width:560px;margin:0 auto;color:#111827;text-align:" + EmailI18n.startAlign(lang) + "'>"
                 + "<div style='font-size:22px;font-weight:800;padding:8px 0'>"
-                + "Red<span style='color:#dc2626'>Quirk</span></div>";
+                + "{{brandHeader}}</div>";
     }
 
     private static String heading(String title) {

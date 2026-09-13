@@ -121,6 +121,13 @@ public class Order {
     @Column(name = "real_shipping_cost", nullable = false)
     private double realShippingCost = 0;
 
+    // Flat per-order packaging + confirmation cost, snapshotted from the setting at
+    // order time (frozen for stable historical profit). One per order (NOT per
+    // product). Internal only. Net profit = total − costTotal − realShippingCost −
+    // packagingCost.
+    @Column(name = "packaging_cost", nullable = false)
+    private double packagingCost = 0;
+
     // --- Promotion / coupon (all backend-computed; persisted for invoices + analytics) ---
     // Pre-discount grand total (subtotal + shipping) at order time.
     @Column(name = "original_total", nullable = false)
@@ -313,6 +320,9 @@ public class Order {
 
     public double getRealShippingCost() { return realShippingCost; }
     public void setRealShippingCost(double realShippingCost) { this.realShippingCost = realShippingCost; }
+
+    public double getPackagingCost() { return packagingCost; }
+    public void setPackagingCost(double packagingCost) { this.packagingCost = packagingCost; }
 
     public double getOriginalTotal() { return originalTotal; }
     public void setOriginalTotal(double originalTotal) { this.originalTotal = originalTotal; }

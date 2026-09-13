@@ -24,6 +24,8 @@ import {
   Megaphone,
   KeyRound,
   Star,
+  MapPin,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +38,7 @@ const groups: Group[] = [
     items: [
       { name: "Dashboard", href: "/admin-v2", icon: LayoutDashboard },
       { name: "Analytics", href: "/admin-v2/analytics", icon: BarChart3 },
+      { name: "Dépenses / Coûts", href: "/admin-v2/expenses", icon: Wallet },
     ],
   },
   {
@@ -79,6 +82,7 @@ const groups: Group[] = [
   {
     heading: "Configuration",
     items: [
+      { name: "Villes & livraison", href: "/admin-v2/cities", icon: MapPin },
       { name: "Email templates", href: "/admin-v2/emails", icon: Mail },
       { name: "Integrations & keys", href: "/admin-v2/integrations", icon: KeyRound },
       { name: "Settings", href: "/admin-v2/settings", icon: Settings },

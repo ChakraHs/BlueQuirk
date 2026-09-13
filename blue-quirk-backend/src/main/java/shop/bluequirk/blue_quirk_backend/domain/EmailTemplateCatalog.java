@@ -17,6 +17,7 @@ public final class EmailTemplateCatalog {
     public record VariableInfo(String name, String description) {}
 
     public static final List<VariableInfo> VARIABLES = List.of(
+            new VariableInfo("brandHeader", "Store logo image (or the wordmark when no logo is set) — for the email header"),
             new VariableInfo("storeName", "Store name (e.g. RedQuirk)"),
             new VariableInfo("orderRef", "Order reference (e.g. BQ-2026-000001)"),
             new VariableInfo("customerName", "Customer full name"),
@@ -42,6 +43,8 @@ public final class EmailTemplateCatalog {
     /** Realistic placeholder values so the admin preview looks like a real email. */
     public static Map<String, String> sampleVariables() {
         Map<String, String> v = new LinkedHashMap<>();
+        // Fallback wordmark; the live preview overrides this with the real logo.
+        v.put("brandHeader", "Red<span style='color:#dc2626'>Quirk</span>");
         v.put("storeName", "RedQuirk");
         v.put("orderRef", "BQ-2026-000042");
         v.put("customerName", "Sara Bennani");

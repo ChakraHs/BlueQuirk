@@ -147,7 +147,7 @@ public class ReviewService {
         if (t == null || !t.isRedeemable()) return ReviewTokenInfo.invalid();
         Order order = orders.findById(t.getOrderId()).orElse(null);
         if (order == null) return ReviewTokenInfo.invalid();
-        // Distinct products on the order (a customer reviews one product per token).
+        // Distinct products on the order (the customer may review one, several, or all).
         List<ReviewTokenInfo.TokenProduct> productList = order.getItems().stream()
                 .filter(i -> i.getProductId() != null)
                 .collect(Collectors.toMap(OrderItem::getProductId, i -> i, (a, b) -> a))
@@ -158,11 +158,13 @@ public class ReviewService {
     }
 
     /**
-     * Redeem a token and store a review. Verification (the token's order actually
-     * contains the reviewed product) is what makes it a Verified purchase — the
-     * client can never assert that itself. Note: submission is intentionally NOT
-     * gated by {@code reviewsEnabled} — the whole point is to gather genuine reviews
-     * while display stays hidden, then flip the switch.
+     * Redeem a token and store one review per selected product. Verification (the
+     * token's order actually contains each reviewed product) is what makes it a
+     * Verified purchase — the client can never assert that itself. The customer may
+     * review a single product or several/all products from the order at once; the same
+     * rating/body/photo is applied to every selection, and the token is burned once.
+     * Note: submission is intentionally NOT gated by {@code reviewsEnabled} — the whole
+     * point is to gather genuine reviews while display stays hidden, then flip the switch.
      */
     @Transactional
     public ReviewResponse submit(ReviewSubmissionRequest req) {
@@ -177,11 +179,27 @@ public class ReviewService {
         Order order = orders.findById(token.getOrderId())
                 .orElseThrow(() -> badRequest("This review link is invalid."));
 
-        Long productId = req.productId();
-        boolean onOrder = productId != null && order.getItems().stream()
-                .anyMatch(i -> productId.equals(i.getProductId()));
-        if (!onOrder) {
-            throw badRequest("The selected product is not part of this order.");
+        // Resolve the products to review: the multi-select list, else the single id.
+        java.util.LinkedHashSet<Long> targetIds = new java.util.LinkedHashSet<>();
+        if (req.productIds() != null) {
+            req.productIds().stream().filter(java.util.Objects::nonNull).forEach(targetIds::add);
+        }
+        if (targetIds.isEmpty() && req.productId() != null) {
+            targetIds.add(req.productId());
+        }
+        if (targetIds.isEmpty()) {
+            throw badRequest("Please choose at least one product to review.");
+        }
+
+        // Every selected product must belong to this order (that check sets Verified).
+        java.util.Set<Long> onOrder = order.getItems().stream()
+                .map(OrderItem::getProductId)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toSet());
+        for (Long id : targetIds) {
+            if (!onOrder.contains(id)) {
+                throw badRequest("A selected product is not part of this order.");
+            }
         }
 
         int rating = req.rating() == null ? 0 : req.rating();
@@ -196,36 +214,40 @@ public class ReviewService {
 
         StoreSettings s = settingsService.getOrCreate();
 
-        Review r = new Review();
-        r.setProductId(productId);
-        r.setOrderId(order.getId());
-        r.setRating(rating);
-        r.setTitle(clip(trimToNull(req.title()), MAX_TITLE));
-        r.setBody(body);
-        r.setAuthorName(author);
-        r.setSizePurchased(clip(trimToNull(req.sizePurchased()), 40));
-        r.setVariantColor(clip(trimToNull(req.variantColor()), 60));
-        r.setVerifiedPurchase(true); // proven above — never from client input
-        // Photos only when the store allows them; still hidden until APPROVED.
-        if (s.isReviewPhotosEnabled()) {
-            r.setPhotoUrl(trimToNull(req.photoUrl()));
-            r.setPhotoThumbnailUrl(trimToNull(req.photoThumbnailUrl()));
+        Review first = null;
+        for (Long productId : targetIds) {
+            Review r = new Review();
+            r.setProductId(productId);
+            r.setOrderId(order.getId());
+            r.setRating(rating);
+            r.setTitle(clip(trimToNull(req.title()), MAX_TITLE));
+            r.setBody(body);
+            r.setAuthorName(author);
+            r.setSizePurchased(clip(trimToNull(req.sizePurchased()), 40));
+            r.setVariantColor(clip(trimToNull(req.variantColor()), 60));
+            r.setVerifiedPurchase(true); // proven above — never from client input
+            // Photos only when the store allows them; still hidden until APPROVED.
+            if (s.isReviewPhotosEnabled()) {
+                r.setPhotoUrl(trimToNull(req.photoUrl()));
+                r.setPhotoThumbnailUrl(trimToNull(req.photoThumbnailUrl()));
+            }
+            r.setLang(normalizeLang(req.lang()));
+            if (s.isReviewsAutoApprove()) {
+                r.setStatus(ReviewStatus.APPROVED);
+                r.setApprovedAt(Instant.now());
+                r.setModeratedByEmail("auto-approve");
+            } else {
+                r.setStatus(ReviewStatus.PENDING);
+            }
+            Review saved = reviews.save(r);
+            if (first == null) first = saved;
         }
-        r.setLang(normalizeLang(req.lang()));
-        if (s.isReviewsAutoApprove()) {
-            r.setStatus(ReviewStatus.APPROVED);
-            r.setApprovedAt(Instant.now());
-            r.setModeratedByEmail("auto-approve");
-        } else {
-            r.setStatus(ReviewStatus.PENDING);
-        }
-        Review saved = reviews.save(r);
 
         // Single-use: burn the token so the link can't be replayed.
         token.setUsedAt(Instant.now());
         tokens.save(token);
 
-        return toResponse(saved);
+        return toResponse(first);
     }
 
     // ------------------------------------------------------------------- admin

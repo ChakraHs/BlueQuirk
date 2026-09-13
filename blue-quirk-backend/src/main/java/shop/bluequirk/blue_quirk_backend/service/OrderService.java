@@ -60,6 +60,7 @@ public class OrderService {
     private final ProgressiveDiscountService progressiveDiscountService;
     private final FinancialCalculationService finance;
     private final StoreSettingsService storeSettingsService;
+    private final CityService cityService;
     private final CurrentUserService currentUserService;
     private final OrderAuditLogRepository auditRepository;
     private final TodifySyncLogRepository todifyLogRepository;
@@ -76,6 +77,7 @@ public class OrderService {
                         ProgressiveDiscountService progressiveDiscountService,
                         FinancialCalculationService finance,
                         StoreSettingsService storeSettingsService,
+                        CityService cityService,
                         CurrentUserService currentUserService,
                         OrderAuditLogRepository auditRepository,
                         TodifySyncLogRepository todifyLogRepository) {
@@ -89,6 +91,7 @@ public class OrderService {
         this.progressiveDiscountService = progressiveDiscountService;
         this.finance = finance;
         this.storeSettingsService = storeSettingsService;
+        this.cityService = cityService;
         this.currentUserService = currentUserService;
         this.auditRepository = auditRepository;
         this.todifyLogRepository = todifyLogRepository;
@@ -116,15 +119,24 @@ public class OrderService {
                 : (user != null ? user.getEmail() : null);
 
         require(notBlank(fullName), "Your name is required");
-        require(notBlank(email), "Email is required");
         require(notBlank(req.phone()), "Phone number is required");
         require(notBlank(req.city()), "City is required");
         require(notBlank(req.address()), "Address is required");
         require(req.items() != null && !req.items().isEmpty(), "Your cart is empty");
 
+        // Email is OPTIONAL for cash-on-delivery: the phone number is the reliable
+        // way to reach a customer in this market, and every order email is already
+        // guarded on a present address (silently skipped when absent). We still need
+        // a Customer row — its email column is NOT NULL + UNIQUE — so when no email
+        // is given we key the customer by a stable, non-deliverable placeholder
+        // derived from the phone. That placeholder lives ONLY on the customer record
+        // (to de-dupe repeat guests); the order's own email stays null, so no
+        // confirmation/status mail is ever sent to a fabricated address.
+        String customerKey = notBlank(email) ? email : guestEmailForPhone(req.phone());
+
         // Create or reuse the Customer (independent of any login account).
         Customer customer = customerService.findOrCreateByEmail(
-                email, firstName, lastName, req.phone(),
+                customerKey, firstName, lastName, req.phone(),
                 req.address(), req.city(), req.postalCode(), user);
 
         Order order = new Order();
@@ -150,7 +162,9 @@ public class OrderService {
         List<LineInput> lineInputs = req.items().stream()
                 .map(i -> new LineInput(i.productId(), i.quantity()))
                 .toList();
-        PricedCart cart = pricingService.price(lineInputs);
+        // Price with the delivery city so shipping is the per-city customer fee
+        // (falls back to the flat settings fee for unlisted cities).
+        PricedCart cart = pricingService.price(lineInputs, order.getCity());
         double subtotal = cart.subtotal();
         double shippingFee = cart.shippingFee();
 
@@ -230,8 +244,12 @@ public class OrderService {
         order.setShippingFee(shippingFee);
         order.setCostTotal(round(costTotal));
         // Snapshot the internal Real Shipping Cost so this order's profit is frozen
-        // and immune to later changes of the admin setting. Internal only.
-        order.setRealShippingCost(Math.max(0, storeSettingsService.getOrCreate().getRealShippingCost()));
+        // and immune to later changes. Per delivery city (its own real cost when
+        // listed, else the flat settings cost). Internal only.
+        order.setRealShippingCost(Math.max(0, cityService.realShippingCost(order.getCity())));
+        // Flat per-order packaging + confirmation cost, snapshotted so profit stays
+        // frozen. One per order (not per product); internal only.
+        order.setPackagingCost(Math.max(0, storeSettingsService.getOrCreate().getPackagingCost()));
         order.setOriginalTotal(originalTotal);
         order.setDiscountAmount(discount);
         order.setDiscountPercentage(discountPercentage);
@@ -336,6 +354,7 @@ public class OrderService {
             double selling = order.getSubtotal();
             double cost = order.getCostTotal();
             double realShipping = order.getRealShippingCost();
+            double packaging = order.getPackagingCost();
             return new OrderFinancialsResponse(
                     order.getId(),
                     order.getOrderNumber(),
@@ -345,8 +364,9 @@ public class OrderService {
                     order.getShippingFee(),
                     order.getTotal(),
                     realShipping,
+                    packaging,
                     finance.grossProfit(selling, cost),
-                    finance.netProfit(order.getTotal(), cost, realShipping),
+                    finance.netProfit(order.getTotal(), cost, realShipping, packaging),
                     finance.marginPercent(selling, cost),
                     finance.netSales(selling, order.getDiscountAmount()),
                     finance.operationalRevenue(selling, order.getShippingFee()),
@@ -612,6 +632,21 @@ public class OrderService {
     private String joinName(String first, String last) {
         String joined = ((first != null ? first : "") + " " + (last != null ? last : "")).trim();
         return joined.isEmpty() ? null : joined;
+    }
+
+    /**
+     * A stable, non-deliverable placeholder email used only to key/de-dupe a guest
+     * Customer when the shopper left the (optional) email blank. Derived from the
+     * phone number — the reliable identifier for cash-on-delivery — so the same
+     * phone reuses the same Customer. It is never used as a send address: the
+     * order's own email stays null and all mail is guarded on a present address.
+     */
+    private String guestEmailForPhone(String phone) {
+        String digits = phone == null ? "" : phone.replaceAll("\\D", "");
+        if (digits.isEmpty()) {
+            digits = Long.toString(Math.abs((long) String.valueOf(phone).hashCode()));
+        }
+        return "guest+" + digits + "@no-email.redquirk.local";
     }
 
     private double round(double value) {

@@ -53,13 +53,18 @@ function formatDateTime(iso: string): string {
   if (!iso) return "—";
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString("en-GB", {
+  // "13 Sep 2026 at 18:50" — date + 24h time.
+  const date = d.toLocaleDateString("en-GB", {
     day: "2-digit",
-    month: "long",
+    month: "short",
     year: "numeric",
+  });
+  const time = d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
+    hour12: false,
   });
+  return `${date} at ${time}`;
 }
 
 export default function OrderDetailPage() {
@@ -499,6 +504,15 @@ export default function OrderDetailPage() {
                   </span>
                   <span>−{formatPrice(financials.realShippingCost)}</span>
                 </div>
+                <div className="flex justify-between text-gray-500">
+                  <span>
+                    Packaging &amp; confirmation
+                    <span className="ml-1 text-[10px] uppercase tracking-wide text-gray-400">
+                      internal
+                    </span>
+                  </span>
+                  <span>−{formatPrice(financials.packagingCost)}</span>
+                </div>
                 <div
                   className={`mt-1 flex justify-between border-t border-gray-100 pt-2 text-base font-bold ${
                     financials.netProfit < 0 ? "text-rose-600" : "text-emerald-600"
@@ -508,7 +522,7 @@ export default function OrderDetailPage() {
                   <span>
                     {formatPrice(financials.netProfit)}
                     <span className="ml-2 text-sm font-medium">
-                      ({formatPercent(financials.marginPercent)})
+                      ({formatPercent(financials.finalTotal > 0 ? (financials.netProfit / financials.finalTotal) * 100 : 0)})
                     </span>
                   </span>
                 </div>

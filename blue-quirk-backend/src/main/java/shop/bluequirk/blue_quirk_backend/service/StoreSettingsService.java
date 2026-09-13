@@ -89,6 +89,9 @@ public class StoreSettingsService {
         if (req.realShippingCost() != null) {
             s.setRealShippingCost(Math.max(0, req.realShippingCost()));
         }
+        if (req.packagingCost() != null) {
+            s.setPackagingCost(Math.max(0, req.packagingCost()));
+        }
         if (req.freeShippingThreshold() != null) {
             s.setFreeShippingThreshold(Math.max(0, req.freeShippingThreshold()));
         }
@@ -225,6 +228,32 @@ public class StoreSettingsService {
     @Transactional
     public StoreSettings save(StoreSettings settings) {
         return repository.save(settings);
+    }
+
+    /**
+     * Brand header HTML for the top of every email. When an admin has configured a
+     * store logo it returns a logo {@code <img>} (absolute R2 URL, so it renders in
+     * any inbox); otherwise it falls back to the two-tone "RedQuirk" wordmark that
+     * emails used before. Centralized here so templated order/review emails and the
+     * identity (verification/reset) emails all show the same admin-set branding.
+     */
+    @Transactional(readOnly = true)
+    public String emailBrandHeaderHtml() {
+        StoreSettings s = getOrCreate();
+        String logo = s.getLogoUrl();
+        if (logo != null && !logo.isBlank()) {
+            String alt = htmlAttr(s.getStoreName());
+            return "<img src=\"" + htmlAttr(logo.trim()) + "\" alt=\"" + alt + "\" "
+                    + "style=\"height:40px;max-height:40px;max-width:200px;width:auto;display:inline-block\" />";
+        }
+        return "Red<span style='color:#dc2626'>Quirk</span>";
+    }
+
+    /** Escape a string for safe use inside a double-quoted HTML attribute. */
+    private String htmlAttr(String v) {
+        if (v == null) return "";
+        return v.replace("&", "&amp;").replace("\"", "&quot;")
+                .replace("<", "&lt;").replace(">", "&gt;");
     }
 
     /** Sets just the logo URL (used by the logo upload endpoint). */

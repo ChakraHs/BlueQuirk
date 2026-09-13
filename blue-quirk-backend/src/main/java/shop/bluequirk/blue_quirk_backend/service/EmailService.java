@@ -1,5 +1,6 @@
 package shop.bluequirk.blue_quirk_backend.service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.springframework.stereotype.Service;
@@ -13,14 +14,17 @@ public class EmailService {
 
     private final EmailProvider emailProvider;
     private final EmailTemplateService templateService;
+    private final StoreSettingsService storeSettingsService;
 
 
     public EmailService(
     		EmailProvider emailProvider,
-    		 EmailTemplateService templateService
+    		 EmailTemplateService templateService,
+    		 StoreSettingsService storeSettingsService
     		) {
         this.emailProvider = emailProvider;
         this.templateService = templateService;
+        this.storeSettingsService = storeSettingsService;
     }
 
     public void sendOtp(String to, String otp) {
@@ -51,16 +55,25 @@ public class EmailService {
                 lang == null ? templateService.getByCode(templateCode)
                              : templateService.getByCode(templateCode, lang);
 
+        // Inject the shared brand header (logo or wordmark) so every template's
+        // {{brandHeader}} resolves without each caller having to provide it. Caller
+        // values win, and the incoming map may be immutable (Map.of), so copy first.
+        Map<String, String> vars = new LinkedHashMap<>();
+        vars.put("brandHeader", storeSettingsService.emailBrandHeaderHtml());
+        if (variables != null) {
+            vars.putAll(variables);
+        }
+
         String subject =
                 TemplateEngine.process(
                         template.getSubject(),
-                        variables
+                        vars
                 );
 
         String body =
                 TemplateEngine.process(
                         template.getBody(),
-                        variables
+                        vars
                 );
 
         // Template bodies are HTML (seeded from DefaultEmailTemplates), so send as

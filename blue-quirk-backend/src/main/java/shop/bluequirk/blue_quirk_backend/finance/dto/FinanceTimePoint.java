@@ -7,6 +7,8 @@ public record FinanceTimePoint(
         double revenue,     // Σ goods subtotal (pre-shipping)
         double collected,   // Σ order total (incl. customer shipping) — the amount collected
         double cost,
-        double profit,
-        double marginPercent
+        double profit,        // net profit (before business expenses)
+        double marginPercent,
+        double expenses,      // Σ business expenses in the bucket (ads/hosting/…)
+        double realProfit     // profit − expenses (the real bottom line)
 ) {}

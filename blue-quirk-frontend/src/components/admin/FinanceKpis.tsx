@@ -8,6 +8,8 @@ import {
   ShoppingBag,
   Receipt,
   Boxes,
+  Wallet,
+  PiggyBank,
 } from "lucide-react";
 import StatCard from "@/components/admin/ui/StatCard";
 import TrendChart, { type TrendPoint } from "@/components/admin/ui/TrendChart";
@@ -66,8 +68,8 @@ export default function FinanceKpis() {
     () => series.map((p) => ({ period: p.period, value: p.collected })),
     [series]
   );
-  const profitSeries: TrendPoint[] = useMemo(
-    () => series.map((p) => ({ period: p.period, value: p.profit })),
+  const realProfitSeries: TrendPoint[] = useMemo(
+    () => series.map((p) => ({ period: p.period, value: p.realProfit })),
     [series]
   );
 
@@ -125,14 +127,28 @@ export default function FinanceKpis() {
             value={formatPrice(current.netProfit)}
             icon={TrendingUp}
             accent="blue"
-            hint={`Cost ${formatPrice(current.cost)} · Real shipping ${formatPrice(current.realShippingCost)}`}
+            hint={`Cost ${formatPrice(current.cost)} · Real shipping ${formatPrice(current.realShippingCost)} · Packaging ${formatPrice(current.packagingCost)}`}
+          />
+          <StatCard
+            label="Real Profit"
+            value={formatPrice(current.realProfit)}
+            icon={PiggyBank}
+            accent="green"
+            hint={`After expenses (${formatPrice(current.expenses)}) · net profit − expenses`}
+          />
+          <StatCard
+            label="Expenses"
+            value={formatPrice(current.expenses)}
+            icon={Wallet}
+            accent="rose"
+            hint="Ads, hosting, UGC…"
           />
           <StatCard
             label="Profit Margin"
-            value={formatPercent(current.marginPercent)}
+            value={formatPercent(current.collected > 0 ? (current.realProfit / current.collected) * 100 : 0)}
             icon={Percent}
             accent="violet"
-            hint="Gross profit ÷ revenue"
+            hint="Real profit ÷ revenue (after all costs)"
           />
           <StatCard
             label="Orders"
@@ -166,9 +182,9 @@ export default function FinanceKpis() {
         </div>
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 className="mb-4 text-sm font-semibold text-gray-700">
-            Profit over time (this year)
+            Real profit by month (after expenses)
           </h3>
-          <TrendChart data={profitSeries} color="#059669" />
+          <TrendChart data={realProfitSeries} color="#059669" />
         </div>
       </div>
     </div>

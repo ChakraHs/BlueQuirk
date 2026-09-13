@@ -72,6 +72,7 @@ const fr: Dict = {
   "product.buyNow": "Acheter maintenant",
   "product.added": "Ajouté au panier.",
   "product.relatedTitle": "Vous aimerez aussi",
+  "product.exploreMore": "Découvrir plus d'articles",
   "product.delivery": "Livraison partout au Maroc",
   "product.secure": "Paiement sécurisé",
   "product.returns": "Retours faciles",
@@ -272,6 +273,10 @@ const fr: Dict = {
   "review.submit.title": "Donnez votre avis",
   "review.submit.subtitle": "Votre retour aide d'autres clientes à choisir en confiance.",
   "review.submit.chooseProduct": "Quel article souhaitez-vous évaluer ?",
+  "review.submit.chooseProducts": "Quels articles souhaitez-vous évaluer ?",
+  "review.submit.selectAll": "Tout sélectionner",
+  "review.submit.selectNone": "Tout désélectionner",
+  "review.submit.productRequired": "Merci de choisir au moins un article.",
   "review.submit.rating": "Votre note",
   "review.submit.ratingRequired": "Merci de choisir une note.",
   "review.submit.titleLabel": "Titre",
@@ -290,6 +295,10 @@ const fr: Dict = {
   "review.submit.invalidBody": "Ce lien d'avis est invalide, expiré ou déjà utilisé.",
   "review.submit.error": "Une erreur s'est produite. Veuillez réessayer.",
   "review.submit.optional": "facultatif",
+  // Added-to-cart slide-over
+  "cartsheet.added": "Ajouté au panier",
+  "cartsheet.inCart": "{n} article(s) dans votre panier",
+  "cartsheet.justAdded": "Ajouté",
 };
 
 const en: Dict = {
@@ -337,6 +346,7 @@ const en: Dict = {
   "product.buyNow": "Buy now",
   "product.added": "Added to cart.",
   "product.relatedTitle": "You may also like",
+  "product.exploreMore": "Explore more products",
   "product.delivery": "Morocco-wide delivery",
   "product.secure": "Secure checkout",
   "product.returns": "Easy returns",
@@ -528,6 +538,10 @@ const en: Dict = {
   "review.submit.title": "Share your review",
   "review.submit.subtitle": "Your feedback helps other customers buy with confidence.",
   "review.submit.chooseProduct": "Which item would you like to review?",
+  "review.submit.chooseProducts": "Which items would you like to review?",
+  "review.submit.selectAll": "Select all",
+  "review.submit.selectNone": "Clear all",
+  "review.submit.productRequired": "Please choose at least one item.",
   "review.submit.rating": "Your rating",
   "review.submit.ratingRequired": "Please choose a rating.",
   "review.submit.titleLabel": "Title",
@@ -546,6 +560,10 @@ const en: Dict = {
   "review.submit.invalidBody": "This review link is invalid, expired or already used.",
   "review.submit.error": "Something went wrong. Please try again.",
   "review.submit.optional": "optional",
+  // Added-to-cart slide-over
+  "cartsheet.added": "Added to cart",
+  "cartsheet.inCart": "{n} item(s) in your cart",
+  "cartsheet.justAdded": "Added",
 };
 
 const ar: Dict = {
@@ -593,6 +611,7 @@ const ar: Dict = {
   "product.buyNow": "اشترِ الآن",
   "product.added": "تمت الإضافة إلى السلة.",
   "product.relatedTitle": "قد يعجبك أيضًا",
+  "product.exploreMore": "اكتشفي المزيد من المنتجات",
   "product.delivery": "توصيل لكل المغرب",
   "product.secure": "دفع آمن",
   "product.returns": "إرجاع سهل",
@@ -783,6 +802,10 @@ const ar: Dict = {
   "review.submit.title": "شاركي تقييمك",
   "review.submit.subtitle": "رأيك يساعد عميلات أخريات على الشراء بثقة.",
   "review.submit.chooseProduct": "أي منتج تودّين تقييمه؟",
+  "review.submit.chooseProducts": "أي المنتجات تودّين تقييمها؟",
+  "review.submit.selectAll": "تحديد الكل",
+  "review.submit.selectNone": "إلغاء تحديد الكل",
+  "review.submit.productRequired": "يرجى اختيار منتج واحد على الأقل.",
   "review.submit.rating": "تقييمك",
   "review.submit.ratingRequired": "يرجى اختيار تقييم.",
   "review.submit.titleLabel": "العنوان",
@@ -801,6 +824,10 @@ const ar: Dict = {
   "review.submit.invalidBody": "رابط التقييم غير صالح أو منتهٍ أو مُستخدم من قبل.",
   "review.submit.error": "حدث خطأ. يرجى المحاولة مرة أخرى.",
   "review.submit.optional": "اختياري",
+  // Added-to-cart slide-over
+  "cartsheet.added": "تمت الإضافة إلى السلة",
+  "cartsheet.inCart": "{n} عنصر في سلتك",
+  "cartsheet.justAdded": "أُضيف",
 };
 
 const messages: Record<string, Dict> = { fr, en, ar };

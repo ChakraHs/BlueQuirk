@@ -98,6 +98,7 @@ export interface StoreSettings
   logoUrl: string | null;
   shippingFee: number; // Customer Shipping Price (shown to customers; 0 = free)
   realShippingCost: number; // internal only — profit calculations, never shown
+  packagingCost: number; // flat per-order packaging + confirmation cost (internal, profit only)
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string; // "fr" | "ar" | "en"

@@ -59,7 +59,10 @@ public class CartQuoteService {
         List<LineInput> lines = (req == null || req.items() == null) ? List.of()
                 : req.items().stream().map(i -> new LineInput(i.productId(), i.quantity())).toList();
 
-        PricedCart cart = pricingService.price(lines);
+        // Price shipping for the selected delivery city so the quoted total matches
+        // what the order will charge (falls back to the flat fee when unlisted/blank).
+        String city = req == null ? null : req.city();
+        PricedCart cart = pricingService.price(lines, city);
         double subtotal = cart.subtotal();
         double shipping = cart.shippingFee();
 

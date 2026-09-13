@@ -104,6 +104,14 @@ export default async function ProductPage({
   // listing so shoppers can browse all products of the same category.
   const categoryPath = buildCategoryPath(categoryTree, product.categories);
 
+  // "Explore more" target for the button under the related grid: the product's most
+  // specific category listing (browse all same-category products), falling back to
+  // the storefront home when the product has no category.
+  const exploreCategory = categoryPath.at(-1) ?? null;
+  const exploreMoreHref = exploreCategory
+    ? `/${lang}/category/${exploreCategory.id}`
+    : `/${lang}`;
+
   // Reviews are fetched ONLY when the store has enabled them — when off we request
   // nothing and render no review DOM at all (empty-state contract). The first page is
   // fetched server-side so approved reviews are in the initial HTML for SEO.
@@ -237,6 +245,18 @@ export default async function ProductPage({
             {relatedProducts.map((relatedProduct) => (
               <ProductCard key={relatedProduct.id} product={relatedProduct} lang={lang} />
             ))}
+          </div>
+
+          {/* Prominent CTA so shoppers who reach the bottom keep browsing instead of
+              stopping at the 4 related items — takes them to the full category listing. */}
+          <div className="mt-10 flex justify-center">
+            <Link
+              href={exploreMoreHref}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-8 text-sm font-semibold text-white transition hover:bg-primary-hover"
+            >
+              {t(lang, "product.exploreMore")}
+              <ChevronRight className="size-4 rtl:rotate-180" />
+            </Link>
           </div>
         </section>
       )}

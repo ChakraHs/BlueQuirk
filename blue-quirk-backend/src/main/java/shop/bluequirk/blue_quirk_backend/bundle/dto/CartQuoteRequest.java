@@ -10,7 +10,11 @@ import java.util.List;
 public record CartQuoteRequest(
         List<Line> items,
         String couponCode,
-        String email
+        String email,
+        // Selected delivery city — used to resolve the per-city shipping fee so the
+        // quoted shipping/total match what the order will charge. Optional; when it
+        // is blank or not in the cities list the flat settings fee is used.
+        String city
 ) {
     public record Line(Long productId, int quantity) {}
 }
