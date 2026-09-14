@@ -30,6 +30,11 @@ public class StoreSettings {
     // Public URL of the store logo (R2). Null = show the text name only.
     private String logoUrl;
 
+    // Public URL of an alternate logo used when the storefront is in DARK mode
+    // (e.g. a light/white version). Null = fall back to logoUrl in both themes.
+    @Column(name = "logo_url_dark")
+    private String logoUrlDark;
+
     // Customer Shipping Price — the delivery fee shown to customers everywhere on
     // the storefront (product page, cart, checkout, emails). 0 = free shipping.
     @Column(nullable = false)
@@ -253,6 +258,9 @@ public class StoreSettings {
 
     public String getLogoUrl() { return logoUrl; }
     public void setLogoUrl(String logoUrl) { this.logoUrl = logoUrl; }
+
+    public String getLogoUrlDark() { return logoUrlDark; }
+    public void setLogoUrlDark(String logoUrlDark) { this.logoUrlDark = logoUrlDark; }
 
     public double getShippingFee() { return shippingFee; }
     public void setShippingFee(double shippingFee) { this.shippingFee = shippingFee; }

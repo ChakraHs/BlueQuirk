@@ -115,6 +115,7 @@ export default async function LangLayout({
               categories={topCategories}
               storeName={config.storeName}
               logoUrl={config.logoUrl}
+              logoDarkUrl={config.logoUrlDark}
             />
             {/* Full tree (not just top categories) so product cards can label
                 themselves by depth and by the page being browsed. */}
@@ -125,6 +126,7 @@ export default async function LangLayout({
               lang={lang}
               storeName={config.storeName}
               logoUrl={config.logoUrl}
+              logoDarkUrl={config.logoUrlDark}
             />
             {/* Redbubble-style "added to cart" slide-over — opens on any add-to-cart. */}
             <CartAddedSheet lang={lang} />

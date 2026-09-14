@@ -14,6 +14,7 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   freeShippingThreshold: 300,
   storeName: "RedQuirk",
   logoUrl: null,
+  logoUrlDark: null,
   defaultLang: "fr",
   heroTitleFr: null,
   heroTitleEn: null,
@@ -68,6 +69,7 @@ export async function getPublicShopConfig(): Promise<PublicShopConfig> {
           : SHOP_CONFIG_DEFAULTS.freeShippingThreshold,
       storeName: data.storeName?.trim() || SHOP_CONFIG_DEFAULTS.storeName,
       logoUrl: data.logoUrl ?? null,
+      logoUrlDark: data.logoUrlDark ?? null,
       defaultLang: ["fr", "ar", "en"].includes(data.defaultLang ?? "")
         ? (data.defaultLang as string)
         : "fr",

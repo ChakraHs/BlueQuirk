@@ -238,6 +238,18 @@ body {
   overflow-x: clip;
 }
 
+/* ---------------------------------------------------------------------------
+   DARK-MODE LOGO SWAP
+   When the admin uploads a separate dark-mode logo, both <img> variants are
+   rendered and toggled purely by the `html.dark` class (set pre-paint by the
+   theme runtime), so the correct logo shows with no flash and no JS. The dark
+   variant is hidden by default; in dark mode it replaces the light one. The
+   light logo only carries `logo-swap-light` when a dark counterpart exists, so
+   a store WITHOUT a dark logo keeps showing its single logo in both themes. */
+.logo-swap-dark { display: none; }
+html.dark .logo-swap-light { display: none; }
+html.dark .logo-swap-dark { display: inline-block; }
+
 
 
 

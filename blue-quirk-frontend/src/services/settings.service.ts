@@ -8,6 +8,7 @@ export type ThemeColorsPayload = { [K in keyof ThemeColors]: string };
 export type StoreSettingsPayload = ThemeColorsPayload & {
   storeName: string;
   logoUrl: string | null;
+  logoUrlDark: string | null; // dark-mode logo ("" clears it)
   shippingFee: number; // Customer Shipping Price (0 = free shipping)
   realShippingCost: number; // internal only — never shown to customers
   packagingCost: number; // flat per-order packaging + confirmation cost (internal)

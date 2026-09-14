@@ -18,11 +18,13 @@ export default function Header({
   categories = [],
   storeName = "RedQuirk",
   logoUrl = null,
+  logoDarkUrl = null,
 }: {
   lang: string;
   categories?: Category[];
   storeName?: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
@@ -77,12 +79,24 @@ export default function Header({
               className="flex min-w-0 items-center"
             >
               {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoUrl}
-                  alt={storeName}
-                  className="h-8 w-auto max-w-[130px] object-contain md:h-9 md:max-w-[180px]"
-                />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoUrl}
+                    alt={storeName}
+                    className={`h-8 w-auto max-w-[130px] object-contain md:h-9 md:max-w-[180px] ${
+                      logoDarkUrl ? "logo-swap-light" : ""
+                    }`}
+                  />
+                  {logoDarkUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoDarkUrl}
+                      alt={storeName}
+                      className="logo-swap-dark h-8 w-auto max-w-[130px] object-contain md:h-9 md:max-w-[180px]"
+                    />
+                  )}
+                </>
               ) : (
                 <span className="truncate text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
                   {storeName}

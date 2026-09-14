@@ -96,6 +96,7 @@ export interface StoreSettings
   id?: number;
   storeName: string;
   logoUrl: string | null;
+  logoUrlDark: string | null; // alternate logo used in dark mode
   shippingFee: number; // Customer Shipping Price (shown to customers; 0 = free)
   realShippingCost: number; // internal only — profit calculations, never shown
   packagingCost: number; // flat per-order packaging + confirmation cost (internal, profit only)
@@ -119,5 +120,6 @@ export interface PublicShopConfig
   freeShippingThreshold: number;
   storeName: string;
   logoUrl: string | null;
+  logoUrlDark: string | null; // alternate logo used in dark mode
   defaultLang: string;
 }
