@@ -558,10 +558,6 @@ export default function ProductDetailClient({
               <Truck className="size-3.5 text-emerald-600" />
               {t(lang, "product.trustEta")}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <RotateCcw className="size-3.5 text-emerald-600" />
-              {t(lang, "product.trustReturns")}
-            </li>
           </ul>
         )}
 
