@@ -39,12 +39,12 @@ export function isStaticPageSlug(value: string): value is StaticPageSlug {
   return (STATIC_PAGE_SLUGS as readonly string[]).includes(value);
 }
 
-// Contact details surfaced on the Contact page. Placeholder values — update
-// these to your real support channels.
+// Contact details surfaced on the Contact page. Uses the same sender address the
+// store emails order-status / tracking from, so replies land in the same inbox.
 export const CONTACT = {
-  email: "hello@redquirk.com",
-  support: "support@redquirk.com",
-  phone: "+212 5 20 00 00 00",
+  email: "orders@contact.redquirk.com",
+  support: "orders@contact.redquirk.com",
+  phone: "0619816342",
 };
 
 type PageMap = Record<StaticPageSlug, Record<LangCode, StaticPageContent>>;
@@ -213,8 +213,7 @@ const PAGES: PageMap = {
         {
           type: "ul",
           items: [
-            "Livraison standard : 29 DH.",
-            "Livraison offerte dès 300 DH d'achat.",
+            "Livraison GRATUITE partout au Maroc, sans minimum d'achat.",
             "Paiement à la livraison (espèces) partout au Maroc.",
           ],
         },
@@ -238,8 +237,7 @@ const PAGES: PageMap = {
         {
           type: "ul",
           items: [
-            "Standard delivery: 29 DH.",
-            "Free delivery on orders over 300 DH.",
+            "FREE delivery everywhere in Morocco, no minimum order.",
             "Cash on delivery available everywhere in Morocco.",
           ],
         },
@@ -263,8 +261,7 @@ const PAGES: PageMap = {
         {
           type: "ul",
           items: [
-            "التوصيل العادي: 29 درهم.",
-            "توصيل مجاني ابتداءً من 300 درهم.",
+            "توصيل مجاني إلى كل أنحاء المغرب، دون حدّ أدنى للطلب.",
             "الدفع عند الاستلام (نقدًا) متاح في كل أنحاء المغرب.",
           ],
         },

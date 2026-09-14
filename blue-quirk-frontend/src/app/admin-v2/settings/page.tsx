@@ -37,6 +37,7 @@ const THEME_FIELDS: {
 type FormState = {
   storeName: string;
   logoUrl: string | null;
+  logoUrlDark: string | null;
   shippingFee: string;
   realShippingCost: string;
   packagingCost: string;
@@ -75,6 +76,7 @@ function toForm(s: StoreSettings): FormState {
   return {
     storeName: s.storeName ?? "",
     logoUrl: s.logoUrl ?? null,
+    logoUrlDark: s.logoUrlDark ?? null,
     shippingFee: String(s.shippingFee ?? 0),
     realShippingCost: String(s.realShippingCost ?? 0),
     packagingCost: String(s.packagingCost ?? 10),
@@ -129,11 +131,13 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingDark, setUploadingDark] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const [heroUploading, setHeroUploading] = useState<"desktop" | "mobile" | null>(null);
   const [heroLang, setHeroLang] = useState("fr");
   const logoInput = useRef<HTMLInputElement>(null);
+  const logoDarkInput = useRef<HTMLInputElement>(null);
   const heroDesktopInput = useRef<HTMLInputElement>(null);
   const heroMobileInput = useRef<HTMLInputElement>(null);
 
@@ -157,6 +161,21 @@ export default function SettingsPage() {
       setError("Failed to upload the logo.");
     } finally {
       setUploading(false);
+    }
+  };
+
+  // Dark-mode logo: reuses the generic settings upload (returns a URL only); the
+  // value is persisted with the rest of the form on Save.
+  const handleDarkLogo = async (file: File) => {
+    setUploadingDark(true);
+    setError(null);
+    try {
+      const url = await SettingsService.uploadImage(file);
+      update({ logoUrlDark: url });
+    } catch {
+      setError("Failed to upload the dark logo.");
+    } finally {
+      setUploadingDark(false);
     }
   };
 
@@ -195,6 +214,7 @@ export default function SettingsPage() {
       const updated = await SettingsService.update({
         storeName: form.storeName.trim(),
         logoUrl: form.logoUrl ?? "",
+        logoUrlDark: form.logoUrlDark ?? "",
         shippingFee: Math.max(0, Number(form.shippingFee) || 0),
         realShippingCost: Math.max(0, Number(form.realShippingCost) || 0),
         packagingCost: Math.max(0, Number(form.packagingCost) || 0),
@@ -330,6 +350,62 @@ export default function SettingsPage() {
             </div>
             <p className="mt-2 text-xs text-gray-400">
               Transparent PNG recommended. Removing the logo shows the name as text.
+            </p>
+
+            {/* Dark-mode logo — shown only when the storefront is in dark mode
+                (e.g. a light/white version of the logo). Falls back to the main
+                logo above when left empty. */}
+            <label className="mb-1 mt-6 block text-sm font-medium text-gray-700">
+              Dark mode logo
+            </label>
+            <div className="flex items-center gap-4">
+              {/* Dark preview background so a light/white logo is visible. */}
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-gray-700 bg-gray-900">
+                {form.logoUrlDark ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={form.logoUrlDark} alt="Dark logo" className="h-full w-full object-contain" />
+                ) : (
+                  <ImageIcon size={22} className="text-gray-500" />
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => logoDarkInput.current?.click()}
+                  disabled={uploadingDark}
+                  className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                >
+                  {uploadingDark ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <UploadCloud size={15} />
+                  )}
+                  {form.logoUrlDark ? "Change dark logo" : "Upload a dark logo"}
+                </button>
+                {form.logoUrlDark && (
+                  <button
+                    type="button"
+                    onClick={() => update({ logoUrlDark: null })}
+                    className="inline-flex items-center gap-1.5 rounded-md p-2 text-rose-600 transition hover:bg-rose-50"
+                    aria-label="Remove dark logo"
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                )}
+                <input
+                  ref={logoDarkInput}
+                  type="file"
+                  accept="image/*"
+                  hidden
+                  onChange={(e) => {
+                    if (e.target.files?.[0]) handleDarkLogo(e.target.files[0]);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+            </div>
+            <p className="mt-2 text-xs text-gray-400">
+              Used only in dark mode. Leave empty to reuse the main logo in both themes.
             </p>
           </section>
 

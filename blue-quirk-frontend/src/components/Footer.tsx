@@ -8,10 +8,12 @@ export default function Footer({
   lang,
   storeName = "RedQuirk",
   logoUrl = null,
+  logoDarkUrl = null,
 }: {
   lang: string;
   storeName?: string;
   logoUrl?: string | null;
+  logoDarkUrl?: string | null;
 }) {
   // Local storefront path (locale-prefixed). Content pages live under /[lang]/<slug>.
   const l = (path: string) => `/${lang}${path}`;
@@ -67,12 +69,24 @@ export default function Footer({
               className="inline-flex items-center"
             >
               {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={logoUrl}
-                  alt={storeName}
-                  className="h-9 w-auto max-w-[180px] object-contain"
-                />
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={logoUrl}
+                    alt={storeName}
+                    className={`h-9 w-auto max-w-[180px] object-contain ${
+                      logoDarkUrl ? "logo-swap-light" : ""
+                    }`}
+                  />
+                  {logoDarkUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={logoDarkUrl}
+                      alt={storeName}
+                      className="logo-swap-dark h-9 w-auto max-w-[180px] object-contain"
+                    />
+                  )}
+                </>
               ) : (
                 <span className="text-2xl font-extrabold tracking-tight text-gray-900">
                   {storeName}

@@ -7,6 +7,9 @@ package shop.bluequirk.blue_quirk_backend.dto;
 public record StoreSettingsRequest(
         String storeName,
         String logoUrl,
+        // Dark-mode logo URL. Empty string clears it (fall back to logoUrl); null
+        // leaves it unchanged.
+        String logoUrlDark,
         Double shippingFee,
         // Real Shipping Cost — internal only (profit calculations); never shown to
         // customers. Null leaves it unchanged.

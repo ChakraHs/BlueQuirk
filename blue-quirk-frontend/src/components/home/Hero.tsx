@@ -115,6 +115,21 @@ export default function Hero({
               {t(lang, "hero.explore")}
             </Link> */}
           </div>
+
+          {/* Reassurance strip — factual guarantees (no invented social proof) that
+              answer a cold Instagram visitor's first objections above the fold. */}
+          <ul className="mx-auto mt-7 flex max-w-xl flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm font-medium text-white/90">
+            {[
+              t(lang, "hero.reassure1"),
+              t(lang, "hero.reassure2"),
+              t(lang, "hero.reassure3"),
+            ].map((label) => (
+              <li key={label} className="inline-flex items-center gap-1.5">
+                <span aria-hidden className="text-emerald-300">✓</span>
+                {label}
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

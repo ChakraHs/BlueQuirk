@@ -7,6 +7,7 @@ import PageHeader from "@/components/admin/ui/PageHeader";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import { ProductService } from "@/services/product.service";
+import { CategoryService } from "@/services/category.service";
 import { AdminProduct } from "@/types/product";
 import { formatPrice, formatPercent } from "@/lib/money";
 import { thumbSrc } from "@/lib/productImage";
@@ -108,41 +109,86 @@ function SortableTh({
   );
 }
 
+const PAGE_SIZE = 50;
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<AdminProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [categoryOptions, setCategoryOptions] = useState<{ id: number; name: string }[]>([]);
   const [toDelete, setToDelete] = useState<AdminProduct | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
-  // Multi-select: ids of products ticked for a bulk action.
+  // Multi-select: ids of products ticked for a bulk action (scoped to the page).
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
-  // `null` = no explicit column sort → preserve the server order, which is
-  // newest-created first. A column is only sorted once the user clicks it.
+  // `null` = no explicit column sort → the server returns newest-created first.
   const [sortKey, setSortKey] = useState<SortKey | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  // Server-driven pagination (0-based page).
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
+
+  // Debounce the search box; also jump back to the first page on a new search.
+  useEffect(() => {
+    const h = setTimeout(() => {
+      setDebouncedQuery(query.trim());
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(h);
+  }, [query]);
+
+  // The full category list for the filter (not just categories on the loaded page).
+  useEffect(() => {
+    CategoryService.getAll()
+      .then((cats) => setCategoryOptions(cats.map((c) => ({ id: c.id, name: c.name }))))
+      .catch(() => setCategoryOptions([]));
+  }, []);
 
   const fetchProducts = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      // Admin endpoint: includes confidential cost + margins.
-      const res = await ProductService.getAdminAll(0, 500);
+      // Server does the paging + search/filter/sort (admin endpoint includes cost).
+      const res = await ProductService.getAdminAll(page, PAGE_SIZE, {
+        status: statusFilter === "ALL" ? undefined : statusFilter,
+        search: debouncedQuery || undefined,
+        categoryId: categoryFilter === "ALL" ? undefined : Number(categoryFilter),
+        sort: sortKey ?? undefined,
+        dir: sortDir,
+      });
       setProducts(res.content);
+      setTotalPages(Math.max(1, res.totalPages));
+      setTotalElements(res.totalElements);
     } catch {
       setError("Failed to load products.");
     } finally {
       setLoading(false);
     }
+  }, [page, statusFilter, debouncedQuery, categoryFilter, sortKey, sortDir]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
+  // One-time success flash from a create/edit redirect.
+  useEffect(() => {
+    const msg = sessionStorage.getItem("success");
+    if (msg) {
+      setSuccess(msg);
+      sessionStorage.removeItem("success");
+    }
   }, []);
 
   const toggleSort = (key: SortKey) => {
+    setPage(0);
     if (key === sortKey) {
       setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     } else {
@@ -151,67 +197,8 @@ export default function ProductsPage() {
     }
   };
 
-  useEffect(() => {
-    fetchProducts();
-    const msg = sessionStorage.getItem("success");
-    if (msg) {
-      setSuccess(msg);
-      sessionStorage.removeItem("success");
-    }
-  }, [fetchProducts]);
-
-  // Distinct categories present across the loaded products, sorted by name.
-  // Only categories that actually have products appear, which is exactly what
-  // you want for filtering the catalog.
-  const categoryOptions = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const p of products) {
-      for (const c of p.categories ?? []) {
-        if (!map.has(c.id)) map.set(c.id, c.name);
-      }
-    }
-    return [...map.entries()]
-      .map(([id, name]) => ({ id, name }))
-      .sort((a, b) => a.name.localeCompare(b.name));
-  }, [products]);
-
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const rows = products
-      .filter((p) => (statusFilter === "ALL" ? true : p.status === statusFilter))
-      .filter((p) =>
-        categoryFilter === "ALL"
-          ? true
-          : (p.categories ?? []).some((c) => String(c.id) === categoryFilter)
-      )
-      .filter((p) => (q ? p.name.toLowerCase().includes(q) : true));
-
-    // No explicit column sort → keep the server order (newest created first).
-    if (sortKey === null) {
-      return rows;
-    }
-
-    const value = (p: AdminProduct): number | string => {
-      switch (sortKey) {
-        case "cost": return p.cost;
-        case "price": return p.price;
-        case "margin": return p.grossMargin;
-        case "marginPct": return p.grossMarginPercent;
-        case "stock": return p.stockQuantity ?? -1;
-        default: return p.name.toLowerCase();
-      }
-    };
-
-    return [...rows].sort((a, b) => {
-      const av = value(a);
-      const bv = value(b);
-      const cmp =
-        typeof av === "number" && typeof bv === "number"
-          ? av - bv
-          : String(av).localeCompare(String(bv));
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-  }, [products, query, statusFilter, categoryFilter, sortKey, sortDir]);
+  // The current page's rows are what's shown; selection is scoped to them.
+  const paged = products;
 
   const handleStatusChange = async (product: AdminProduct, next: string) => {
     if (next === product.status) return;
@@ -240,8 +227,8 @@ export default function ProductsPage() {
     setDeleting(true);
     try {
       await ProductService.delete(toDelete.id);
-      setProducts((prev) => prev.filter((p) => p.id !== toDelete.id));
       setToDelete(null);
+      fetchProducts();
     } catch {
       setError("Failed to delete product.");
     } finally {
@@ -252,7 +239,7 @@ export default function ProductsPage() {
   // --- Multi-select bulk actions ---------------------------------------------
   // Selection is scoped to the rows currently visible under the active filters,
   // so "select all" and the count never include hidden products.
-  const visibleIds = useMemo(() => filtered.map((p) => p.id), [filtered]);
+  const visibleIds = useMemo(() => products.map((p) => p.id), [products]);
   const selectedVisible = useMemo(
     () => visibleIds.filter((id) => selected.has(id)),
     [visibleIds, selected]
@@ -306,15 +293,14 @@ export default function ProductsPage() {
   const handleBulkDelete = async () => {
     const ids = selectedVisible;
     if (ids.length === 0) return;
-    const idSet = new Set(ids);
     setBulkBusy(true);
     try {
       await ProductService.deleteMany(ids);
-      setProducts((rows) => rows.filter((r) => !idSet.has(r.id)));
       setSuccess(`${ids.length} product(s) deleted.`);
       setError(null);
       clearSelection();
       setBulkDeleteOpen(false);
+      fetchProducts();
     } catch {
       setError("Failed to delete selected products.");
     } finally {
@@ -360,7 +346,7 @@ export default function ProductsPage() {
         </div>
         <select
           value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
+          onChange={(e) => { setCategoryFilter(e.target.value); setPage(0); }}
           className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
         >
           <option value="ALL">All categories</option>
@@ -372,7 +358,7 @@ export default function ProductsPage() {
         </select>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
+          onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
           className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 outline-none focus:border-blue-500"
         >
           <option value="ALL">All statuses</option>
@@ -432,7 +418,7 @@ export default function ProductsPage() {
 
       {loading ? (
         <TableSkeleton />
-      ) : filtered.length === 0 ? (
+      ) : products.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-12 text-center">
           <Package className="mx-auto mb-3 text-gray-300" size={40} />
           <p className="text-sm text-gray-500">No products found.</p>
@@ -467,7 +453,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((p) => {
+              {paged.map((p) => {
                 const negative = p.grossMargin < 0;
                 return (
                 <tr
@@ -543,6 +529,31 @@ export default function ProductsPage() {
               })}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {!loading && totalElements > 0 && (
+        <div className="mt-4 flex items-center justify-between text-sm text-gray-600">
+          <span>
+            {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalElements)} of {totalElements}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage((p) => Math.max(0, p - 1))}
+              disabled={page <= 0}
+              className="rounded-md border border-gray-300 px-3 py-1.5 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-40"
+            >
+              Previous
+            </button>
+            <span className="px-2 tabular-nums">{page + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="rounded-md border border-gray-300 px-3 py-1.5 font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-40"
+            >
+              Next
+            </button>
+          </div>
         </div>
       )}
 

@@ -83,6 +83,10 @@ public class StoreSettingsService {
         if (req.logoUrl() != null) {
             s.setLogoUrl(req.logoUrl().isBlank() ? null : req.logoUrl().trim());
         }
+        // Dark-mode logo: same semantics (blank clears, value sets, null unchanged).
+        if (req.logoUrlDark() != null) {
+            s.setLogoUrlDark(blankToNull(req.logoUrlDark()));
+        }
         if (req.shippingFee() != null) {
             s.setShippingFee(Math.max(0, req.shippingFee()));
         }

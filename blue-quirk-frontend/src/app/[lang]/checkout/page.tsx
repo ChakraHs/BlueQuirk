@@ -5,10 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
-  User as UserIcon, Mail, Package, LogIn, Tag, X, Check,
+  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet, RotateCcw,
 } from "lucide-react";
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
+import { colorLabel } from "@/lib/colors";
+import { thumbSrc } from "@/lib/productImage";
+import { quickAddProduct } from "@/lib/quickAdd";
+import { ProductService } from "@/services/product.service";
+import type { Product } from "@/types/product";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
 import { progressiveState } from "@/lib/progressive";
@@ -23,8 +28,7 @@ import { track } from "@/lib/analytics/tracker";
 import { trackingService } from "@/lib/tracking/service";
 
 type Form = {
-  firstName: string;
-  lastName: string;
+  fullName: string;
   email: string;
   phone: string;
   address: string;
@@ -33,9 +37,16 @@ type Form = {
 };
 
 const EMPTY: Form = {
-  firstName: "", lastName: "", email: "", phone: "",
+  fullName: "", email: "", phone: "",
   address: "", city: "", note: "",
 };
+
+/** Split a full name into a first name (first word) + last name (the rest). */
+function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Moroccan-friendly: optional +, digits/spaces/dashes, at least 9 digits.
@@ -102,10 +113,10 @@ export default function CheckoutPage({
   }, []);
 
   function applyUser(user: AuthUser) {
+    const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
     setForm((f) => ({
       ...f,
-      firstName: user.firstName || f.firstName,
-      lastName: user.lastName || f.lastName,
+      fullName: name || f.fullName,
       email: user.email || f.email,
     }));
   }
@@ -113,8 +124,7 @@ export default function CheckoutPage({
   const validateField = (field: keyof Form, value: string): string | undefined => {
     const v = value.trim();
     switch (field) {
-      case "firstName": return v ? undefined : t(lang, "checkout.firstNameRequired");
-      case "lastName": return v ? undefined : t(lang, "checkout.lastNameRequired");
+      case "fullName": return v ? undefined : t(lang, "checkout.fullNameRequired");
       case "email":
         // Optional for COD — an empty email is fine (we reach the customer by
         // phone). Only validate the format when something was actually typed.
@@ -158,7 +168,7 @@ export default function CheckoutPage({
   const canSubmit = useMemo(
     () =>
       // Email is intentionally NOT required — COD reaches the customer by phone.
-      form.firstName.trim() && form.lastName.trim() &&
+      form.fullName.trim() &&
       form.phone.trim() && form.address.trim() && form.city.trim() &&
       items.length > 0,
     [form, items]
@@ -179,6 +189,26 @@ export default function CheckoutPage({
       });
     }
   }, [items]);
+
+  // --- Order-bump: one trending product the customer can add in a single tap
+  // before confirming. Fetched once; hidden once it's already in the cart.
+  const [bumpPool, setBumpPool] = useState<Product[]>([]);
+  const bumpFetched = useRef(false);
+  useEffect(() => {
+    if (bumpFetched.current) return;
+    bumpFetched.current = true;
+    ProductService.getTrending(10, lang)
+      .catch(() =>
+        ProductService.getAll(0, 10, lang, "PUBLISHED")
+          .then((r) => r.content)
+          .catch(() => [])
+      )
+      .then((list) => setBumpPool(Array.isArray(list) ? list : []));
+  }, [lang]);
+  const bump = useMemo(
+    () => bumpPool.find((p) => !items.some((i) => i.id === p.id)) ?? null,
+    [bumpPool, items]
+  );
 
   // Applying a coupon just records the code; the backend cart quote (above)
   // validates it against the current cart — already bundle-aware — and returns the
@@ -204,9 +234,10 @@ export default function CheckoutPage({
 
     setLoading(true);
     try {
+      const { firstName, lastName } = splitName(form.fullName);
       const order = await OrderService.create({
-        firstName: form.firstName.trim(),
-        lastName: form.lastName.trim(),
+        firstName,
+        lastName,
         email: form.email.trim() || undefined,
         phone: form.phone.trim(),
         city: form.city.trim(),
@@ -300,10 +331,7 @@ export default function CheckoutPage({
           )}
 
           <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.firstName")} required value={form.firstName} onChange={update("firstName")} onBlur={blur("firstName")} error={errors.firstName} placeholder="Jean" autoComplete="given-name" />
-              <Field label={t(lang, "checkout.lastName")} required value={form.lastName} onChange={update("lastName")} onBlur={blur("lastName")} error={errors.lastName} placeholder="Dupont" autoComplete="family-name" />
-            </div>
+            <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.fullName")} required value={form.fullName} onChange={update("fullName")} onBlur={blur("fullName")} error={errors.fullName} placeholder={t(lang, "checkout.fullName")} autoComplete="name" />
             <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
@@ -356,7 +384,7 @@ export default function CheckoutPage({
                   <div className="flex flex-1 flex-col">
                     <span className="line-clamp-1 text-sm font-semibold text-gray-900">{item.name}</span>
                     {attrs.length > 0 && (
-                      <span className="text-xs text-gray-500">{attrs.map(([k, v]) => `${k}: ${v}`).join(" · ")}</span>
+                      <span className="text-xs text-gray-500">{attrs.map(([k, v]) => `${k}: ${colorLabel(v, lang)}`).join(" · ")}</span>
                     )}
                     <span className="text-xs text-gray-500">
                       {item.quantity} × {formatPrice(item.price, lang)}
@@ -376,6 +404,41 @@ export default function CheckoutPage({
               unlocked and how much more each added item earns (no progress bar). */}
           {progressive && (
             <ProgressiveIncentive state={progressive} lang={lang} className="mt-5" />
+          )}
+
+          {/* Order-bump — a single trending product added in one tap. Raises AOV
+              without a detour to the product page. */}
+          {bump && (
+            <div className="mt-5 rounded-xl border border-dashed border-primary/40 bg-primary/[0.03] p-3">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-primary">
+                {t(lang, "checkout.bumpTitle")}
+              </p>
+              <div className="flex items-center gap-3">
+                {bump.images?.[0] && (
+                  <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                    <Image
+                      src={thumbSrc(bump.images[0])}
+                      alt={bump.name}
+                      fill
+                      sizes="56px"
+                      className="object-cover"
+                    />
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="line-clamp-1 text-sm font-semibold text-gray-900">{bump.name}</p>
+                  <p className="text-xs font-medium text-gray-500">{formatPrice(bump.price, lang)}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => quickAddProduct(bump, lang)}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-hover active:scale-95"
+                >
+                  <Plus className="size-3.5" />
+                  {t(lang, "checkout.bumpAdd")}
+                </button>
+              </div>
+            </div>
           )}
 
           {/* Coupon — shown only when the admin has enabled the block. */}
@@ -482,6 +545,13 @@ export default function CheckoutPage({
             {loading && <Loader2 size={18} className="animate-spin" />}
             {loading ? t(lang, "checkout.confirming") : t(lang, "checkout.placeOrder")}
           </button>
+
+          {/* Last-second reassurance — the three objections right before the click. */}
+          <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs font-medium text-gray-500">
+            <li className="inline-flex items-center gap-1.5"><Wallet className="size-3.5 text-emerald-600" />{t(lang, "product.trustCod")}</li>
+            <li className="inline-flex items-center gap-1.5"><Truck className="size-3.5 text-emerald-600" />{t(lang, "product.trustEta")}</li>
+            <li className="inline-flex items-center gap-1.5"><RotateCcw className="size-3.5 text-emerald-600" />{t(lang, "product.trustReturns")}</li>
+          </ul>
 
           <Link href={`/${lang}/cart`} className="mt-3 block text-center text-sm font-medium text-blue-600 hover:text-blue-700">
             {t(lang, "checkout.backToCart")}

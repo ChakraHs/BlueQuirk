@@ -19,6 +19,8 @@ import { ProductService } from "@/services/product.service";
 import type { Product } from "@/types/product";
 import { thumbSrc } from "@/lib/productImage";
 import { formatPrice } from "@/lib/money";
+import { colorLabel } from "@/lib/colors";
+import { quickAddProduct } from "@/lib/quickAdd";
 import { t } from "@/lib/i18n";
 
 const FALLBACK_IMAGE =
@@ -113,7 +115,7 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
   const variantOf = (attrs: Record<string, string>) =>
     Object.entries(attrs ?? {})
       .filter(([, v]) => v)
-      .map(([k, v]) => `${k}: ${v}`)
+      .map(([k, v]) => `${k}: ${colorLabel(v, lang)}`)
       .join(" · ");
 
   const close = () => setOpen(false);
@@ -275,28 +277,39 @@ export default function CartAddedSheet({ lang }: { lang: string }) {
                 {similarProducts.map((p) => {
                   const img = p.images?.[0] ? thumbSrc(p.images[0]) : FALLBACK_IMAGE;
                   return (
-                    <Link
-                      key={p.id}
-                      href={`/${lang}/product/${p.id}`}
-                      onClick={close}
-                      className="group block"
-                    >
-                      <div className="aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={img}
-                          alt={p.name}
-                          loading="lazy"
-                          className="size-full object-contain transition duration-300 group-hover:scale-105"
-                        />
-                      </div>
-                      <p className="mt-1 truncate text-[11px] font-medium text-gray-600 group-hover:text-gray-900">
-                        {p.name}
-                      </p>
-                      <p className="text-[11px] font-semibold text-gray-900">
-                        {formatPrice(p.price, lang)}
-                      </p>
-                    </Link>
+                    <div key={p.id} className="group relative block">
+                      <Link
+                        href={`/${lang}/product/${p.id}`}
+                        onClick={close}
+                        className="block"
+                      >
+                        <div className="aspect-square overflow-hidden rounded-xl border border-gray-200 bg-gray-100">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img}
+                            alt={p.name}
+                            loading="lazy"
+                            className="size-full object-contain transition duration-300 group-hover:scale-105"
+                          />
+                        </div>
+                        <p className="mt-1 truncate text-[11px] font-medium text-gray-600 group-hover:text-gray-900">
+                          {p.name}
+                        </p>
+                        <p className="text-[11px] font-semibold text-gray-900">
+                          {formatPrice(p.price, lang)}
+                        </p>
+                      </Link>
+                      {/* Quick-add — adds the default variant in place (no PDP trip),
+                          so the sheet just re-lists it at the top. */}
+                      <button
+                        type="button"
+                        onClick={() => quickAddProduct(p, lang)}
+                        aria-label={`${t(lang, "product.addToCart")} — ${p.name}`}
+                        className="absolute right-1.5 top-1.5 flex size-7 items-center justify-center rounded-full bg-primary text-white shadow-md transition hover:bg-primary-hover active:scale-95"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    </div>
                   );
                 })}
               </div>

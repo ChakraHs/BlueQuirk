@@ -79,11 +79,24 @@ export const ProductService = {
   // bearer token), NOT the public fetch() reads above. ---
   getAdminAll: async (
     page = 0,
-    size = 500,
-    status?: string
+    size = 50,
+    opts: {
+      status?: string;
+      search?: string;
+      categoryId?: number;
+      sort?: string;
+      dir?: "asc" | "desc";
+    } = {}
   ): Promise<PageResponse<AdminProduct>> => {
     const res = await api.get("/admin/products", {
-      params: { page, size, ...(status ? { status } : {}) },
+      params: {
+        page,
+        size,
+        ...(opts.status ? { status: opts.status } : {}),
+        ...(opts.search ? { search: opts.search } : {}),
+        ...(opts.categoryId != null ? { categoryId: opts.categoryId } : {}),
+        ...(opts.sort ? { sort: opts.sort, dir: opts.dir ?? "asc" } : {}),
+      },
     });
     return res.data;
   },

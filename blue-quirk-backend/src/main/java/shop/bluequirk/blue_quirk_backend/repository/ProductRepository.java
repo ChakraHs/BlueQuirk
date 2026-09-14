@@ -76,6 +76,57 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 		List<Product> findByCategoryIdWithRelations(@Param("categoryId") Long categoryId,
 				@Param("status") ProductStatus status);
 
+	// Admin catalog page: server-side search (name), status + category filters, and
+	// sort — WITHOUT fetch joins, so pagination is applied at the DB level (real
+	// LIMIT/OFFSET, not in-memory). Category membership is an EXISTS subquery to
+	// avoid join-row duplication. Relations for the returned page are loaded
+	// separately (see findAllByIdInWithImagesAndCategories).
+	@Query("""
+		    SELECT p FROM Product p
+		    WHERE (:status IS NULL OR p.status = :status)
+		      AND (:q IS NULL OR LOWER(p.name) LIKE :q)
+		      AND (:categoryId IS NULL OR EXISTS (
+		            SELECT c FROM p.categories c WHERE c.id = :categoryId))
+		""")
+	Page<Product> adminSearch(@Param("status") ProductStatus status,
+			@Param("q") String q,
+			@Param("categoryId") Long categoryId,
+			Pageable pageable);
+
+	// Load images + categories for a page of product ids (order restored in the
+	// service). Only the relations the admin list actually renders.
+	@Query("""
+		    SELECT DISTINCT p FROM Product p
+		    LEFT JOIN FETCH p.images
+		    LEFT JOIN FETCH p.categories
+		    WHERE p.id IN :ids
+		""")
+	List<Product> findAllByIdInWithImagesAndCategories(@Param("ids") java.util.Collection<Long> ids);
+
+	// Storefront category listing, paged at the DB level (no fetch joins → real
+	// LIMIT/OFFSET). Category membership via EXISTS to avoid join-row duplication.
+	// Relations for the page are loaded separately (findAllByIdInWithRelations).
+	@Query("""
+		    SELECT p FROM Product p
+		    WHERE (:status IS NULL OR p.status = :status)
+		      AND EXISTS (SELECT c FROM p.categories c WHERE c.id = :categoryId)
+		""")
+	Page<Product> pageByCategory(@Param("categoryId") Long categoryId,
+			@Param("status") ProductStatus status,
+			Pageable pageable);
+
+	// Full storefront relations for a page of product ids (order restored in the
+	// service). Ids are already status/category filtered by the paging query.
+	@Query("""
+		    SELECT DISTINCT p FROM Product p
+		    LEFT JOIN FETCH p.selectedValues
+		    LEFT JOIN FETCH p.images
+		    LEFT JOIN FETCH p.translations
+		    LEFT JOIN FETCH p.categories
+		    WHERE p.id IN :ids
+		""")
+	List<Product> findAllByIdInWithRelations(@Param("ids") java.util.Collection<Long> ids);
+
 	// Every product with its translations eagerly loaded. Feeds the admin catalog
 	// content audit/backfill utility, which inspects each product's description
 	// and its per-language translations to find and fill gaps.
