@@ -47,7 +47,9 @@ class StoreSettingsServiceTest {
     /** Only the fields under test are set; everything else is left unchanged (null). */
     private StoreSettingsRequest metaRequest(Boolean enabled, String pixelId) {
         return new StoreSettingsRequest(
-                null, null, null, null, null, null, null,
+                // storeName, logoUrl, logoUrlDark, shippingFee, realShippingCost,
+                // freeShippingThreshold, currency, defaultLang
+                null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null,
