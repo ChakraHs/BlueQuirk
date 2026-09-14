@@ -39,12 +39,12 @@ export function isStaticPageSlug(value: string): value is StaticPageSlug {
   return (STATIC_PAGE_SLUGS as readonly string[]).includes(value);
 }
 
-// Contact details surfaced on the Contact page. Placeholder values — update
-// these to your real support channels.
+// Contact details surfaced on the Contact page. Uses the same sender address the
+// store emails order-status / tracking from, so replies land in the same inbox.
 export const CONTACT = {
-  email: "hello@redquirk.com",
-  support: "support@redquirk.com",
-  phone: "+212 5 20 00 00 00",
+  email: "orders@contact.redquirk.com",
+  support: "orders@contact.redquirk.com",
+  phone: "0619816342",
 };
 
 type PageMap = Record<StaticPageSlug, Record<LangCode, StaticPageContent>>;
