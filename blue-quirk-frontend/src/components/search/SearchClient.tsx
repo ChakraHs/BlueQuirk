@@ -8,7 +8,7 @@ import ProductCard from "@/components/ProductCard";
 import { ProductService } from "@/services/product.service";
 import { Product } from "@/types/product";
 import { formatPrice } from "@/lib/money";
-import { colorSwatch } from "@/lib/colors";
+import { colorSwatch, colorLabel } from "@/lib/colors";
 import { track } from "@/lib/analytics/tracker";
 
 /* ----------------------------- i18n labels ------------------------------ */
@@ -428,7 +428,7 @@ export default function SearchClient({
                     className="h-3.5 w-3.5 rounded-full ring-1 ring-black/10"
                     style={{ backgroundColor: hex }}
                   />
-                  {c.value}
+                  {colorLabel(c.value, lang)}
                 </button>
               );
             })}
@@ -551,7 +551,7 @@ export default function SearchClient({
           ))}
           {[...colors].map((c) => (
             <Chip key={`col${c}`} onClear={() => toggleStr(colors, setColors, c)}>
-              {t.color}: {c}
+              {t.color}: {colorLabel(c, lang)}
             </Chip>
           ))}
           {(minPrice || maxPrice) && (

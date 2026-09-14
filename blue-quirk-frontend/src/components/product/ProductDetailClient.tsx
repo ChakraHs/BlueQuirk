@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShoppingBag, Sparkles, Star, Truck, Zap } from "lucide-react";
+import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShoppingBag, Sparkles, Star, Truck, Wallet, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
@@ -327,17 +327,17 @@ export default function ProductDetailClient({
           (md:) the natural DOM order is restored so the layout is unchanged. */}
       <section className="flex flex-col gap-7 text-gray-900">
         <div className="order-1 space-y-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium uppercase tracking-wide text-gray-600">
-              {product.status}
-            </span>
-            {canBuy && (
+          {/* Storefront only ever renders PUBLISHED products, so the status enum
+              was noise (and leaked an English admin label into a French UI). Keep
+              only the customer-meaningful in-stock pill. */}
+          {canBuy && (
+            <div className="flex flex-wrap items-center gap-3">
               <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
                 <Check className="size-3" />
                 {t(lang, "product.inStock")}
               </span>
-            )}
-          </div>
+            </div>
+          )}
 
           <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
             {product.name}
@@ -545,6 +545,25 @@ export default function ProductDetailClient({
             {canBuy ? t(lang, "product.buyNow") : t(lang, "product.unavailable")}
           </button>
         </div>
+
+        {/* Reassurance line — the three objections a Moroccan COD shopper has right
+            before adding to cart: how they pay, when it arrives, and returns. */}
+        {canBuy && (
+          <ul className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-gray-600 md:order-4">
+            <li className="inline-flex items-center gap-1.5">
+              <Wallet className="size-3.5 text-emerald-600" />
+              {t(lang, "product.trustCod")}
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <Truck className="size-3.5 text-emerald-600" />
+              {t(lang, "product.trustEta")}
+            </li>
+            <li className="inline-flex items-center gap-1.5">
+              <RotateCcw className="size-3.5 text-emerald-600" />
+              {t(lang, "product.trustReturns")}
+            </li>
+          </ul>
+        )}
 
         {/* Progressive multi-item discount incentive. Dynamic to the current cart;
             renders nothing when off or product ineligible. */}

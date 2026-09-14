@@ -213,8 +213,7 @@ const PAGES: PageMap = {
         {
           type: "ul",
           items: [
-            "Livraison standard : 29 DH.",
-            "Livraison offerte dès 300 DH d'achat.",
+            "Livraison GRATUITE partout au Maroc, sans minimum d'achat.",
             "Paiement à la livraison (espèces) partout au Maroc.",
           ],
         },
@@ -238,8 +237,7 @@ const PAGES: PageMap = {
         {
           type: "ul",
           items: [
-            "Standard delivery: 29 DH.",
-            "Free delivery on orders over 300 DH.",
+            "FREE delivery everywhere in Morocco, no minimum order.",
             "Cash on delivery available everywhere in Morocco.",
           ],
         },
@@ -263,8 +261,7 @@ const PAGES: PageMap = {
         {
           type: "ul",
           items: [
-            "التوصيل العادي: 29 درهم.",
-            "توصيل مجاني ابتداءً من 300 درهم.",
+            "توصيل مجاني إلى كل أنحاء المغرب، دون حدّ أدنى للطلب.",
             "الدفع عند الاستلام (نقدًا) متاح في كل أنحاء المغرب.",
           ],
         },

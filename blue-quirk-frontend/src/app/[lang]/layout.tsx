@@ -12,6 +12,7 @@ import AnnouncementBar from "@/components/storefront/AnnouncementBar";
 import { getAnnouncementBar } from "@/lib/announcementBar";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
 import CartAddedSheet from "@/components/cart/CartAddedSheet";
+import WhatsAppButton from "@/components/support/WhatsAppButton";
 // Support/chat widget temporarily disabled — re-enable by restoring this import
 // and the <SupportWidget /> render below.
 // import SupportWidget from "@/components/support/SupportWidget";
@@ -127,6 +128,8 @@ export default async function LangLayout({
             />
             {/* Redbubble-style "added to cart" slide-over — opens on any add-to-cart. */}
             <CartAddedSheet lang={lang} />
+            {/* Floating WhatsApp contact — the primary COD trust/support channel. */}
+            <WhatsAppButton lang={lang} />
             {/* Support/chat widget temporarily disabled.
             <SupportWidget
               lang={lang}

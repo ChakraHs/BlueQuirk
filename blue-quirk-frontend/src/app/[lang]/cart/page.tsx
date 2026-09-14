@@ -13,6 +13,7 @@ import {
   clearCart,
 } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
+import { colorLabel } from "@/lib/colors";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
 import { progressiveState } from "@/lib/progressive";
@@ -101,7 +102,7 @@ export default function CartPage({
                       </Link>
                       {attrs.length > 0 && (
                         <p className="mt-0.5 text-xs text-gray-500">
-                          {attrs.map(([k, v]) => `${k}: ${v}`).join(" · ")}
+                          {attrs.map(([k, v]) => `${k}: ${colorLabel(v, lang)}`).join(" · ")}
                         </p>
                       )}
                     </div>
