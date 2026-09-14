@@ -5,7 +5,6 @@ import { ChevronRight } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailClient from "@/components/product/ProductDetailClient";
 import ProductReviews from "@/components/product/reviews/ProductReviews";
-import TrustSignals from "@/components/product/TrustSignals";
 import { ProductService } from "@/services/product.service";
 import {
   fetchReviewSummary,
@@ -174,7 +173,9 @@ export default async function ProductPage({
   }
 
   return (
-    <main className="bg-surface">
+    // pb on mobile clears the fixed bottom purchase bar (~76px + safe-area) so the
+    // last content (highlights/description/related) is never hidden behind it.
+    <main className="bg-surface pb-24 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -214,10 +215,6 @@ export default async function ProductPage({
         lang={lang}
         reviewSummary={config.reviewsEnabled ? reviewSummary : null}
       />
-
-      {/* Purchase-reassurance trust strip (real facts only). Always shown, so when
-          reviews are off the page still reads as complete. */}
-      <TrustSignals lang={lang} reviewsEnabled={config.reviewsEnabled} />
 
       {/* "What our customers say" — rendered only when reviews are enabled. */}
       {config.reviewsEnabled && reviewSummary && reviewPage && (

@@ -604,7 +604,7 @@ export default function ProductDetailClient({
             {[
               {
                 icon: Leaf,
-                label: product.material || "100% Cotton",
+                label: product.material || t(lang, "product.materialDefault"),
                 caption: t(lang, "product.composition"),
               },
               {
