@@ -17,7 +17,7 @@ import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import { useActiveBundles, offerForProductPage } from "@/lib/bundle";
 import BundleBuilder from "@/components/product/BundleBuilder";
 import ProgressiveProductHint from "@/components/product/ProgressiveProductHint";
-import { t } from "@/lib/i18n";
+import { t, localizedMaterial } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -600,7 +600,7 @@ export default function ProductDetailClient({
             {[
               {
                 icon: Leaf,
-                label: product.material || t(lang, "product.materialDefault"),
+                label: localizedMaterial(product.material, lang),
                 caption: t(lang, "product.composition"),
               },
               {
@@ -678,7 +678,7 @@ export default function ProductDetailClient({
             />
             <p className="mt-1 flex items-center gap-1 truncate text-xs text-gray-500">
               <Star className="size-3 shrink-0 fill-amber-400 text-amber-400" />
-              {product.material || t(lang, "product.premiumQuality")}
+              {product.material ? localizedMaterial(product.material, lang) : t(lang, "product.premiumQuality")}
             </p>
           </div>
 

@@ -524,22 +524,88 @@ public class ProductService {
                 .collect(Collectors.toList());
     }
 
+    // Wide window for category relevance / best-selling ranking: effectively
+    // all-time, so a category's "best sellers" reflect its whole history rather
+    // than a rolling few weeks (unlike the homepage "Trending" section, which is
+    // deliberately recent).
+    private static final int CATEGORY_RANK_WINDOW_DAYS = 3650;
+
     /**
-     * Server-paged storefront category listing. Pages product ids at the DB level
-     * (no fetch joins), loads the page's relations in one query, and maps in the
-     * paged order (newest first) — so a big category never loads everything at once.
+     * Server-paged storefront category listing with a chosen ordering:
+     * <ul>
+     *   <li>{@code relevance} (default) — most units sold → most viewed → newest;</li>
+     *   <li>{@code bestselling} — most units sold → newest;</li>
+     *   <li>{@code newest} — most recently created.</li>
+     * </ul>
+     * "newest" pages ids straight at the DB level (cheap LIMIT/OFFSET). The ranked
+     * sorts load the category's ids (newest-first) plus the sales/views maps once,
+     * STABLE-sort in memory (so equal ranks keep newest-first), then load only the
+     * requested page's relations — so a big category never loads everything at once.
      */
     @Transactional(readOnly = true)
     public Page<ProductResponse> getProductsByCategoryPaged(Long categoryId, String lang,
-                                                            ProductStatus status, int page, int size) {
-        Pageable pageable = PageRequest.of(Math.max(0, page), Math.max(1, size),
-                org.springframework.data.domain.Sort.by(
-                        org.springframework.data.domain.Sort.Order.desc("createdAt"),
-                        org.springframework.data.domain.Sort.Order.desc("id")));
-        Page<Product> idPage = productRepository.pageByCategory(categoryId, status, pageable);
-        List<Long> ids = idPage.getContent().stream().map(Product::getId).toList();
+                                                            ProductStatus status, int page, int size,
+                                                            String sort) {
+        int pageIdx = Math.max(0, page);
+        int pageSize = Math.max(1, size);
+        String key = sort == null ? "" : sort.trim().toLowerCase();
+
+        if (key.equals("newest")) {
+            Pageable pageable = PageRequest.of(pageIdx, pageSize,
+                    org.springframework.data.domain.Sort.by(
+                            org.springframework.data.domain.Sort.Order.desc("createdAt"),
+                            org.springframework.data.domain.Sort.Order.desc("id")));
+            Page<Product> idPage = productRepository.pageByCategory(categoryId, status, pageable);
+            List<Long> ids = idPage.getContent().stream().map(Product::getId).toList();
+            return mapIdsPage(ids, lang, pageable, idPage.getTotalElements());
+        }
+
+        // Ranked sorts (relevance / best-selling): category ids newest-first.
+        List<Long> ids = new ArrayList<>(
+                productRepository.findCategoryProductIdsRanked(categoryId, status));
+        long total = ids.size();
+        Pageable pageable = PageRequest.of(pageIdx, pageSize);
         if (ids.isEmpty()) {
-            return new org.springframework.data.domain.PageImpl<>(List.of(), pageable, idPage.getTotalElements());
+            return new org.springframework.data.domain.PageImpl<>(List.of(), pageable, 0);
+        }
+
+        // Units sold per product (cancelled orders excluded) — [pid, orders, units].
+        LocalDateTime toLocal = LocalDateTime.now();
+        LocalDateTime fromLocal = toLocal.minusDays(CATEGORY_RANK_WINDOW_DAYS);
+        Map<Long, Long> salesByProduct = new HashMap<>();
+        for (Object[] r : orderStatsRepository.productPurchases(fromLocal, toLocal)) {
+            if (r[0] == null) continue;
+            salesByProduct.put(((Number) r[0]).longValue(), ((Number) r[2]).longValue());
+        }
+
+        if (key.equals("bestselling")) {
+            // Most sold first; equal ranks keep the newest-first base order.
+            ids.sort(Comparator.<Long>comparingLong(
+                    id -> salesByProduct.getOrDefault(id, 0L)).reversed());
+        } else {
+            // Relevance (default): most sold → most viewed → newest.
+            Instant toInstant = Instant.now();
+            Instant fromInstant = toInstant.minus(Duration.ofDays(CATEGORY_RANK_WINDOW_DAYS));
+            Map<Long, Long> viewsByProduct = new HashMap<>();
+            for (ProductViewRow v : pageViewRepository.productViews(fromInstant, toInstant)) {
+                if (v.productId() != null) viewsByProduct.put(v.productId(), v.views());
+            }
+            ids.sort(Comparator.<Long>comparingLong(
+                            id -> salesByProduct.getOrDefault(id, 0L)).reversed()
+                    .thenComparing(Comparator.<Long>comparingLong(
+                            id -> viewsByProduct.getOrDefault(id, 0L)).reversed()));
+        }
+
+        int from = Math.min(pageIdx * pageSize, ids.size());
+        int to = Math.min(from + pageSize, ids.size());
+        List<Long> pageIds = ids.subList(from, to);
+        return mapIdsPage(pageIds, lang, pageable, total);
+    }
+
+    /** Loads relations for a page of ids and maps them to responses in id order. */
+    private Page<ProductResponse> mapIdsPage(List<Long> ids, String lang, Pageable pageable, long total) {
+        if (ids.isEmpty()) {
+            return new org.springframework.data.domain.PageImpl<>(List.of(), pageable, total);
         }
         List<Attribute> attributes = attributeRepository.findAllWithValues();
         Map<Long, Product> byId = productRepository.findAllByIdInWithRelations(ids).stream()
@@ -549,7 +615,7 @@ public class ProductService {
                 .filter(java.util.Objects::nonNull)
                 .map(p -> toProductResponse(p, attributes, lang))
                 .toList();
-        return new org.springframework.data.domain.PageImpl<>(content, pageable, idPage.getTotalElements());
+        return new org.springframework.data.domain.PageImpl<>(content, pageable, total);
     }
     
     

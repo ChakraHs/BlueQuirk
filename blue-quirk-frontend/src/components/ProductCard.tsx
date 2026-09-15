@@ -2,8 +2,8 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
-import { ChevronLeft, ChevronRight, Star } from "lucide-react";
+import Link, { useLinkStatus } from "next/link";
+import { ChevronLeft, ChevronRight, Loader2, Star } from "lucide-react";
 import { Product } from "@/types/product";
 import ProductPrice from "./ProductPrice";
 import { thumbSrc } from "@/lib/productImage";
@@ -17,6 +17,25 @@ import WishlistButton from "./WishlistButton";
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
+
+/**
+ * Instant click feedback: while the card's <Link> navigation to the product page
+ * is in flight, dim the image and show a spinner so the shopper knows the tap
+ * registered (product pages fetch live, so there's a short wait). `useLinkStatus`
+ * reads the enclosing Link's pending state and clears itself once the page loads.
+ * Must be rendered as a descendant of the card's <Link>.
+ */
+function CardNavOverlay() {
+  const { pending } = useLinkStatus();
+  if (!pending) return null;
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-white/45 backdrop-blur-[1px] transition-opacity">
+      <span className="flex size-11 items-center justify-center rounded-full bg-white/95 shadow-md ring-1 ring-black/5">
+        <Loader2 className="size-5 animate-spin text-gray-800" />
+      </span>
+    </div>
+  );
+}
 
 export default function ProductCard({
   product,
@@ -157,6 +176,9 @@ export default function ProductCard({
           item={{ id: product.id, name: product.name, price: product.price, image: images[0], lang }}
           className="absolute right-2.5 top-2.5 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-surface/90 text-gray-700 shadow-sm backdrop-blur transition hover:text-blue-600"
         />
+
+        {/* Navigation spinner — appears the moment the card is tapped. */}
+        <CardNavOverlay />
       </div>
 
       {/* INFO — compact, 8px rhythm, strong price-first hierarchy. Slightly more

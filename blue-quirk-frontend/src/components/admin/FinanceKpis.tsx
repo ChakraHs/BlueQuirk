@@ -12,7 +12,10 @@ import {
   PiggyBank,
 } from "lucide-react";
 import StatCard from "@/components/admin/ui/StatCard";
-import TrendChart, { type TrendPoint } from "@/components/admin/ui/TrendChart";
+import GroupedTrendChart, {
+  type GroupedTrendPoint,
+  type TrendSeries,
+} from "@/components/admin/ui/GroupedTrendChart";
 import { FinanceService } from "@/services/finance.service";
 import type {
   FinanceOverview,
@@ -64,14 +67,24 @@ export default function FinanceKpis() {
 
   const current: FinanceSummary | null = overview ? overview[period] : null;
 
-  const revenueSeries: TrendPoint[] = useMemo(
-    () => series.map((p) => ({ period: p.period, value: p.collected })),
+  // One clustered bar chart with all three money series per month, so revenue,
+  // profit (before expenses) and real profit (after expenses) read against each
+  // other at a glance instead of living in two disconnected charts.
+  const trendData: GroupedTrendPoint[] = useMemo(
+    () =>
+      series.map((p) => ({
+        period: p.period,
+        revenue: p.collected,
+        profit: p.profit,
+        realProfit: p.realProfit,
+      })),
     [series]
   );
-  const realProfitSeries: TrendPoint[] = useMemo(
-    () => series.map((p) => ({ period: p.period, value: p.realProfit })),
-    [series]
-  );
+  const trendSeries: TrendSeries[] = [
+    { key: "revenue", label: "Revenue", color: "#2563eb" },
+    { key: "profit", label: "Profit", color: "#f59e0b" },
+    { key: "realProfit", label: "Real profit", color: "#059669" },
+  ];
 
   if (error) {
     return (
@@ -172,20 +185,12 @@ export default function FinanceKpis() {
         </div>
       )}
 
-      {/* Revenue & profit over the year */}
-      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-gray-700">
-            Revenue over time (this year)
-          </h3>
-          <TrendChart data={revenueSeries} color="#2563eb" />
-        </div>
-        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="mb-4 text-sm font-semibold text-gray-700">
-            Real profit by month (after expenses)
-          </h3>
-          <TrendChart data={realProfitSeries} color="#059669" />
-        </div>
+      {/* Revenue, profit & real profit over the year — grouped bars per month */}
+      <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <h3 className="mb-4 text-sm font-semibold text-gray-700">
+          Revenue, profit &amp; real profit by month (this year)
+        </h3>
+        <GroupedTrendChart data={trendData} series={trendSeries} />
       </div>
     </div>
   );

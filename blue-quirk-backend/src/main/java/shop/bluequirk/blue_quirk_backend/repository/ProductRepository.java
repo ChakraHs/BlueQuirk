@@ -115,6 +115,19 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
 			@Param("status") ProductStatus status,
 			Pageable pageable);
 
+	// All product ids in a category (status filtered), ordered newest-first. Feeds
+	// the relevance / best-selling category sorts: the service loads the recent
+	// sales & views maps once, then STABLE-sorts these ids by that ranking — so ids
+	// with equal sales/views keep this newest-first order as the tie-break.
+	@Query("""
+		    SELECT p.id FROM Product p
+		    WHERE (:status IS NULL OR p.status = :status)
+		      AND EXISTS (SELECT c FROM p.categories c WHERE c.id = :categoryId)
+		    ORDER BY p.createdAt DESC, p.id DESC
+		""")
+	List<Long> findCategoryProductIdsRanked(@Param("categoryId") Long categoryId,
+			@Param("status") ProductStatus status);
+
 	// Full storefront relations for a page of product ids (order restored in the
 	// service). Ids are already status/category filtered by the paging query.
 	@Query("""
