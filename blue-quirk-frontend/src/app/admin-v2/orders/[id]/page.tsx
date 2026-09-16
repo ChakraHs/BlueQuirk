@@ -30,6 +30,7 @@ import {
   type OrderAuditLog,
   type TodifySyncLog,
 } from "@/services/order.service";
+import { EmailService } from "@/services/email.service";
 import type { OrderFinancials } from "@/types/finance";
 import {
   ORDER_STATUSES, ORDER_STATUS_LABELS, PAYMENT_STATUSES, PAYMENT_STATUS_LABELS,
@@ -102,6 +103,12 @@ export default function OrderDetailPage() {
   const [reviewLink, setReviewLink] = useState<string | null>(null);
   const [reviewCopied, setReviewCopied] = useState(false);
 
+  // Custom email composer (free subject + body → customer, via Resend).
+  const [emailTo, setEmailTo] = useState("");
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailBody, setEmailBody] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   useEffect(() => {
     (async () => {
       try {
@@ -116,6 +123,7 @@ export default function OrderDetailPage() {
         setPaymentStatus(o.paymentStatus ?? "UNPAID");
         setTrackingNumber(o.trackingNumber ?? "");
         setEstimatedDelivery(o.estimatedDelivery ?? "");
+        setEmailTo(o.email ?? "");
       } catch {
         setError("Order not found.");
       } finally {
@@ -209,6 +217,49 @@ export default function OrderDetailPage() {
       setTimeout(() => setReviewCopied(false), 2000);
     } catch {
       /* clipboard blocked — the link is visible in the field for manual copy */
+    }
+  };
+
+  /** Prefill the composer with a friendly FR follow-up (handy after a cancellation). */
+  const prefillFollowUp = () => {
+    if (!order) return;
+    const ref = order.orderNumber || `#${order.id}`;
+    const name = order.firstName || order.customerName || "";
+    setEmailSubject(`Au sujet de votre commande ${ref} — RedQuirk`);
+    setEmailBody(
+      `Bonjour ${name},\n\n` +
+        `On revient vers vous au sujet de votre commande ${ref}.\n` +
+        `On a essayé de vous joindre pour confirmer la commande avant l'expédition, mais on n'a pas réussi à vous contacter — c'est pour ça qu'elle a été marquée comme annulée. On s'excuse si c'était une erreur de notre côté.\n\n` +
+        `👉 Souhaitez-vous toujours recevoir votre commande ?\n\n` +
+        `Pour la préparer avec notre partenaire de livraison, on doit vous confirmer par téléphone. Dites-nous ce qui vous arrange :\n` +
+        `• Appel téléphonique 📞\n` +
+        `• WhatsApp 💬\n\n` +
+        `Si vous avez la moindre question (produit, taille, livraison…), répondez simplement à cet e-mail, on vous répond rapidement.\n\n` +
+        `Merci pour votre confiance 🤍\n` +
+        `L'équipe RedQuirk`
+    );
+  };
+
+  const sendCustomEmail = async () => {
+    if (!order) return;
+    setSendingEmail(true);
+    setNotice(null);
+    setError(null);
+    try {
+      await EmailService.sendCustom({
+        to: emailTo.trim(),
+        subject: emailSubject.trim(),
+        body: emailBody,
+        orderId: order.id,
+      });
+      setNotice(`Email sent to ${emailTo.trim()}.`);
+    } catch (e) {
+      setError(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          "Failed to send the email. Check the Resend API key in Integrations."
+      );
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -561,6 +612,72 @@ export default function OrderDetailPage() {
                 </p>
               )}
             </div>
+          </div>
+
+          {/* Custom email — free subject + body sent to the customer via Resend.
+              Reply-To is the admin inbox, so the customer's reply reaches a human. */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <Mail size={16} className="text-blue-500" />
+              <h2 className="text-sm font-semibold text-gray-700">Send email</h2>
+            </div>
+            {order.email ? (
+              <>
+                <p className="mb-3 text-xs text-gray-400">
+                  A one-off message to the customer. Their reply comes back to your inbox.
+                </p>
+                <div className="space-y-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">To</label>
+                    <input
+                      value={emailTo}
+                      onChange={(e) => setEmailTo(e.target.value)}
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Subject</label>
+                    <input
+                      value={emailSubject}
+                      onChange={(e) => setEmailSubject(e.target.value)}
+                      placeholder="ex. Au sujet de votre commande"
+                      className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-gray-500">Message</label>
+                    <textarea
+                      value={emailBody}
+                      onChange={(e) => setEmailBody(e.target.value)}
+                      rows={8}
+                      placeholder="Write your message…"
+                      className="w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={prefillFollowUp}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 px-3 py-2 text-xs font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      <StickyNote size={14} /> Follow-up template
+                    </button>
+                    <button
+                      onClick={sendCustomEmail}
+                      disabled={sendingEmail || !emailTo.trim() || !emailSubject.trim() || !emailBody.trim()}
+                      className="inline-flex flex-1 items-center justify-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-blue-700 disabled:opacity-60"
+                    >
+                      {sendingEmail ? <Loader2 size={15} className="animate-spin" /> : <Send size={15} />}
+                      Send email
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <p className="text-xs text-amber-600">
+                No email on this order — reach the customer by phone or WhatsApp instead.
+              </p>
+            )}
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">

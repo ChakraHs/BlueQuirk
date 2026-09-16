@@ -42,15 +42,20 @@ public class ResendEmailProvider implements EmailProvider {
 
     @Override
     public void sendEmail(String to, String subject, String body) {
-        send(to, subject, body, false);
+        send(to, subject, body, false, null);
     }
 
     @Override
     public void sendHtmlEmail(String to, String subject, String html) {
-        send(to, subject, html, true);
+        send(to, subject, html, true, null);
     }
 
-    private void send(String to, String subject, String body, boolean html) {
+    @Override
+    public void sendHtmlEmail(String to, String subject, String html, String replyTo) {
+        send(to, subject, html, true, replyTo);
+    }
+
+    private void send(String to, String subject, String body, boolean html, String replyTo) {
         String apiKey = configService.effectiveResendApiKey();
         String from = configService.effectiveResendFrom();
         if (apiKey.isBlank()) {
@@ -58,9 +63,14 @@ public class ResendEmailProvider implements EmailProvider {
         }
 
         String field = html ? "html" : "text";
+        // Optional reply_to so a customer reply reaches a monitored inbox.
+        String replyToField = (replyTo != null && !replyTo.isBlank())
+                ? "\"reply_to\":[\"" + jsonEscape(replyTo.trim()) + "\"],"
+                : "";
         String payload = "{"
                 + "\"from\":\"" + jsonEscape(from) + "\","
                 + "\"to\":[\"" + jsonEscape(to) + "\"],"
+                + replyToField
                 + "\"subject\":\"" + jsonEscape(subject) + "\","
                 + "\"" + field + "\":\"" + jsonEscape(body) + "\""
                 + "}";
