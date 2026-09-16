@@ -70,7 +70,7 @@ public final class DefaultEmailTemplates {
                        : "Votre commande <strong>{{orderRef}}</strong> a été annulée. {{cancellationLine}} "
                          + "Pour toute question, répondez simplement à cet e-mail.");
             case REVIEW_REQUEST -> new Seed(
-                    ar ? "شاركنا رأيك في طلبك {{orderRef}} ✨"
+                    ar ? "شاركنا رأيك ف الطلب ديالك {{orderRef}} ✨"
                        : "Votre avis sur votre commande {{orderRef}} ✨",
                     reviewRequest(l));
             case ORDER_PLACED_ADMIN -> admin(l,
@@ -152,16 +152,16 @@ public final class DefaultEmailTemplates {
         boolean ar = "ar".equals(lang);
         String dir = EmailI18n.dir(lang);
         String start = EmailI18n.startAlign(lang);
-        String heroTitle = ar ? "كيف كانت تجربتك؟" : "Alors, votre commande vous plaît ?";
+        String heroTitle = ar ? "كيفاش لقيتي التجربة ديالك؟" : "Alors, votre commande vous plaît ?";
         String intro = ar
-                ? "مرحبًا {{customerName}}، نتمنى أن تكوني قد استلمت طلبك <strong>{{orderRef}}</strong> "
-                  + "وأن ينال إعجابك. رأيك يساعد عميلات أخريات ويعني لنا الكثير."
+                ? "مرحبا {{customerName}}، نتمناو يكون وصلك الطلب ديالك <strong>{{orderRef}}</strong> "
+                  + "وعجبك. رأيك كيعاون عملاء آخرين وكيعني لينا بزاف."
                 : "Bonjour {{customerName}}, nous espérons que votre commande <strong>{{orderRef}}</strong> "
-                  + "vous plaît. Votre avis aide d'autres clientes et compte énormément pour nous.";
+                  + "vous plaît. Votre avis aide d'autres clients et compte énormément pour nous.";
         String ask = ar
-                ? "هل يمكنك أخذ دقيقة لترك تقييم؟"
+                ? "واش تقدر تعطينا دقيقة وتشارك رأيك؟"
                 : "Prendriez-vous une minute pour laisser un avis ?";
-        String btn = ar ? "اترك تقييمك" : "Donner mon avis";
+        String btn = ar ? "شارك رأيك" : "Donner mon avis";
         String footer = "{{storeName}} — " + EmailI18n.t(lang, "footer.thanks");
 
         // A self-contained card layout, deliberately DISTINCT from the shared
