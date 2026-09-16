@@ -11,6 +11,7 @@ import Header from "@/components/Header";
 import AnnouncementBar from "@/components/storefront/AnnouncementBar";
 import { getAnnouncementBar } from "@/lib/announcementBar";
 import { CategoryTreeProvider } from "@/components/CategoryTreeProvider";
+import RouteProgress from "@/components/RouteProgress";
 import CartAddedSheet from "@/components/cart/CartAddedSheet";
 import WhatsAppButton from "@/components/support/WhatsAppButton";
 // Support/chat widget temporarily disabled — re-enable by restoring this import
@@ -97,6 +98,10 @@ export default async function LangLayout({
   return (
     <html lang={lang} dir={dirOf(lang)} suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+            {/* Global top progress bar on every internal navigation — instant
+                feedback so shoppers don't tap a product repeatedly during the
+                short live fetch. */}
+            <RouteProgress />
             {/* Meta Pixel base code, server-rendered into the initial HTML so
                 Meta can detect the pixel. Admin-toggled via the shop config. */}
             <MetaPixelBase
