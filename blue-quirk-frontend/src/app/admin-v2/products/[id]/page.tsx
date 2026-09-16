@@ -20,7 +20,7 @@ import { TodifyService } from "@/services/todify.service";
 import { Product, ProductAttribute, ProductImage, ProductVideo } from "@/types/product";
 import { Category } from "@/types/category";
 import { colorOptionsFromAttributes, findColorAttribute } from "@/lib/colorImages";
-import { colorSwatch, isLightColor } from "@/lib/colors";
+import { colorSwatch, isLightColor, colorLabel } from "@/lib/colors";
 
 type FormState = {
   name: string;
@@ -371,7 +371,7 @@ export default function EditProductPage() {
                                 className={`size-5 rounded-full ${needsBorder ? "border border-gray-300" : ""}`}
                                 style={{ backgroundColor: hex }}
                               />
-                              {v.value}
+                              {colorLabel(v.value, "en")}
                             </button>
                           );
                         }

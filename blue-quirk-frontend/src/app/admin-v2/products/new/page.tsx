@@ -9,7 +9,8 @@ import { ProductImage, ProductVideo } from "@/types/product";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import ProductVideoManager from "@/components/admin/ProductVideoManager";
 import PricingFields from "@/components/admin/PricingFields";
-import { colorOptionsFromAttributes } from "@/lib/colorImages";
+import { colorOptionsFromAttributes, findColorAttribute } from "@/lib/colorImages";
+import { colorSwatch, isLightColor, colorLabel } from "@/lib/colors";
 import ProductTranslationsEditor, {
   TranslationDrafts,
   emptyTranslationDrafts,
@@ -27,6 +28,12 @@ export default function NewProductPage() {
   // Colors the admin can link images to (the product's selected colors, or all
   // color values before any selection).
   const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
+  // Id of the COLOR attribute so its values render as swatches + readable names
+  // (Black / White / Dark grey…) instead of raw hex/text.
+  const colorAttributeId = useMemo(
+    () => findColorAttribute(attributes)?.id,
+    [attributes]
+  );
 
   const [form, setForm] = useState({
     name: "",
@@ -234,33 +241,64 @@ export default function NewProductPage() {
             </h2>
 
             <div className="space-y-4">
-              {attributes.map((attr) => (
+              {attributes.map((attr) => {
+                const isColor = attr.id === colorAttributeId;
+                return (
                 <div key={attr.id} className="bg-gray-50 border rounded-md p-3">
-                  
+
                   <div className="text-sm font-medium text-gray-700 mb-2">
                     {attr.name} <span className="text-gray-400">({attr.type})</span>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    {attr.values.map((v) => (
-                      <button
-                        type="button"
-                        key={v.id}
-                        onClick={() => toggleValue(attr.id, v.id)}
-                        className={`px-3 py-1 rounded-full text-sm border transition
-                          ${
-                            v.selected
-                              ? "bg-gray-900 text-white border-gray-900"
-                              : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
-                          }`}
-                      >
-                        {v.value}
-                      </button>
-                    ))}
+                    {attr.values.map((v) => {
+                      // Colour values render as a swatch + readable name so
+                      // they're easy to eyeball instead of reading a hex/label.
+                      if (isColor) {
+                        const hex = colorSwatch(v.value);
+                        const needsBorder = isLightColor(hex);
+                        return (
+                          <button
+                            type="button"
+                            key={v.id}
+                            onClick={() => toggleValue(attr.id, v.id)}
+                            title={v.value}
+                            className={`flex items-center gap-2 rounded-full border py-1 pl-1 pr-3 text-sm transition
+                              ${
+                                v.selected
+                                  ? "bg-gray-900 text-white border-gray-900"
+                                  : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
+                              }`}
+                          >
+                            <span
+                              className={`size-5 rounded-full ${needsBorder ? "border border-gray-300" : ""}`}
+                              style={{ backgroundColor: hex }}
+                            />
+                            {colorLabel(v.value, "en")}
+                          </button>
+                        );
+                      }
+                      return (
+                        <button
+                          type="button"
+                          key={v.id}
+                          onClick={() => toggleValue(attr.id, v.id)}
+                          className={`px-3 py-1 rounded-full text-sm border transition
+                            ${
+                              v.selected
+                                ? "bg-gray-900 text-white border-gray-900"
+                                : "bg-white text-gray-700 border-gray-300 hover:border-gray-500"
+                            }`}
+                        >
+                          {v.value}
+                        </button>
+                      );
+                    })}
                   </div>
 
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

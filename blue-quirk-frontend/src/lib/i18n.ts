@@ -57,6 +57,11 @@ const fr: Dict = {
   "category.home": "Accueil",
   "category.categories": "Catégories",
   "category.discover": "Découvrir",
+  "category.sort.label": "Trier par",
+  "category.sort.relevance": "Pertinence",
+  "category.sort.bestselling": "Meilleures ventes",
+  "category.sort.newest": "Nouveautés",
+  "category.resultCount": "{count} produits",
   "category.benefit.cotton.title": "100 % Coton",
   "category.benefit.cotton.desc": "Doux & respirant",
   "category.benefit.designs.title": "Designs Uniques",
@@ -346,6 +351,11 @@ const en: Dict = {
   "category.home": "Home",
   "category.categories": "Categories",
   "category.discover": "Discover",
+  "category.sort.label": "Sort by",
+  "category.sort.relevance": "Relevance",
+  "category.sort.bestselling": "Best selling",
+  "category.sort.newest": "Newest",
+  "category.resultCount": "{count} products",
   "category.benefit.cotton.title": "100% Cotton",
   "category.benefit.cotton.desc": "Soft & breathable",
   "category.benefit.designs.title": "Unique Designs",
@@ -624,6 +634,11 @@ const ar: Dict = {
   "category.home": "الرئيسية",
   "category.categories": "الفئات",
   "category.discover": "اكتشف",
+  "category.sort.label": "ترتيب حسب",
+  "category.sort.relevance": "الأكثر صلة",
+  "category.sort.bestselling": "الأكثر مبيعاً",
+  "category.sort.newest": "الأحدث",
+  "category.resultCount": "{count} منتج",
   "category.benefit.cotton.title": "قطن 100٪",
   "category.benefit.cotton.desc": "ناعم ومريح",
   "category.benefit.designs.title": "تصاميم فريدة",
@@ -893,6 +908,29 @@ export function t(
 /** Curried translator bound to a language: `const tt = makeT(lang)`. */
 export function makeT(lang: string) {
   return (key: string, vars?: Record<string, string | number>) => t(lang, key, vars);
+}
+
+// The default composition ("100% Cotton") is stored on the product as a single
+// fixed string (English) by the backend default/backfill, so it can't be shown
+// verbatim on the Arabic/French storefront — it would read "100% Cotton" even in
+// Arabic. These are the known localized spellings of that default; when a
+// product's material matches one of them we swap in the localized label instead.
+const DEFAULT_MATERIAL_FORMS = new Set(
+  ["100% Cotton", "100% Coton", "100 % Coton", "قطن 100%", "قطن 100٪", "100% قطن", "100٪ قطن"].map(
+    (s) => s.toLowerCase().replace(/\s+/g, "")
+  )
+);
+
+/**
+ * Localized composition label for a product. A blank material, or one that is
+ * the stored default cotton value (in any language spelling), resolves to the
+ * localized `product.materialDefault`; any custom material (e.g. "Polyester") is
+ * returned unchanged so real values still show through.
+ */
+export function localizedMaterial(material: string | null | undefined, lang: string): string {
+  const norm = (material ?? "").toLowerCase().replace(/\s+/g, "");
+  if (!norm || DEFAULT_MATERIAL_FORMS.has(norm)) return t(lang, "product.materialDefault");
+  return material as string;
 }
 
 export type { LangCode };

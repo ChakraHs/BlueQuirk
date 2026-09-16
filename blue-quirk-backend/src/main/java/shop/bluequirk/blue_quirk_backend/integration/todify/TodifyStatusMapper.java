@@ -9,8 +9,8 @@ import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
  * Stateless and dependency-free so both the order service and the integration
  * layer can use it without creating a bean cycle.
  *
- * <p>Todify statuses: store_draft_order, pending, in_production, shipped,
- * delivered, cancelled, returned.
+ * <p>Todify statuses: store_draft_order, pending, client_confirmation,
+ * in_production, shipped, delivered, cancelled, returned.
  */
 public final class TodifyStatusMapper {
 
@@ -23,7 +23,7 @@ public final class TodifyStatusMapper {
     public static OrderStatus toOrderStatus(String todifyStatus) {
         if (todifyStatus == null) return null;
         return switch (todifyStatus.trim().toLowerCase()) {
-            case "store_draft_order", "pending" -> OrderStatus.CONFIRMED;
+            case "store_draft_order", "pending", "client_confirmation" -> OrderStatus.CONFIRMED;
             case "in_production"                -> OrderStatus.PROCESSING;
             case "shipped"                      -> OrderStatus.SHIPPED;
             case "delivered"                    -> OrderStatus.DELIVERED;

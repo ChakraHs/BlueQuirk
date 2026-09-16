@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import ProductsGrid from "@/components/ProductsGrid";
+import CategorySortControl from "@/components/CategorySortControl";
 import { Category } from "@/types/category";
 import { Product } from "@/types/product";
 import { API_BASE_URL } from "@/lib/config";
@@ -75,16 +76,28 @@ type PagedProducts = {
   totalElements: number;
 };
 
-/** One page of a category's published products (server-paginated). */
+// Storefront ordering options for a category listing. `relevance` (best sellers
+// → most viewed → newest) is the default so the strongest products lead.
+const SORT_OPTIONS = ["relevance", "bestselling", "newest"] as const;
+type SortOption = (typeof SORT_OPTIONS)[number];
+
+function normalizeSort(value?: string): SortOption {
+  return (SORT_OPTIONS as readonly string[]).includes(value ?? "")
+    ? (value as SortOption)
+    : "relevance";
+}
+
+/** One page of a category's published products (server-paginated + ordered). */
 async function getCategoryProductsPaged(
   id: string,
   lang: string,
-  page: number
+  page: number,
+  sort: SortOption
 ): Promise<PagedProducts> {
   try {
     const res = await fetch(
       `${API_BASE_URL}/products/category/${id}/paged?lang=${encodeURIComponent(lang)}` +
-        `&status=PUBLISHED&page=${Math.max(0, page - 1)}&size=${CATEGORY_PAGE_SIZE}`,
+        `&status=PUBLISHED&page=${Math.max(0, page - 1)}&size=${CATEGORY_PAGE_SIZE}&sort=${sort}`,
       { cache: "no-store" }
     );
     if (!res.ok) throw new Error(`paged ${res.status}`);
@@ -99,11 +112,12 @@ export default async function CategoryPage({
   searchParams,
 }: {
   params: Promise<{ lang: string; id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sort?: string }>;
 }) {
   const { lang, id } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, sort: sortParam } = await searchParams;
   const currentPage = Math.max(1, Number(pageParam) || 1);
+  const sort = normalizeSort(sortParam);
 
   const category = await getCategory(id, lang);
   const description = plainText(category.description);
@@ -112,7 +126,7 @@ export default async function CategoryPage({
   const hasChildrenEarly = (category.children?.length ?? 0) > 0;
   const productPage = hasChildrenEarly
     ? { content: [], number: 0, totalPages: 0, totalElements: 0 }
-    : await getCategoryProductsPaged(id, lang, currentPage);
+    : await getCategoryProductsPaged(id, lang, currentPage, sort);
 
   const benefits = [
     {
@@ -264,12 +278,24 @@ export default async function CategoryPage({
         </div>
       ) : (
         <div className="mt-8">
+          {/* Result count + ordering control. Hidden when the category is empty. */}
+          {productPage.totalElements > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-gray-500">
+                {t(lang, "category.resultCount", {
+                  count: productPage.totalElements,
+                })}
+              </p>
+              <CategorySortControl lang={lang} current={sort} />
+            </div>
+          )}
           <ProductsGrid products={productPage.content} lang={lang} />
           <CategoryPagination
             lang={lang}
             id={id}
             currentPage={currentPage}
             totalPages={productPage.totalPages}
+            sort={sort}
           />
         </div>
       )}
@@ -286,15 +312,22 @@ function CategoryPagination({
   id,
   currentPage,
   totalPages,
+  sort,
 }: {
   lang: string;
   id: string;
   currentPage: number;
   totalPages: number;
+  sort: SortOption;
 }) {
   if (totalPages <= 1) return null;
   const base = `/${lang}/category/${id}`;
-  const href = (p: number) => (p <= 1 ? base : `${base}?page=${p}`);
+  // Keep the active ordering across pages; the default (relevance) stays implicit.
+  const sortQuery = sort !== "relevance" ? `sort=${sort}` : "";
+  const href = (p: number) => {
+    const parts = [p > 1 ? `page=${p}` : "", sortQuery].filter(Boolean);
+    return parts.length ? `${base}?${parts.join("&")}` : base;
+  };
   // A compact window of page numbers around the current page.
   const pages: number[] = [];
   const from = Math.max(1, currentPage - 2);

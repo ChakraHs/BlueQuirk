@@ -57,6 +57,11 @@ public class TodifyService {
 
     private static final Logger LOG = LoggerFactory.getLogger(TodifyService.class);
 
+    // How many pages of the (newest-first) Todify order list to scan when the
+    // stored draft id has been retired and we must re-resolve by external_id /
+    // reference_code. 10 pages ≈ 200 recent orders — plenty for reconciliation.
+    private static final int MAX_RESOLVE_PAGES = 10;
+
     private final TodifyClient client;
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
@@ -308,6 +313,11 @@ public class TodifyService {
             return;
         }
 
+        // The create-time id may be a retired draft id — resolve the current one
+        // first so we cancel the real order (and don't mistake a draft-id 404 for
+        // "already gone"). Best-effort: proceed with the stored id if resolve fails.
+        try { resolveRemoteData(order); } catch (TodifyApiException ignore) { /* proceed with stored id */ }
+
         String todifyId = order.getTodifyOrderId();
         order.setTodifySyncAttempts(order.getTodifySyncAttempts() + 1);
         order.setTodifyLastSyncAt(LocalDateTime.now());
@@ -518,18 +528,89 @@ public class TodifyService {
         Order order = orderRepository.findById(orderId).orElse(null);
         if (order == null || order.getTodifyOrderId() == null || !isConfigured()) return;
         try {
-            JsonNode root = client.getOrder(order.getTodifyOrderId());
-            JsonNode data = root.path("data");
+            JsonNode data = resolveRemoteData(order);
+            if (data == null || !data.isObject()) {
+                log(TodifySyncLog.Type.ERROR, "getOrder", "OUTBOUND", orderId, null,
+                        404, null, null,
+                        "Order not found in Todify (external_id=" + orderId + ")", null);
+                return;
+            }
             String status = text(data, "status");
             String tracking = firstNonBlank(text(data, "tracking_number"),
                     text(data.path("shipping"), "tracking_number"));
             applyTodifyStatus(orderId, status, tracking, null);
             log(TodifySyncLog.Type.RESPONSE, "getOrder", "OUTBOUND", orderId, null,
-                    200, null, root.toString(), null, null);
+                    200, null, data.toString(), null, null);
         } catch (TodifyApiException e) {
             log(TodifySyncLog.Type.ERROR, "getOrder", "OUTBOUND", orderId, null,
                     e.getStatus(), null, e.getBody(), e.getMessage(), null);
         }
+    }
+
+    /**
+     * Returns the CURRENT Todify order {@code data} node for a local order,
+     * correcting the stored {@code todifyOrderId} when Todify has re-issued it.
+     *
+     * <p>Todify's {@code POST /orders} returns a transient <em>store_draft_order</em>
+     * id; once the draft is promoted into a real order (client confirmation) it is
+     * assigned a NEW ULID and the draft id 404s. The stable join keys are
+     * {@code external_id} (our order id) and {@code reference_code} — but Todify's
+     * {@code GET /orders/{id}} only accepts the current ULID and its
+     * {@code ?external_id=} query filter is ignored. So we scan the newest-first
+     * order list, match client-side, then persist the corrected id so subsequent
+     * reads/cancellations resolve in one call.
+     *
+     * @return the remote {@code data} node, or {@code null} if the order can't be
+     *         found in Todify; propagates a non-404 {@link TodifyApiException}.
+     */
+    private JsonNode resolveRemoteData(Order order) {
+        // 1) Fast path: the stored id still resolves (already corrected, or never a draft).
+        String stored = order.getTodifyOrderId();
+        if (stored != null && !stored.isBlank()) {
+            try {
+                JsonNode data = client.getOrder(stored).path("data");
+                if (data.isObject()) return data;
+            } catch (TodifyApiException e) {
+                if (e.getStatus() != 404) throw e; // transient/other → let caller log it
+                // 404 → the draft id was retired; fall through and re-resolve.
+            }
+        }
+        // 2) Re-resolve by stable key via the (newest-first) list.
+        String extId = String.valueOf(order.getId());
+        String ref = order.getTodifyReferenceCode();
+        for (int page = 1; page <= MAX_RESOLVE_PAGES; page++) {
+            JsonNode arr = client.listOrders(page).path("data");
+            if (!arr.isArray() || arr.isEmpty()) break;
+            for (JsonNode n : arr) {
+                boolean match = extId.equals(text(n, "external_id"))
+                        || (ref != null && !ref.isBlank() && ref.equalsIgnoreCase(text(n, "reference_code")));
+                if (!match) continue;
+                persistCorrectedId(order, n);
+                // The list entry is a summary (no shipping/tracking); fetch the full
+                // detail by the corrected id so tracking is available this cycle too.
+                String newId = text(n, "id");
+                if (newId != null && !newId.isBlank()) {
+                    try {
+                        JsonNode full = client.getOrder(newId).path("data");
+                        if (full.isObject()) return full;
+                    } catch (TodifyApiException ignore) { /* fall back to the summary */ }
+                }
+                return n;
+            }
+        }
+        return null;
+    }
+
+    /** Persists a re-issued Todify id (and reference) onto the order, once. */
+    private void persistCorrectedId(Order order, JsonNode data) {
+        String newId = text(data, "id");
+        if (newId == null || newId.isBlank() || newId.equals(order.getTodifyOrderId())) return;
+        String old = order.getTodifyOrderId();
+        order.setTodifyOrderId(newId);
+        String ref = text(data, "reference_code");
+        if (ref != null && !ref.isBlank()) order.setTodifyReferenceCode(ref);
+        orderRepository.save(order);
+        LOG.info("Order {} Todify id corrected: {} -> {}", order.getId(), old, newId);
     }
 
     /**
