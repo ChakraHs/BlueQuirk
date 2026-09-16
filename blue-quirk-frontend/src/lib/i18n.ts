@@ -655,7 +655,7 @@ const ar: Dict = {
   "product.buyNow": "اشترِ الآن",
   "product.added": "تمت الإضافة إلى السلة.",
   "product.relatedTitle": "قد يعجبك أيضًا",
-  "product.exploreMore": "اكتشفي المزيد من المنتجات",
+  "product.exploreMore": "اكتشف المزيد من المنتجات",
   "product.delivery": "توصيل لكل المغرب",
   "product.secure": "دفع آمن",
   "product.returns": "إرجاع سهل",
