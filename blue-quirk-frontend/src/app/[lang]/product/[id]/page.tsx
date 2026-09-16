@@ -57,7 +57,19 @@ async function getProduct(id: string, lang: string) {
     return null;
   }
 
-  return ProductService.getById(productId, lang, STOREFRONT_REVALIDATE).catch(() => null);
+  try {
+    return await ProductService.getById(productId, lang, STOREFRONT_REVALIDATE);
+  } catch (error) {
+    // Only a genuine 404 (product doesn't exist) should collapse to notFound() —
+    // that is safe to ISR-cache. Any other failure (backend restarting, 5xx,
+    // network) must NOT be cached as a 404, or a transient blip would pin a live
+    // product to "page not found" for the whole revalidate window. Re-throw so
+    // Next serves an uncached error and the next request retries instead.
+    if ((error as { status?: number })?.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function generateMetadata({
