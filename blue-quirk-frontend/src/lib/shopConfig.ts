@@ -5,6 +5,7 @@
 // the storefront still renders if the backend is unreachable.
 import type { PublicShopConfig } from "@/types/settings";
 import { API_BASE_URL } from "@/lib/config";
+import { serverReadInit } from "@/lib/serverFetch";
 
 const CONFIG_URL = `${API_BASE_URL}/shop/config`;
 
@@ -54,9 +55,13 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   reviewsPerPage: 8,
 };
 
-export async function getPublicShopConfig(): Promise<PublicShopConfig> {
+export async function getPublicShopConfig(
+  // When set, the config read is cached/revalidated (ISR) instead of no-store.
+  // The storefront layout + product page pass this; middleware stays dynamic.
+  revalidate?: number
+): Promise<PublicShopConfig> {
   try {
-    const res = await fetch(CONFIG_URL, { cache: "no-store" });
+    const res = await fetch(CONFIG_URL, serverReadInit(revalidate));
     if (!res.ok) return SHOP_CONFIG_DEFAULTS;
     const data = (await res.json()) as Partial<PublicShopConfig>;
     return {

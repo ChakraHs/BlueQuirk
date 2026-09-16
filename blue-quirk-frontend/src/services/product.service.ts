@@ -2,6 +2,7 @@ import { PageResponse } from "@/types/page";
 import api from "./api";
 import { Product, AdminProduct } from "@/types/product";
 import { API_BASE_URL } from "@/lib/config";
+import { serverReadInit } from "@/lib/serverFetch";
 
 export const ProductService = {
   getAll: async (
@@ -41,7 +42,10 @@ export const ProductService = {
   getTrending: async (
     limit?: number,
     lang?: string,
-    days?: number
+    days?: number,
+    // When set, the read is cached/revalidated (ISR) instead of no-store. Used by
+    // the product page; live/admin callers omit it and stay fully dynamic.
+    revalidate?: number
   ): Promise<Product[]> => {
     const params = new URLSearchParams();
     if (limit) params.set("limit", String(limit));
@@ -51,7 +55,7 @@ export const ProductService = {
     const query = params.toString();
     const res = await fetch(
       `${API_BASE_URL}/products/trending${query ? `?${query}` : ""}`,
-      { cache: "no-store" }
+      serverReadInit(revalidate)
     );
 
     if (!res.ok) {
@@ -61,11 +65,18 @@ export const ProductService = {
     return res.json();
   },
 
-  getById: async (id: number, lang?: string): Promise<Product> => {
+  getById: async (
+    id: number,
+    lang?: string,
+    // When set, the read is cached/revalidated (ISR) instead of no-store. The
+    // product page passes this; other callers stay fully dynamic by default.
+    revalidate?: number
+  ): Promise<Product> => {
     const query = lang ? `?lang=${encodeURIComponent(lang)}` : "";
-    const res = await fetch(`${API_BASE_URL}/products/${id}${query}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${API_BASE_URL}/products/${id}${query}`,
+      serverReadInit(revalidate)
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch product ${id}: ${res.status}`);

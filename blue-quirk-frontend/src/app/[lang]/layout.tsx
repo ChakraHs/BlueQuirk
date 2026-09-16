@@ -19,6 +19,7 @@ import WhatsAppButton from "@/components/support/WhatsAppButton";
 // import SupportWidget from "@/components/support/SupportWidget";
 import { CategoryService } from "@/services/category.service";
 import { getPublicShopConfig } from "@/lib/shopConfig";
+import { STOREFRONT_REVALIDATE } from "@/lib/serverFetch";
 import { isLang, LANGS, dirOf } from "@/lib/lang";
 import { t } from "@/lib/i18n";
 import { SITE_URL } from "@/lib/config";
@@ -47,7 +48,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { lang } = await params;
   if (!isLang(lang)) return {};
-  const config = await getPublicShopConfig();
+  const config = await getPublicShopConfig(STOREFRONT_REVALIDATE);
   const storeName = config.storeName;
   const description = t(lang, "footer.tagline");
 
@@ -88,10 +89,16 @@ export default async function LangLayout({
     notFound();
   }
 
+  // Global storefront chrome (categories, branding/config, announcement) is
+  // public and rarely changes, so it is read through Next's Data Cache (ISR,
+  // STOREFRONT_REVALIDATE) instead of no-store. This is also what lets child
+  // routes (e.g. the product page) be statically cached — a single no-store
+  // read anywhere in the tree, including this shared layout, would otherwise
+  // force every route to render dynamically.
   const [categories, config, announcementBar] = await Promise.all([
-    CategoryService.getAll(lang).catch(() => []),
-    getPublicShopConfig(),
-    getAnnouncementBar(lang),
+    CategoryService.getAll(lang, STOREFRONT_REVALIDATE).catch(() => []),
+    getPublicShopConfig(STOREFRONT_REVALIDATE),
+    getAnnouncementBar(lang, STOREFRONT_REVALIDATE),
   ]);
   const topCategories = categories.filter((c) => !c.parentId);
 

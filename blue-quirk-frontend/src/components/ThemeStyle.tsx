@@ -7,6 +7,7 @@
 // admin) with no code change and no client JS. Rendered inline in every root
 // layout's <body>; `:root` is not scoped, so a single <style> themes the document.
 import { getPublicShopConfig } from "@/lib/shopConfig";
+import { STOREFRONT_REVALIDATE } from "@/lib/serverFetch";
 import { THEME_COLOR_VARS, type ThemeColors } from "@/types/settings";
 
 // Only accept genuine CSS color values (hex / rgb(a) / hsl(a) / named color).
@@ -21,7 +22,10 @@ function safeColor(value: string | null | undefined): string | null {
 }
 
 export default async function ThemeStyle() {
-  const config = await getPublicShopConfig();
+  // Rendered by the shared layout on every page, so this read must be cacheable
+  // (ISR) too — a no-store fetch here would force even statically-cached routes
+  // (the product page) back to dynamic rendering.
+  const config = await getPublicShopConfig(STOREFRONT_REVALIDATE);
 
   const decls: string[] = [];
   for (const key of Object.keys(THEME_COLOR_VARS) as (keyof ThemeColors)[]) {

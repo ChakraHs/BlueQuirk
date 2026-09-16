@@ -4,6 +4,7 @@
 // pattern. Fails closed (bar hidden) so the storefront always renders if the backend
 // is unreachable (spec §26).
 import { API_BASE_URL } from "@/lib/config";
+import { serverReadInit } from "@/lib/serverFetch";
 import type { AnnouncementBar, AnnouncementAnimation } from "@/services/announcement.service";
 
 const EMPTY: AnnouncementBar = {
@@ -19,11 +20,16 @@ function normAnimation(v: unknown): AnnouncementAnimation {
   return v === "SLIDE" || v === "CAROUSEL" ? v : "FADE";
 }
 
-export async function getAnnouncementBar(lang: string): Promise<AnnouncementBar> {
+export async function getAnnouncementBar(
+  lang: string,
+  // When set, the read is cached/revalidated (ISR) instead of no-store. The
+  // storefront layout passes this; the bar changes rarely.
+  revalidate?: number
+): Promise<AnnouncementBar> {
   try {
     const res = await fetch(
       `${API_BASE_URL}/shop/announcements?lang=${encodeURIComponent(lang)}`,
-      { cache: "no-store" }
+      serverReadInit(revalidate)
     );
     if (!res.ok) return EMPTY;
     const data = (await res.json()) as Partial<AnnouncementBar>;

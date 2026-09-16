@@ -1,13 +1,15 @@
 import api from "./api";
 import { Category } from "@/types/category";
 import { API_BASE_URL } from "@/lib/config";
+import { serverReadInit } from "@/lib/serverFetch";
 
 export const CategoryService = {
-  getAll: async (lang?: string): Promise<Category[]> => {
+  getAll: async (lang?: string, revalidate?: number): Promise<Category[]> => {
     const query = lang ? `?lang=${encodeURIComponent(lang)}` : "";
-    const res = await fetch(`${API_BASE_URL}/categories${query}`, {
-      cache: "no-store",
-    });
+    const res = await fetch(
+      `${API_BASE_URL}/categories${query}`,
+      serverReadInit(revalidate)
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch categories: ${res.status}`);
