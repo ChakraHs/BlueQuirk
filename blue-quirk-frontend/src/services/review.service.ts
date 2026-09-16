@@ -5,6 +5,7 @@
 // photos, submission) use the shared axios instance — never a new one.
 import api from "@/services/api";
 import { API_BASE_URL } from "@/lib/config";
+import { serverReadInit } from "@/lib/serverFetch";
 
 const BASE = `${API_BASE_URL}/shop/reviews`;
 
@@ -92,9 +93,12 @@ const EMPTY_PAGE: ReviewPage = {
 // --- server-side (SSR) reads -------------------------------------------------
 
 /** Rating summary for a product. Returns a disabled/empty summary on any failure. */
-export async function fetchReviewSummary(productId: number): Promise<ReviewSummary> {
+export async function fetchReviewSummary(
+  productId: number,
+  revalidate?: number
+): Promise<ReviewSummary> {
   try {
-    const res = await fetch(`${BASE}/product/${productId}/summary`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/product/${productId}/summary`, serverReadInit(revalidate));
     if (!res.ok) return EMPTY_SUMMARY;
     return (await res.json()) as ReviewSummary;
   } catch {
@@ -103,9 +107,13 @@ export async function fetchReviewSummary(productId: number): Promise<ReviewSumma
 }
 
 /** First page of approved reviews for SSR. Empty/disabled on failure. */
-export async function fetchReviewPage(productId: number, page = 0): Promise<ReviewPage> {
+export async function fetchReviewPage(
+  productId: number,
+  page = 0,
+  revalidate?: number
+): Promise<ReviewPage> {
   try {
-    const res = await fetch(`${BASE}/product/${productId}?page=${page}`, { cache: "no-store" });
+    const res = await fetch(`${BASE}/product/${productId}?page=${page}`, serverReadInit(revalidate));
     if (!res.ok) return EMPTY_PAGE;
     return (await res.json()) as ReviewPage;
   } catch {

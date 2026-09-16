@@ -17,9 +17,29 @@ import {
 import { CategoryService } from "@/services/category.service";
 import { buildCategoryPath } from "@/lib/productCategory";
 import { getPublicShopConfig } from "@/lib/shopConfig";
+import { STOREFRONT_REVALIDATE } from "@/lib/serverFetch";
 import { displaySrc } from "@/lib/productImage";
 import { buildAlternates, absoluteUrl } from "@/lib/seo";
 import { t } from "@/lib/i18n";
+
+// Render the product page through Next's ISR: the first request for a product
+// renders it server-side and caches the HTML; subsequent requests are served
+// from cache and the page is re-rendered in the background at most every 300s.
+// This removes the per-request backend round-trips (getProduct → trending/
+// config/categories) from TTFB for the overwhelming majority of ad clicks. Kept
+// as a literal (Next requires `revalidate` to be statically analyzable);
+// mirrors STOREFRONT_REVALIDATE used for the data reads below.
+export const revalidate = 300;
+
+// Prebuild NO product pages at build time (the catalog is large and changes), but
+// opt the dynamic [id] route into the Full Route Cache: with an (empty)
+// generateStaticParams + dynamicParams=true (default), any product id is rendered
+// on first request and then cached as ISR HTML (revalidated every 300s), instead
+// of being re-rendered from scratch on every hit. Returning [] needs no backend
+// at build time.
+export function generateStaticParams(): { id: string }[] {
+  return [];
+}
 
 type ProductPageParams = {
   lang: string;
@@ -37,7 +57,7 @@ async function getProduct(id: string, lang: string) {
     return null;
   }
 
-  return ProductService.getById(productId, lang).catch(() => null);
+  return ProductService.getById(productId, lang, STOREFRONT_REVALIDATE).catch(() => null);
 }
 
 export async function generateMetadata({
@@ -94,9 +114,9 @@ export default async function ProductPage({
   // first-page slice, so shoppers see what actually sells. Fetch a few extra so
   // dropping the current product still leaves a full row of 4.
   const [trendingProducts, config, categoryTree] = await Promise.all([
-    ProductService.getTrending(8, lang).catch(() => []),
-    getPublicShopConfig(),
-    CategoryService.getAll(lang).catch(() => []),
+    ProductService.getTrending(8, lang, undefined, STOREFRONT_REVALIDATE).catch(() => []),
+    getPublicShopConfig(STOREFRONT_REVALIDATE),
+    CategoryService.getAll(lang, STOREFRONT_REVALIDATE).catch(() => []),
   ]);
   const relatedProducts = trendingProducts
     .filter((relatedProduct) => relatedProduct.id !== product.id)
@@ -122,8 +142,8 @@ export default async function ProductPage({
   let reviewPhotos: ReviewCard[] = [];
   if (config.reviewsEnabled) {
     const [summary, firstPage, photos] = await Promise.all([
-      fetchReviewSummary(product.id),
-      fetchReviewPage(product.id, 0),
+      fetchReviewSummary(product.id, STOREFRONT_REVALIDATE),
+      fetchReviewPage(product.id, 0, STOREFRONT_REVALIDATE),
       config.reviewPhotosEnabled
         ? fetchReviewPhotos(product.id, 12)
         : Promise.resolve<ReviewPage | null>(null),

@@ -6,6 +6,14 @@ const nextConfig = {
   output: "standalone",
 
   images: {
+    // Cache each OPTIMIZED image (the resized WebP the browser downloads) for a
+    // year instead of the 60s Next default. The upstream R2 variant URLs are
+    // immutable per upload (UUID-keyed folder), so re-optimizing them is pure
+    // waste — and a cold optimize of a large source on the VPS is expensive
+    // (measured ~4s for a 4500×5400 PNG). A long TTL means each product/width
+    // WebP is generated once and then served from cache. Formats left at the
+    // Next default (WebP) on purpose — AVIF is deferred until we measure this.
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       {
         // Backend-served upload images (/uploads/**) when deployed on Railway
