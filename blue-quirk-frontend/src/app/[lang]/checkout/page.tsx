@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
-  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet, RotateCcw,
+  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet,
 } from "lucide-react";
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
@@ -550,7 +550,6 @@ export default function CheckoutPage({
           <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs font-medium text-gray-500">
             <li className="inline-flex items-center gap-1.5"><Wallet className="size-3.5 text-emerald-600" />{t(lang, "product.trustCod")}</li>
             <li className="inline-flex items-center gap-1.5"><Truck className="size-3.5 text-emerald-600" />{t(lang, "product.trustEta")}</li>
-            <li className="inline-flex items-center gap-1.5"><RotateCcw className="size-3.5 text-emerald-600" />{t(lang, "product.trustReturns")}</li>
           </ul>
 
           <Link href={`/${lang}/cart`} className="mt-3 block text-center text-sm font-medium text-blue-600 hover:text-blue-700">
