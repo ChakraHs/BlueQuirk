@@ -37,6 +37,7 @@ public class StoreSettingsService {
     private final String defaultCurrency;
     private final String defaultStoreName;
     private final String defaultLang;
+    private final String defaultContactPhone;
 
     public StoreSettingsService(
             StoreSettingsRepository repository,
@@ -45,7 +46,8 @@ public class StoreSettingsService {
             @Value("${order.free-shipping-threshold:0}") double defaultThreshold,
             @Value("${order.currency:DH}") String defaultCurrency,
             @Value("${store.name:RedQuirk}") String defaultStoreName,
-            @Value("${store.default-lang:fr}") String defaultLang) {
+            @Value("${store.default-lang:fr}") String defaultLang,
+            @Value("${store.contact-phone:0619816342}") String defaultContactPhone) {
         this.repository = repository;
         this.defaultShippingFee = defaultShippingFee;
         this.defaultRealShippingCost = defaultRealShippingCost;
@@ -53,6 +55,7 @@ public class StoreSettingsService {
         this.defaultCurrency = defaultCurrency;
         this.defaultStoreName = defaultStoreName;
         this.defaultLang = normalizeLang(defaultLang);
+        this.defaultContactPhone = defaultContactPhone;
     }
 
     /** The settings row, created with seeded defaults if it does not exist yet. */
@@ -68,6 +71,7 @@ public class StoreSettingsService {
             s.setFreeShippingThreshold(defaultThreshold);
             s.setCurrency(defaultCurrency);
             s.setDefaultLang(defaultLang);
+            s.setContactPhone(blankToNull(defaultContactPhone));
             return repository.save(s);
         });
     }
@@ -104,6 +108,11 @@ public class StoreSettingsService {
         }
         if (req.defaultLang() != null) {
             s.setDefaultLang(normalizeLang(req.defaultLang()));
+        }
+        // Contact / WhatsApp phone: blank clears it (fall back to the storefront
+        // default), a value sets it, null leaves it unchanged.
+        if (req.contactPhone() != null) {
+            s.setContactPhone(blankToNull(req.contactPhone()));
         }
         // Hero fields: an empty string clears the value (back to defaults), a
         // value sets it, null leaves it unchanged.

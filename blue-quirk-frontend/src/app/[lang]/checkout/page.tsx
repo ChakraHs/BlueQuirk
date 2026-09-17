@@ -332,7 +332,7 @@ export default function CheckoutPage({
 
           <div className="space-y-4">
             <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.fullName")} required value={form.fullName} onChange={update("fullName")} onBlur={blur("fullName")} error={errors.fullName} placeholder={t(lang, "checkout.fullName")} autoComplete="name" />
-            <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
+            <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} hint={t(lang, "checkout.emailHint")} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
             <CitySelect
@@ -672,7 +672,7 @@ function Confirmation({
 
 function Field({
   icon, label, value, onChange, onBlur, placeholder, type = "text",
-  required, error, autoComplete,
+  required, error, autoComplete, hint,
 }: {
   icon?: React.ReactNode;
   label: string;
@@ -684,6 +684,8 @@ function Field({
   required?: boolean;
   error?: string;
   autoComplete?: string;
+  // Optional gentle helper text shown under the field (when there is no error).
+  hint?: string;
 }) {
   return (
     <div>
@@ -709,10 +711,12 @@ function Field({
           }`}
         />
       </div>
-      {error && (
+      {error ? (
         <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
           <AlertCircle size={12} /> {error}
         </p>
+      ) : (
+        hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>
       )}
     </div>
   );

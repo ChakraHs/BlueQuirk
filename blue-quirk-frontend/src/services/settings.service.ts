@@ -15,6 +15,7 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string;
+  contactPhone: string; // public contact / WhatsApp number ("" clears it)
   heroTitleFr: string | null;
   heroTitleEn: string | null;
   heroTitleAr: string | null;

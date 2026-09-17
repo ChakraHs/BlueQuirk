@@ -17,6 +17,9 @@ public record StoreSettingsRequest(
         Double freeShippingThreshold,
         String currency,
         String defaultLang,
+        // Public contact / WhatsApp phone number. Blank clears it (fall back to the
+        // storefront default); null leaves it unchanged.
+        String contactPhone,
         // Home hero section (all optional). Title + subtitle are per-language.
         String heroTitleFr,
         String heroTitleEn,

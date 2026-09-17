@@ -57,6 +57,7 @@ public class ShopConfigController {
                 s.getLogoUrl(),
                 s.getLogoUrlDark(),
                 s.getDefaultLang(),
+                s.getContactPhone(),
                 s.getHeroTitleFr(),
                 s.getHeroTitleEn(),
                 s.getHeroTitleAr(),
@@ -100,6 +101,8 @@ public class ShopConfigController {
             String logoUrl,
             String logoUrlDark,
             String defaultLang,
+            // Public contact / WhatsApp phone number (null = storefront default).
+            String contactPhone,
             String heroTitleFr,
             String heroTitleEn,
             String heroTitleAr,

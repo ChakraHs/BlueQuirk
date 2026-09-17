@@ -63,6 +63,12 @@ public class StoreSettings {
     @Column(nullable = false)
     private String defaultLang;
 
+    // Public contact / WhatsApp phone number (Moroccan format, e.g. "0619816342").
+    // Surfaced on the storefront (floating WhatsApp button, contact page). Nullable —
+    // when blank the storefront falls back to its built-in default number.
+    @Column(name = "contact_phone")
+    private String contactPhone;
+
     // --- Home hero section (all nullable; blank falls back to the built-in
     // translated defaults / a default background). ---
     // Title + subtitle are stored per language (fr / en / ar) so the admin can
@@ -281,6 +287,9 @@ public class StoreSettings {
 
     public String getDefaultLang() { return defaultLang; }
     public void setDefaultLang(String defaultLang) { this.defaultLang = defaultLang; }
+
+    public String getContactPhone() { return contactPhone; }
+    public void setContactPhone(String contactPhone) { this.contactPhone = contactPhone; }
 
     public String getHeroTitleFr() { return heroTitleFr; }
     public void setHeroTitleFr(String heroTitleFr) { this.heroTitleFr = heroTitleFr; }

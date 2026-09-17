@@ -7,10 +7,18 @@ import { t } from "@/lib/i18n";
  * prefilled with a localized greeting. Side-aware so it doesn't sit under the
  * RTL/LTR content edge or the mobile sticky purchase bar (bottom-20 clears it).
  */
-export default function WhatsAppButton({ lang = "fr" }: { lang?: string }) {
+export default function WhatsAppButton({
+  lang = "fr",
+  // Admin-configured contact number (from the DB shop config). Falls back to the
+  // built-in default when unset so the button always works.
+  phone,
+}: {
+  lang?: string;
+  phone?: string | null;
+}) {
   // Normalize the local Moroccan number ("0619816342") to wa.me's international
   // format (no +, no leading 0): 212619816342.
-  const digits = CONTACT.phone.replace(/\D/g, "");
+  const digits = (phone?.trim() || CONTACT.phone).replace(/\D/g, "");
   const intl = digits.startsWith("0") ? `212${digits.slice(1)}` : digits;
   const href = `https://wa.me/${intl}?text=${encodeURIComponent(t(lang, "whatsapp.prefill"))}`;
 
