@@ -67,15 +67,16 @@ export default function FinanceKpis() {
 
   const current: FinanceSummary | null = overview ? overview[period] : null;
 
-  // One clustered bar chart with all three money series per month, so revenue,
-  // profit (before expenses) and real profit (after expenses) read against each
-  // other at a glance instead of living in two disconnected charts.
+  // One clustered bar chart with every money series per month, so revenue,
+  // profit (before expenses), expenses and real profit (after expenses) read
+  // against each other at a glance instead of living in disconnected charts.
   const trendData: GroupedTrendPoint[] = useMemo(
     () =>
       series.map((p) => ({
         period: p.period,
         revenue: p.collected,
         profit: p.profit,
+        expense: p.expenses,
         realProfit: p.realProfit,
       })),
     [series]
@@ -83,6 +84,7 @@ export default function FinanceKpis() {
   const trendSeries: TrendSeries[] = [
     { key: "revenue", label: "Revenue", color: "#2563eb" },
     { key: "profit", label: "Profit", color: "#f59e0b" },
+    { key: "expense", label: "Expenses", color: "#dc2626" },
     { key: "realProfit", label: "Real profit", color: "#059669" },
   ];
 
@@ -188,7 +190,7 @@ export default function FinanceKpis() {
       {/* Revenue, profit & real profit over the year — grouped bars per month */}
       <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-semibold text-gray-700">
-          Revenue, profit &amp; real profit by month (this year)
+          Revenue, profit, expenses &amp; real profit by month (this year)
         </h3>
         <GroupedTrendChart data={trendData} series={trendSeries} />
       </div>
