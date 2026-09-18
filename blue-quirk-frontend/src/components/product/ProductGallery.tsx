@@ -7,7 +7,7 @@
 //   request.
 // - Mobile: finger-following swipe between slides + dot indicators; tap opens a
 //   fullscreen lightbox (pinch-zoom / pan / swipe).
-// An OPTIONAL featured video integrates as the SECOND slide when present (the
+// An OPTIONAL featured video integrates as the LAST slide when present (the
 // FIRST slide stays the primary image, which is best for LCP): the image paints
 // first with priority, the MP4 stays fully lazy, and the video autoplays muted
 // only once the user navigates to it and it is on-screen, pausing when they move
@@ -71,16 +71,13 @@ export default function ProductGallery({
   const displayUrls = useMemo(() => images.map(displaySrc), [images]);
   const thumbUrls = useMemo(() => images.map(thumbSrc), [images]);
 
-  // Build the ordered slide list: the primary image is FIRST, the video (if any)
-  // is inserted as the SECOND slide, then the rest of the images. With no images
-  // the video stands alone.
+  // Build the ordered slide list: all product images in order, then the video
+  // (if any) as the LAST slide. The first image still stays first (best for LCP).
+  // With no images the video stands alone.
   const slides = useMemo<Slide[]>(() => {
     const out: Slide[] = [];
-    images.forEach((_, i) => {
-      out.push({ kind: "image", imageIndex: i });
-      if (hasVideo && i === 0) out.push({ kind: "video" });
-    });
-    if (hasVideo && images.length === 0) out.push({ kind: "video" });
+    images.forEach((_, i) => out.push({ kind: "image", imageIndex: i }));
+    if (hasVideo) out.push({ kind: "video" });
     return out;
   }, [images, hasVideo]);
 

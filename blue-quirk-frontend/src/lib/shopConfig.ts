@@ -17,6 +17,7 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   logoUrl: null,
   logoUrlDark: null,
   defaultLang: "fr",
+  contactPhone: null,
   heroTitleFr: null,
   heroTitleEn: null,
   heroTitleAr: null,
@@ -78,6 +79,7 @@ export async function getPublicShopConfig(
       defaultLang: ["fr", "ar", "en"].includes(data.defaultLang ?? "")
         ? (data.defaultLang as string)
         : "fr",
+      contactPhone: data.contactPhone ?? null,
       heroTitleFr: data.heroTitleFr ?? null,
       heroTitleEn: data.heroTitleEn ?? null,
       heroTitleAr: data.heroTitleAr ?? null,

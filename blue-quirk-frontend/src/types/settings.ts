@@ -103,6 +103,7 @@ export interface StoreSettings
   freeShippingThreshold: number;
   currency: string;
   defaultLang: string; // "fr" | "ar" | "en"
+  contactPhone: string | null; // public contact / WhatsApp number (null = default)
 }
 
 // Public subset returned by GET /api/shop/config (also includes the shipping
@@ -122,4 +123,5 @@ export interface PublicShopConfig
   logoUrl: string | null;
   logoUrlDark: string | null; // alternate logo used in dark mode
   defaultLang: string;
+  contactPhone: string | null; // public contact / WhatsApp number (null = default)
 }

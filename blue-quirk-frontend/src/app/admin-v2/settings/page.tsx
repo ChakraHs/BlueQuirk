@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag, Megaphone, AlertCircle, Star } from "lucide-react";
+import { Store, UploadCloud, Loader2, Image as ImageIcon, Trash2, Check, LayoutTemplate, Palette, Eye, Tag, Megaphone, AlertCircle, Star, Phone } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import { SettingsService } from "@/services/settings.service";
 import { StoreSettings, ThemeColors } from "@/types/settings";
@@ -44,6 +44,7 @@ type FormState = {
   freeShippingThreshold: string;
   currency: string;
   defaultLang: string;
+  contactPhone: string;
   heroTitleFr: string;
   heroTitleEn: string;
   heroTitleAr: string;
@@ -83,6 +84,7 @@ function toForm(s: StoreSettings): FormState {
     freeShippingThreshold: String(s.freeShippingThreshold ?? 0),
     currency: s.currency ?? "DH",
     defaultLang: s.defaultLang ?? "fr",
+    contactPhone: s.contactPhone ?? "",
     heroTitleFr: s.heroTitleFr ?? "",
     heroTitleEn: s.heroTitleEn ?? "",
     heroTitleAr: s.heroTitleAr ?? "",
@@ -221,6 +223,7 @@ export default function SettingsPage() {
         freeShippingThreshold: Math.max(0, Number(form.freeShippingThreshold) || 0),
         currency: form.currency.trim() || "DH",
         defaultLang: form.defaultLang,
+        contactPhone: form.contactPhone.trim(),
         heroTitleFr: form.heroTitleFr.trim(),
         heroTitleEn: form.heroTitleEn.trim(),
         heroTitleAr: form.heroTitleAr.trim(),
@@ -406,6 +409,30 @@ export default function SettingsPage() {
             </div>
             <p className="mt-2 text-xs text-gray-400">
               Used only in dark mode. Leave empty to reuse the main logo in both themes.
+            </p>
+          </section>
+
+          {/* Contact */}
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-4 flex items-center gap-2">
+              <Phone size={18} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-800">Contact</h2>
+            </div>
+
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Contact / WhatsApp number
+            </label>
+            <input
+              value={form.contactPhone}
+              onChange={(e) => update({ contactPhone: e.target.value })}
+              placeholder="e.g. 0619816342"
+              inputMode="tel"
+              className="w-full max-w-xs rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Shown on the storefront (the floating WhatsApp button and the contact page).
+              Moroccan format, e.g. <span className="font-medium">0619816342</span>. Leave empty
+              to use the built-in default number.
             </p>
           </section>
 

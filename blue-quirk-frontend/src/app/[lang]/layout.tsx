@@ -143,7 +143,7 @@ export default async function LangLayout({
             {/* Redbubble-style "added to cart" slide-over — opens on any add-to-cart. */}
             <CartAddedSheet lang={lang} />
             {/* Floating WhatsApp contact — the primary COD trust/support channel. */}
-            <WhatsAppButton lang={lang} />
+            <WhatsAppButton lang={lang} phone={config.contactPhone} />
             {/* Support/chat widget temporarily disabled.
             <SupportWidget
               lang={lang}

@@ -122,7 +122,6 @@ export default function Hero({
             {[
               t(lang, "hero.reassure1"),
               t(lang, "hero.reassure2"),
-              t(lang, "hero.reassure3"),
             ].map((label) => (
               <li key={label} className="inline-flex items-center gap-1.5">
                 <span aria-hidden className="text-emerald-300">✓</span>

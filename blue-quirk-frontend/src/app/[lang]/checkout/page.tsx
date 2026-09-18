@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
-  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet, RotateCcw,
+  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet,
 } from "lucide-react";
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
@@ -332,7 +332,7 @@ export default function CheckoutPage({
 
           <div className="space-y-4">
             <Field icon={<UserIcon size={18} />} label={t(lang, "checkout.fullName")} required value={form.fullName} onChange={update("fullName")} onBlur={blur("fullName")} error={errors.fullName} placeholder={t(lang, "checkout.fullName")} autoComplete="name" />
-            <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} placeholder="jean@example.com" autoComplete="email" />
+            <Field icon={<Mail size={18} />} label={`${t(lang, "checkout.email")} (${t(lang, "common.optional")})`} type="email" value={form.email} onChange={update("email")} onBlur={blur("email")} error={errors.email} hint={t(lang, "checkout.emailHint")} placeholder="jean@example.com" autoComplete="email" />
             <Field icon={<Phone size={18} />} label={t(lang, "checkout.phone")} required type="tel" value={form.phone} onChange={update("phone")} onBlur={blur("phone")} error={errors.phone} placeholder="0612345678" autoComplete="tel" />
             <Field icon={<MapPin size={18} />} label={t(lang, "checkout.address")} required value={form.address} onChange={update("address")} onBlur={blur("address")} error={errors.address} placeholder="Rue, quartier, n°" autoComplete="street-address" />
             <CitySelect
@@ -550,7 +550,6 @@ export default function CheckoutPage({
           <ul className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs font-medium text-gray-500">
             <li className="inline-flex items-center gap-1.5"><Wallet className="size-3.5 text-emerald-600" />{t(lang, "product.trustCod")}</li>
             <li className="inline-flex items-center gap-1.5"><Truck className="size-3.5 text-emerald-600" />{t(lang, "product.trustEta")}</li>
-            <li className="inline-flex items-center gap-1.5"><RotateCcw className="size-3.5 text-emerald-600" />{t(lang, "product.trustReturns")}</li>
           </ul>
 
           <Link href={`/${lang}/cart`} className="mt-3 block text-center text-sm font-medium text-blue-600 hover:text-blue-700">
@@ -672,7 +671,7 @@ function Confirmation({
 
 function Field({
   icon, label, value, onChange, onBlur, placeholder, type = "text",
-  required, error, autoComplete,
+  required, error, autoComplete, hint,
 }: {
   icon?: React.ReactNode;
   label: string;
@@ -684,6 +683,8 @@ function Field({
   required?: boolean;
   error?: string;
   autoComplete?: string;
+  // Optional gentle helper text shown under the field (when there is no error).
+  hint?: string;
 }) {
   return (
     <div>
@@ -709,10 +710,12 @@ function Field({
           }`}
         />
       </div>
-      {error && (
+      {error ? (
         <p className="mt-1 flex items-center gap-1 text-xs text-red-600">
           <AlertCircle size={12} /> {error}
         </p>
+      ) : (
+        hint && <p className="mt-1 text-xs text-gray-500">{hint}</p>
       )}
     </div>
   );

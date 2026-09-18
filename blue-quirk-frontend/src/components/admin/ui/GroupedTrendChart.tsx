@@ -13,17 +13,18 @@ import {
 } from "recharts";
 import { formatPrice } from "@/lib/money";
 
-/** One bucket with all three money series for the grouped bars. */
+/** One bucket with all money series for the grouped bars. */
 export type GroupedTrendPoint = {
   period: string; // "YYYY-MM" or "YYYY-MM-DD"
   revenue: number;
   profit: number;
+  expense: number;
   realProfit: number;
 };
 
 /** A named series → the bar's dataKey, colour and legend label. */
 export type TrendSeries = {
-  key: "revenue" | "profit" | "realProfit";
+  key: "revenue" | "profit" | "expense" | "realProfit";
   label: string;
   color: string;
 };

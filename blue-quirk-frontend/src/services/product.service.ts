@@ -79,7 +79,12 @@ export const ProductService = {
     );
 
     if (!res.ok) {
-      throw new Error(`Failed to fetch product ${id}: ${res.status}`);
+      // Attach the HTTP status so callers can tell a genuine 404 (product
+      // doesn't exist) from a transient backend failure (5xx/unreachable) and
+      // avoid caching the latter as a "not found".
+      const err = new Error(`Failed to fetch product ${id}: ${res.status}`) as Error & { status?: number };
+      err.status = res.status;
+      throw err;
     }
 
     return res.json();

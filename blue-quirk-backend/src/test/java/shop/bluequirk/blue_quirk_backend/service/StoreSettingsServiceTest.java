@@ -32,7 +32,7 @@ class StoreSettingsServiceTest {
     void setUp() {
         mocks = MockitoAnnotations.openMocks(this);
         // Seed defaults mirror the @Value bindings; only the singleton row matters here.
-        service = new StoreSettingsService(repository, 0, 0, 0, "DH", "RedQuirk", "fr");
+        service = new StoreSettingsService(repository, 0, 0, 0, "DH", "RedQuirk", "fr", "0619816342");
 
         // getOrCreate() finds the existing singleton row, and save() echoes its arg.
         StoreSettings existing = new StoreSettings();
@@ -48,8 +48,8 @@ class StoreSettingsServiceTest {
     private StoreSettingsRequest metaRequest(Boolean enabled, String pixelId) {
         return new StoreSettingsRequest(
                 // storeName, logoUrl, logoUrlDark, shippingFee, realShippingCost,
-                // freeShippingThreshold, currency, defaultLang
-                null, null, null, null, null, null, null, null,
+                // freeShippingThreshold, currency, defaultLang, contactPhone
+                null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null, null, null, null, null, null, null, null, null,
                 null, null, null,

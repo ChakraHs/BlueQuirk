@@ -182,7 +182,7 @@ function OrderView({ order }: { order: OrderResponse }) {
           <Info icon={<CalendarClock size={16} />} label="Livraison estimée"
             value={order.estimatedDelivery
               ? new Date(order.estimatedDelivery).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })
-              : "Sous 3 à 5 jours ouvrables"} />
+              : "Sous 1 à 3 jours ouvrables"} />
           {order.trackingNumber && (
             <Info icon={<Hash size={16} />} label="Numéro de suivi" value={order.trackingNumber} />
           )}
