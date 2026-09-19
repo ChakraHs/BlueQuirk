@@ -299,12 +299,9 @@ export default function ProductDetailClient({
               currency: shippingConfig.currency,
             })}
           </p>
-          <p className="text-xs text-gray-500">
-            {t(lang, "product.shipOtherwise", {
-              amount: Math.round(shippingConfig.shippingFee),
-              currency: shippingConfig.currency,
-            })}
-          </p>
+          {/* The concrete delivery fee is intentionally not shown here: it depends
+              on the delivery city (per-city pricing), which isn't known until the
+              customer picks a ville at checkout. */}
         </div>
       )}
     </>

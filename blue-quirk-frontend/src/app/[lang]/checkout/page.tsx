@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useCart, cartTotal, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
-import { colorLabel } from "@/lib/colors";
+import { colorLabel, formatVariant } from "@/lib/colors";
 import { thumbSrc } from "@/lib/productImage";
 import { quickAddProduct } from "@/lib/quickAdd";
 import { ProductService } from "@/services/product.service";
@@ -100,6 +100,13 @@ export default function CheckoutPage({
       : null;
   const effectiveShipping = quote ? quote.shippingFee : shipping;
   const finalTotal = quote ? quote.total : grandTotal;
+
+  // Shipping depends on the delivery city, so we don't show a concrete amount (nor
+  // add it to the total) until the customer has picked a ville. Before that the
+  // total reflects the items only; once a city is chosen the authoritative quote
+  // already carries its per-city fee.
+  const cityChosen = form.city.trim().length > 0;
+  const displayTotal = cityChosen ? finalTotal : finalTotal - effectiveShipping;
 
   // Prefill from the signed-in account if there is one — but never force login.
   useEffect(() => {
@@ -526,15 +533,19 @@ export default function CheckoutPage({
             )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
-              <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
-              </dd>
+              {cityChosen ? (
+                <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                  {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
+                </dd>
+              ) : (
+                <dd className="font-medium text-gray-500">{t(lang, "checkout.shippingAfterCity")}</dd>
+              )}
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
-            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal, lang)}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(displayTotal, lang)}</span>
           </div>
 
           <button
@@ -632,7 +643,7 @@ function Confirmation({
               )}
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">{it.name}</p>
-                {it.variant && <p className="text-xs text-gray-500">{it.variant}</p>}
+                {it.variant && <p className="text-xs text-gray-500">{formatVariant(it.variant, lang)}</p>}
                 <p className="text-xs text-gray-500">{it.quantity} × {formatPrice(it.unitPrice, lang)}</p>
               </div>
               <span className="text-sm font-semibold text-gray-900">{formatPrice(it.lineTotal, lang)}</span>

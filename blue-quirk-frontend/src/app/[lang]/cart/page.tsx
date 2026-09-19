@@ -14,7 +14,7 @@ import {
 } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { colorLabel } from "@/lib/colors";
-import { useShippingConfig, computeShipping } from "@/lib/shipping";
+import { useShippingConfig, computeShipping, freeShippingState } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
 import { progressiveState } from "@/lib/progressive";
 import ProgressiveProgress from "@/components/storefront/ProgressiveProgress";
@@ -42,6 +42,14 @@ export default function CartPage({
   const bundleDiscount = quote?.bundleApplied ? quote.bundleDiscount : 0;
   const effectiveShipping = quote ? quote.shippingFee : shipping;
   const finalTotal = quote ? quote.total : grandTotal;
+
+  // Shipping varies per delivery city, which isn't known in the cart — so we don't
+  // show a concrete amount here. Once the order already qualifies for free shipping
+  // (threshold reached or campaign) it's free regardless of city; otherwise the fee
+  // is revealed at checkout after the ville is picked. The total therefore excludes
+  // the (unknown) shipping unless it's free.
+  const shippingFree = freeShippingState(total, shippingConfig).qualified;
+  const displayTotal = shippingFree ? finalTotal : finalTotal - effectiveShipping;
 
   if (items.length === 0) {
     return (
@@ -203,8 +211,8 @@ export default function CartPage({
             )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
-              <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
+              <dd className={`font-medium ${shippingFree ? "text-emerald-600" : "text-gray-500"}`}>
+                {shippingFree ? t(lang, "cart.free") : t(lang, "cart.shippingAtCheckout")}
               </dd>
             </div>
           </dl>
@@ -212,7 +220,7 @@ export default function CartPage({
           <div className="mt-5 flex justify-between border-t border-gray-200 pt-5">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
             <span className="text-base font-bold text-gray-900">
-              {formatPrice(finalTotal, lang)}
+              {formatPrice(displayTotal, lang)}
             </span>
           </div>
 
