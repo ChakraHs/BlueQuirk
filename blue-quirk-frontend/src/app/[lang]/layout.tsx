@@ -96,7 +96,7 @@ export default async function LangLayout({
   // read anywhere in the tree, including this shared layout, would otherwise
   // force every route to render dynamically.
   const [categories, config, announcementBar] = await Promise.all([
-    CategoryService.getAll(lang, STOREFRONT_REVALIDATE).catch(() => []),
+    CategoryService.getAll(lang, STOREFRONT_REVALIDATE, true).catch(() => []),
     getPublicShopConfig(STOREFRONT_REVALIDATE),
     getAnnouncementBar(lang, STOREFRONT_REVALIDATE),
   ]);

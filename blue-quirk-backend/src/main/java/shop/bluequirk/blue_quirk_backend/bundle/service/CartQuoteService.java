@@ -59,12 +59,16 @@ public class CartQuoteService {
         List<LineInput> lines = (req == null || req.items() == null) ? List.of()
                 : req.items().stream().map(i -> new LineInput(i.productId(), i.quantity())).toList();
 
-        // Price shipping for the selected delivery city so the quoted total matches
-        // what the order will charge (falls back to the flat fee when unlisted/blank).
+        // Shipping depends on the delivery city, which isn't known until the customer
+        // selects a ville at checkout. Until then we treat it as not-yet-determined and
+        // keep it out of the quoted total (shipping = 0), so cart surfaces never show a
+        // phantom flat fee before a city is picked. Once a city is provided the
+        // authoritative per-city fee is priced and included — matching the order charge.
         String city = req == null ? null : req.city();
+        boolean cityKnown = city != null && !city.isBlank();
         PricedCart cart = pricingService.price(lines, city);
         double subtotal = cart.subtotal();
-        double shipping = cart.shippingFee();
+        double shipping = cityKnown ? cart.shippingFee() : 0.0;
 
         // 1) Automatic bundle discount on the goods subtotal.
         AppliedBundle bundle = bundlePricingService.bestFor(cart);

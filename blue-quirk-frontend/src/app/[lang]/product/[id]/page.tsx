@@ -128,7 +128,7 @@ export default async function ProductPage({
   const [trendingProducts, config, categoryTree] = await Promise.all([
     ProductService.getTrending(8, lang, undefined, STOREFRONT_REVALIDATE).catch(() => []),
     getPublicShopConfig(STOREFRONT_REVALIDATE),
-    CategoryService.getAll(lang, STOREFRONT_REVALIDATE).catch(() => []),
+    CategoryService.getAll(lang, STOREFRONT_REVALIDATE, true).catch(() => []),
   ]);
   const relatedProducts = trendingProducts
     .filter((relatedProduct) => relatedProduct.id !== product.id)

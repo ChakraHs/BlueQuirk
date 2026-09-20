@@ -43,18 +43,22 @@ public class CategoryController {
 
     @GetMapping
     public ResponseEntity<List<CategoryResponse>> getAllCategories(
-            @RequestParam(required = false) String lang
+            @RequestParam(required = false) String lang,
+            // Storefront passes activeOnly=true to hide inactive categories; Admin omits
+            // it (defaults to false) and keeps seeing every category.
+            @RequestParam(required = false, defaultValue = "false") boolean activeOnly
     ) {
         return ResponseEntity.ok(
-                categoryService.getAllCategoriesByLanguage(lang)
+                categoryService.getAllCategoriesByLanguage(lang, activeOnly)
         );
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<CategoryResponse> getCategoryById(
-    			@PathVariable Long id , 
-    			@RequestParam(required = false) String lang) {
-        return ResponseEntity.ok(categoryService.getCategoryById(id, lang));
+    			@PathVariable Long id ,
+    			@RequestParam(required = false) String lang,
+    			@RequestParam(required = false, defaultValue = "false") boolean activeOnly) {
+        return ResponseEntity.ok(categoryService.getCategoryById(id, lang, activeOnly));
     }
 
     @DeleteMapping("/{id}")

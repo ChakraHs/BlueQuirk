@@ -9,6 +9,7 @@ public record CategoryResponse(
         String description,
         Long parentId,
         String imageUrl,
+        boolean active,
         List<CategoryTranslationDto> translations,
         List<CategoryResponse> children
 ) {}

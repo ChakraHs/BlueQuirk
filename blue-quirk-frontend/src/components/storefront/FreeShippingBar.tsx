@@ -18,8 +18,9 @@ const COPY = {
     ),
     awayItems: (count: number) => (
       <>
-        Ajoutez <strong>{count}</strong> {count > 1 ? "produits" : "produit"} pour
-        profiter de la <strong>LIVRAISON GRATUITE</strong> !
+        Ajoutez encore <strong>{count}</strong>{" "}
+        {count > 1 ? "produits" : "produit"} pour profiter de la{" "}
+        <strong>LIVRAISON GRATUITE</strong> !
       </>
     ),
     qualified: (
@@ -36,12 +37,31 @@ const COPY = {
         <strong>الشحن المجاني</strong> !
       </>
     ),
-    awayItems: (count: number) => (
-      <>
-        أضِف <strong>{count}</strong> منتجات فقط للاستفادة من{" "}
-        <strong>الشحن المجاني</strong> !
-      </>
-    ),
+    // Arabic number–noun agreement for "منتج" (product): singular for 1, dual for 2,
+    // the broken plural (منتجات) for 3–10, and the accusative singular (منتجًا) for 11+.
+    awayItems: (count: number) => {
+      if (count === 1) {
+        return (
+          <>
+            أضف منتجًا واحدًا فقط للاستفادة من <strong>الشحن المجاني</strong> !
+          </>
+        );
+      }
+      if (count === 2) {
+        return (
+          <>
+            أضف منتجَين فقط للاستفادة من <strong>الشحن المجاني</strong> !
+          </>
+        );
+      }
+      const noun = count >= 3 && count <= 10 ? "منتجات" : "منتجًا";
+      return (
+        <>
+          أضف <strong>{count}</strong> {noun} فقط للاستفادة من{" "}
+          <strong>الشحن المجاني</strong> !
+        </>
+      );
+    },
     qualified: (
       <>
         🎉 تهانينا ! طلبك مؤهّل للحصول على <strong>الشحن المجاني</strong>.
@@ -57,7 +77,8 @@ const COPY = {
     ),
     awayItems: (count: number) => (
       <>
-        Add <strong>{count}</strong> more {count > 1 ? "products" : "product"} for{" "}
+        Add just <strong>{count}</strong> more{" "}
+        {count > 1 ? "products" : "product"} to get{" "}
         <strong>FREE SHIPPING</strong>!
       </>
     ),

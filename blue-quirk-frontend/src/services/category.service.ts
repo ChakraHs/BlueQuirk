@@ -3,11 +3,25 @@ import { Category } from "@/types/category";
 import { API_BASE_URL } from "@/lib/config";
 import { serverReadInit } from "@/lib/serverFetch";
 
+/** Builds a `?lang=…&activeOnly=…` query string, omitting empty parts. */
+function categoryQuery(lang?: string, activeOnly?: boolean): string {
+  const params = new URLSearchParams();
+  if (lang) params.set("lang", lang);
+  // Storefront callers pass activeOnly=true so inactive categories are hidden. Admin
+  // callers omit it and receive every category.
+  if (activeOnly) params.set("activeOnly", "true");
+  const qs = params.toString();
+  return qs ? `?${qs}` : "";
+}
+
 export const CategoryService = {
-  getAll: async (lang?: string, revalidate?: number): Promise<Category[]> => {
-    const query = lang ? `?lang=${encodeURIComponent(lang)}` : "";
+  getAll: async (
+    lang?: string,
+    revalidate?: number,
+    activeOnly = false
+  ): Promise<Category[]> => {
     const res = await fetch(
-      `${API_BASE_URL}/categories${query}`,
+      `${API_BASE_URL}/categories${categoryQuery(lang, activeOnly)}`,
       serverReadInit(revalidate)
     );
 
@@ -18,11 +32,11 @@ export const CategoryService = {
     return res.json();
   },
 
-  getById: async (id: number, lang?: string) => {
-    const query = lang ? `?lang=${encodeURIComponent(lang)}` : "";
-    const res = await fetch(`${API_BASE_URL}/categories/${id}${query}`, {
-      cache: "no-store",
-    });
+  getById: async (id: number, lang?: string, activeOnly = false) => {
+    const res = await fetch(
+      `${API_BASE_URL}/categories/${id}${categoryQuery(lang, activeOnly)}`,
+      { cache: "no-store" }
+    );
 
     if (!res.ok) {
       throw new Error(`Failed to fetch category ${id}: ${res.status}`);

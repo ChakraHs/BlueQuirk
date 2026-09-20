@@ -48,6 +48,8 @@ public class CategoryService {
         category.setSlug(slugify(req.slug() != null && !req.slug().isBlank() ? req.slug() : req.name()));
         category.setDescription(req.description() != null ? req.description().trim() : null);
         category.setImageUrl(req.imageUrl() != null && !req.imageUrl().isBlank() ? req.imageUrl().trim() : null);
+        // Default to active when the client doesn't specify (older admin payloads).
+        category.setActive(req.active() == null || req.active());
 
         if (req.parentId() != null) {
             Category parent = categoryRepository.findById(req.parentId())
@@ -59,7 +61,7 @@ public class CategoryService {
 
         try {
             Category saved = categoryRepository.saveAndFlush(category);
-            return toDto(saved, null);
+            return toDto(saved, null, false);
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Une catégorie portant ce nom existe déjà");
         }
@@ -82,6 +84,9 @@ public class CategoryService {
         existing.setSlug(slugify(req.slug() != null && !req.slug().isBlank() ? req.slug() : req.name()));
         existing.setDescription(req.description() != null ? req.description().trim() : null);
         existing.setImageUrl(req.imageUrl() != null && !req.imageUrl().isBlank() ? req.imageUrl().trim() : null);
+        // Only change visibility when the client sends it, so a partial payload never
+        // silently flips a category's status.
+        if (req.active() != null) existing.setActive(req.active());
 
         if (req.parentId() == null) {
             existing.setParent(null);
@@ -97,7 +102,7 @@ public class CategoryService {
 
         try {
             Category saved = categoryRepository.saveAndFlush(existing);
-            return toDto(saved, null);
+            return toDto(saved, null, false);
         } catch (DataIntegrityViolationException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Une catégorie portant ce nom existe déjà");
         }
@@ -175,19 +180,45 @@ public class CategoryService {
     
     // SAFE: no lazy loading issue
     public List<CategoryResponse> getAllCategoriesByLanguage(String lang) {
+        return getAllCategoriesByLanguage(lang, false);
+    }
+
+    /**
+     * All categories, or only the active ones when {@code activeOnly} is true. The
+     * storefront passes {@code activeOnly=true} so hidden categories disappear from
+     * every customer-facing surface; Admin passes false and keeps seeing everything.
+     * Inactive subcategories are pruned from active parents too.
+     */
+    public List<CategoryResponse> getAllCategoriesByLanguage(String lang, boolean activeOnly) {
         List<Category> categories = lang != null ? categoryRepository.findAllWithChildrenByLanguage(lang) : categoryRepository.findAllWithChildren();
         return categories.stream()
                 .filter(c -> c.getParent() == null)
-                .map(c -> toDto(c, lang))
+                .filter(c -> !activeOnly || c.isActive())
+                .map(c -> toDto(c, lang, activeOnly))
                 .collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
     public CategoryResponse getCategoryById(Long id, String lang) {
-    	Category category = categoryRepository.findByIdWithChildren(id)
-                .orElseThrow(() -> new RuntimeException("Category not found"));
+        return getCategoryById(id, lang, false);
+    }
 
-        return toDto(category,lang);
+    /**
+     * A single category. When {@code activeOnly} is true (storefront), an inactive
+     * category is reported as 404 — so a direct URL never exposes a hidden category —
+     * and its inactive children are pruned. Admin passes false to load any category
+     * for editing/reactivation.
+     */
+    @Transactional(readOnly = true)
+    public CategoryResponse getCategoryById(Long id, String lang, boolean activeOnly) {
+    	Category category = categoryRepository.findByIdWithChildren(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found"));
+
+        if (activeOnly && !category.isActive()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Category not found");
+        }
+
+        return toDto(category, lang, activeOnly);
     }
 
     public void deleteCategory(Long id) {
@@ -211,7 +242,7 @@ public class CategoryService {
 //    }
 
     // -------- MAPPER --------
-    private CategoryResponse toDto(Category c, String lang) {
+    private CategoryResponse toDto(Category c, String lang, boolean activeOnly) {
 
         String name;
         String description;
@@ -233,6 +264,7 @@ public class CategoryService {
         List<CategoryResponse> children = c.getChildren() == null
                 ? List.of()
                 : c.getChildren().stream()
+                    .filter(child -> !activeOnly || child.isActive())
                     .map(child -> new CategoryResponse(
                             child.getId(),
                             resolveName(child, lang),
@@ -240,6 +272,7 @@ public class CategoryService {
                             resolveDescription(child, lang),
                             child.getParent() != null ? child.getParent().getId() : null,
                             child.getImageUrl(),
+                            child.isActive(),
                             toTranslationDtos(child),
                             List.of() // STOP recursion
                     ))
@@ -252,6 +285,7 @@ public class CategoryService {
                 description,
                 c.getParent() != null ? c.getParent().getId() : null,
                 c.getImageUrl(),
+                c.isActive(),
                 toTranslationDtos(c),
                 children
         );
