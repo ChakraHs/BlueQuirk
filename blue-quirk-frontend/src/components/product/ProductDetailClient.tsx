@@ -287,6 +287,12 @@ export default function ProductDetailClient({
             {t(lang, "product.shipFreeCampaignSub")}
           </p>
         </div>
+      ) : freeShip.mode === "quantity" ? (
+        // Quantity mode: invite the customer to reach the free-shipping product count
+        // (a single product page can't know the whole cart, so it's always an invite).
+        <p className="text-sm font-medium text-gray-800">
+          {t(lang, "product.shipFreeQty", { count: freeShip.requiredQuantity })}
+        </p>
       ) : freeShip.qualified ? (
         <p className="text-sm text-gray-700">
           {t(lang, "product.shipQualified")}
@@ -353,7 +359,7 @@ export default function ProductDetailClient({
 
           {/* Shipping info banner (desktop) — kept directly under the price so the
               md: layout is unchanged. The mobile instance lives below the buttons. */}
-          {(freeShippingCampaign || shippingConfig.freeShippingThreshold > 0) && (
+          {freeShip.mode !== "disabled" && (
             <div className="hidden items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 md:flex">
               {shippingBannerInner}
             </div>

@@ -13,6 +13,8 @@ export const SHOP_CONFIG_DEFAULTS: PublicShopConfig = {
   currency: "DH",
   shippingFee: 29,
   freeShippingThreshold: 300,
+  freeShippingByQuantityEnabled: false,
+  freeShippingQuantity: 2,
   storeName: "RedQuirk",
   logoUrl: null,
   logoUrlDark: null,
@@ -73,6 +75,11 @@ export async function getPublicShopConfig(
         typeof data.freeShippingThreshold === "number"
           ? data.freeShippingThreshold
           : SHOP_CONFIG_DEFAULTS.freeShippingThreshold,
+      freeShippingByQuantityEnabled: data.freeShippingByQuantityEnabled === true,
+      freeShippingQuantity:
+        typeof data.freeShippingQuantity === "number" && data.freeShippingQuantity > 0
+          ? data.freeShippingQuantity
+          : SHOP_CONFIG_DEFAULTS.freeShippingQuantity,
       storeName: data.storeName?.trim() || SHOP_CONFIG_DEFAULTS.storeName,
       logoUrl: data.logoUrl ?? null,
       logoUrlDark: data.logoUrlDark ?? null,

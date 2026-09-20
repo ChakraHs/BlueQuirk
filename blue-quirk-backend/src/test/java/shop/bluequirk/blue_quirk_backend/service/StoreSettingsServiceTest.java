@@ -57,7 +57,9 @@ class StoreSettingsServiceTest {
                 // Review fields — not under test here; left unchanged (null).
                 null, null, null, null, null, null,
                 // packagingCost — not under test; left unchanged (null).
-                null);
+                null,
+                // Free-shipping-by-quantity toggle + count — not under test (null).
+                null, null);
     }
 
     @Test

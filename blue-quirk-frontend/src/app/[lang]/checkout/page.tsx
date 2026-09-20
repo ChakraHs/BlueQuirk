@@ -7,7 +7,7 @@ import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
   User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet,
 } from "lucide-react";
-import { useCart, cartTotal, clearCart } from "@/lib/cart";
+import { useCart, cartTotal, cartCount, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
 import { colorLabel, formatVariant } from "@/lib/colors";
 import { thumbSrc } from "@/lib/productImage";
@@ -60,8 +60,9 @@ export default function CheckoutPage({
   const { lang } = use(params);
   const items = useCart();
   const total = cartTotal(items);
+  const itemCount = cartCount(items);
   const shippingConfig = useShippingConfig();
-  const shipping = computeShipping(total, shippingConfig);
+  const shipping = computeShipping(total, shippingConfig, itemCount);
   const grandTotal = total + shipping;
 
   // --- Coupon state. The server validates + reprices; we only display what it
@@ -405,7 +406,7 @@ export default function CheckoutPage({
             })}
           </ul>
 
-          <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
+          <FreeShippingBar subtotal={total} itemCount={itemCount} lang={lang} className="mt-5" />
 
           {/* Progressive multi-item discount incentive — states the discount already
               unlocked and how much more each added item earns (no progress bar). */}

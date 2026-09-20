@@ -8,6 +8,7 @@ import {
   useCart,
   cartItemKey,
   cartTotal,
+  cartCount,
   setQuantity,
   removeFromCart,
   clearCart,
@@ -29,8 +30,9 @@ export default function CartPage({
   const { lang } = use(params);
   const items = useCart();
   const total = cartTotal(items);
+  const itemCount = cartCount(items);
   const shippingConfig = useShippingConfig();
-  const shipping = computeShipping(total, shippingConfig);
+  const shipping = computeShipping(total, shippingConfig, itemCount);
   const grandTotal = total + shipping;
 
   // Authoritative pricing from the backend (automatic bundle discount + upsell).
@@ -48,7 +50,7 @@ export default function CartPage({
   // (threshold reached or campaign) it's free regardless of city; otherwise the fee
   // is revealed at checkout after the ville is picked. The total therefore excludes
   // the (unknown) shipping unless it's free.
-  const shippingFree = freeShippingState(total, shippingConfig).qualified;
+  const shippingFree = freeShippingState(total, shippingConfig, itemCount).qualified;
   const displayTotal = shippingFree ? finalTotal : finalTotal - effectiveShipping;
 
   if (items.length === 0) {
@@ -159,7 +161,7 @@ export default function CartPage({
 
         {/* Summary */}
         <aside className="h-fit rounded-2xl border border-gray-200 p-6">
-          <FreeShippingBar subtotal={total} lang={lang} className="mb-5" />
+          <FreeShippingBar subtotal={total} itemCount={itemCount} lang={lang} className="mb-5" />
 
           {/* Progressive multi-item discount progress. Consumes the same
               authoritative quote as the totals below. */}

@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import shop.bluequirk.blue_quirk_backend.entity.Product;
+import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
 
 /**
@@ -63,6 +64,7 @@ public class PricingService {
 
         List<PricedLine> lines = new ArrayList<>(inputs.size());
         double subtotal = 0;
+        int totalQuantity = 0;
         for (LineInput in : inputs) {
             if (in.productId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Order line is missing a product");
@@ -76,29 +78,33 @@ public class PricingService {
             double unitPrice = campaignPricing.sellingPrice(product.getPrice());
             double lineTotal = unitPrice * qty;
             subtotal += lineTotal;
+            totalQuantity += qty;
             lines.add(new PricedLine(product, unitPrice, qty, lineTotal));
         }
 
-        return new PricedCart(lines, round(subtotal), computeShipping(subtotal, city));
-    }
-
-    /** Flat (default-city) shipping for a subtotal. */
-    public double computeShipping(double subtotal) {
-        return computeShipping(subtotal, null);
+        return new PricedCart(lines, round(subtotal), computeShipping(subtotal, totalQuantity, city));
     }
 
     /**
-     * The customer shipping price for a subtotal + delivery city. The per-city fee
-     * (or the flat settings fee when the city isn't listed) is the base; free shipping
-     * still waives it once the subtotal reaches the configured threshold (threshold
-     * ≤ 0 disables the perk). Mirrors the storefront so totals match.
+     * The customer shipping price for a subtotal + total item quantity + delivery
+     * city. The per-city fee (or the flat settings fee when the city isn't listed)
+     * is the base. Free shipping is waived by whichever rule the admin has active:
+     * when the quantity mode is enabled, once the cart holds at least the configured
+     * number of products; otherwise once the subtotal reaches the configured
+     * threshold (a threshold/quantity of ≤ 0 disables that perk). Mirrors the
+     * storefront so displayed and charged totals match.
      */
-    public double computeShipping(double subtotal, String city) {
+    public double computeShipping(double subtotal, int totalQuantity, String city) {
         // Per-city customer fee, falling back to the settings default for unlisted
-        // cities. A fee of 0 means free everywhere; the threshold still waives a
-        // non-zero fee once the subtotal qualifies.
+        // cities. A fee of 0 means free everywhere; the active perk still waives a
+        // non-zero fee once the cart qualifies.
         double fee = cityService.customerShippingFee(city);
-        double threshold = storeSettingsService.getOrCreate().getFreeShippingThreshold();
+        StoreSettings s = storeSettingsService.getOrCreate();
+        if (s.isFreeShippingByQuantityEnabled()) {
+            int required = s.getFreeShippingQuantity();
+            return (required > 0 && totalQuantity >= required) ? 0.0 : fee;
+        }
+        double threshold = s.getFreeShippingThreshold();
         return (threshold > 0 && subtotal >= threshold) ? 0.0 : fee;
     }
 

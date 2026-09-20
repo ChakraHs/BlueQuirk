@@ -55,6 +55,22 @@ public class StoreSettings {
     @Column(nullable = false)
     private double freeShippingThreshold;
 
+    // --- Free shipping by product quantity (alternative to the subtotal threshold) ---
+    // When enabled, an order ships free once it contains at least
+    // freeShippingQuantity items (total quantity across the cart), and the subtotal
+    // threshold above is ignored for the free-shipping decision. When disabled (the
+    // default) the threshold governs, so existing stores behave exactly as before.
+    // @ColumnDefault backfills the column on the existing (already-populated) row.
+    @Column(name = "free_shipping_by_quantity_enabled", nullable = false)
+    @ColumnDefault("false")
+    private boolean freeShippingByQuantityEnabled = false;
+
+    // Number of products (total item quantity) that unlocks free shipping when the
+    // quantity mode is enabled. Clamped to >= 1 by the service.
+    @Column(name = "free_shipping_quantity", nullable = false)
+    @ColumnDefault("2")
+    private int freeShippingQuantity = 2;
+
     @Column(nullable = false)
     private String currency;
 
@@ -280,6 +296,16 @@ public class StoreSettings {
     public double getFreeShippingThreshold() { return freeShippingThreshold; }
     public void setFreeShippingThreshold(double freeShippingThreshold) {
         this.freeShippingThreshold = freeShippingThreshold;
+    }
+
+    public boolean isFreeShippingByQuantityEnabled() { return freeShippingByQuantityEnabled; }
+    public void setFreeShippingByQuantityEnabled(boolean freeShippingByQuantityEnabled) {
+        this.freeShippingByQuantityEnabled = freeShippingByQuantityEnabled;
+    }
+
+    public int getFreeShippingQuantity() { return freeShippingQuantity; }
+    public void setFreeShippingQuantity(int freeShippingQuantity) {
+        this.freeShippingQuantity = freeShippingQuantity;
     }
 
     public String getCurrency() { return currency; }
