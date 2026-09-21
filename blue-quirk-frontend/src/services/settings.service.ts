@@ -13,6 +13,9 @@ export type StoreSettingsPayload = ThemeColorsPayload & {
   realShippingCost: number; // internal only — never shown to customers
   packagingCost: number; // flat per-order packaging + confirmation cost (internal)
   freeShippingThreshold: number;
+  // Free shipping by product quantity (alternative to the subtotal threshold).
+  freeShippingByQuantityEnabled: boolean;
+  freeShippingQuantity: number;
   currency: string;
   defaultLang: string;
   contactPhone: string; // public contact / WhatsApp number ("" clears it)

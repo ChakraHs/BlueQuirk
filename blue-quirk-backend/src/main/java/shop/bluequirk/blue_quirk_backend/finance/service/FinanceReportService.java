@@ -3,7 +3,9 @@ package shop.bluequirk.blue_quirk_backend.finance.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.DayOfWeek;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -33,7 +35,7 @@ public class FinanceReportService {
     public enum ProductRanking { UNITS, PROFIT, MARGIN, REVENUE }
 
     /** Time-series bucket granularity. */
-    public enum Granularity { DAY, MONTH }
+    public enum Granularity { DAY, WEEK, HALF_MONTH, MONTH }
 
     private final FinanceReportRepository repository;
     private final ExpenseRepository expenseRepository;
@@ -93,7 +95,7 @@ public class FinanceReportService {
         );
     }
 
-    /** A financial time series between two dates, bucketed daily or monthly. */
+    /** A financial time series between two dates, bucketed by day, week, half-month or month. */
     @Transactional(readOnly = true)
     public List<FinanceTimePoint> timeSeries(LocalDateTime from, LocalDateTime to, Granularity granularity) {
         List<Object[]> rows = granularity == Granularity.MONTH
@@ -133,7 +135,7 @@ public class FinanceReportService {
         if (granularity == Granularity.MONTH) {
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM");
             YearMonth cursor = YearMonth.from(from);
-            YearMonth end = YearMonth.from(to);
+            YearMonth end = YearMonth.from(to.minusDays(1));
             while (!cursor.isAfter(end)) {
                 String key = cursor.format(fmt);
                 series.add(pointFor(key, byPeriod, expenseByPeriod));
@@ -142,14 +144,42 @@ public class FinanceReportService {
         } else {
             DateTimeFormatter fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             LocalDate cursor = from.toLocalDate();
-            LocalDate end = to.toLocalDate();
+            LocalDate end = to.toLocalDate().minusDays(1);
             while (!cursor.isAfter(end)) {
                 String key = cursor.format(fmt);
                 series.add(pointFor(key, byPeriod, expenseByPeriod));
                 cursor = cursor.plusDays(1);
             }
         }
-        return series;
+        return switch (granularity) {
+            case WEEK -> aggregateDays(series, date -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)));
+            case HALF_MONTH -> aggregateDays(series, date -> date.withDayOfMonth(date.getDayOfMonth() <= 15 ? 1 : 16));
+            default -> series;
+        };
+    }
+
+    /** Combines continuous daily points into labelled weekly or half-month buckets. */
+    private List<FinanceTimePoint> aggregateDays(List<FinanceTimePoint> daily,
+                                                   java.util.function.Function<LocalDate, LocalDate> bucketStart) {
+        Map<String, FinanceTimePoint> buckets = new java.util.TreeMap<>();
+        for (FinanceTimePoint point : daily) {
+            LocalDate date = LocalDate.parse(point.period());
+            String key = bucketStart.apply(date).toString();
+            FinanceTimePoint current = buckets.get(key);
+            if (current == null) {
+                buckets.put(key, new FinanceTimePoint(key, point.orders(), point.revenue(), point.collected(),
+                        point.cost(), point.profit(), point.marginPercent(), point.expenses(), point.realProfit()));
+                continue;
+            }
+            double revenue = finance.round(current.revenue() + point.revenue());
+            double cost = finance.round(current.cost() + point.cost());
+            double collected = finance.round(current.collected() + point.collected());
+            double profit = finance.round(current.profit() + point.profit());
+            double expenses = finance.round(current.expenses() + point.expenses());
+            buckets.put(key, new FinanceTimePoint(key, current.orders() + point.orders(), revenue, collected, cost,
+                    profit, finance.marginPercent(revenue, cost), expenses, finance.round(profit - expenses)));
+        }
+        return new ArrayList<>(buckets.values());
     }
 
     /**

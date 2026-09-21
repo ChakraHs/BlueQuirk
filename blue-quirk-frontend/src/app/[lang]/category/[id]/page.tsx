@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import ProductsGrid from "@/components/ProductsGrid";
 import CategorySortControl from "@/components/CategorySortControl";
 import { Category } from "@/types/category";
@@ -59,11 +60,15 @@ export async function generateMetadata({
   };
 }
 
-async function getCategory(id: string, lang: string): Promise<CategoryWithProducts> {
+async function getCategory(id: string, lang: string): Promise<CategoryWithProducts | null> {
+  // activeOnly=true → the backend returns 404 for an inactive category, so a hidden
+  // category is never exposed through its direct URL (it renders the not-found page
+  // rather than an SEO-visible duplicate).
   const res = await fetch(
-    `${API_BASE_URL}/categories/${id}?lang=${encodeURIComponent(lang)}`,
+    `${API_BASE_URL}/categories/${id}?lang=${encodeURIComponent(lang)}&activeOnly=true`,
     { cache: "no-store" }
   );
+  if (!res.ok) return null;
   return (await res.json()) as CategoryWithProducts;
 }
 
@@ -120,6 +125,10 @@ export default async function CategoryPage({
   const sort = normalizeSort(sortParam);
 
   const category = await getCategory(id, lang);
+  // Missing or inactive category → 404 (never an SEO-visible/broken page).
+  if (!category?.id) {
+    notFound();
+  }
   const description = plainText(category.description);
 
   // Only leaf categories list products; fetch the requested page server-side.

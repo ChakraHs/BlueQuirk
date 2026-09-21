@@ -7,7 +7,7 @@ import type {
 } from "@/types/finance";
 
 export type ProductRankingMetric = "UNITS" | "PROFIT" | "MARGIN" | "REVENUE";
-export type Granularity = "DAY" | "MONTH";
+export type Granularity = "DAY" | "WEEK" | "HALF_MONTH" | "MONTH";
 
 /**
  * Admin-only finance & profit analytics client. Every call goes to
@@ -29,7 +29,7 @@ export const FinanceService = {
     return data;
   },
 
-  /** Revenue / profit / orders over time (daily or monthly buckets). */
+  /** Revenue / profit / orders over time (daily, weekly, half-month or monthly buckets). */
   timeSeries: async (
     from: string,
     to: string,

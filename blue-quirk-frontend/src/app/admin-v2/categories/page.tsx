@@ -25,6 +25,7 @@ type FormState = {
   description: string;
   parentId: string; // "" = root
   imageUrl: string;
+  active: boolean; // storefront visibility
   fr: Translation;
   ar: Translation;
 };
@@ -34,6 +35,7 @@ const EMPTY_FORM: FormState = {
   description: "",
   parentId: "",
   imageUrl: "",
+  active: true,
   fr: { name: "", description: "" },
   ar: { name: "", description: "" },
 };
@@ -41,6 +43,19 @@ const EMPTY_FORM: FormState = {
 function translationFor(c: Category, lang: string): Translation {
   const t = c.translations?.find((x) => x.lang === lang);
   return { name: t?.name ?? "", description: t?.description ?? "" };
+}
+
+/** Storefront-visibility badge shown in the category tree. */
+function StatusPill({ active }: { active: boolean }) {
+  return active ? (
+    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-700">
+      Active
+    </span>
+  ) : (
+    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+      Hidden
+    </span>
+  );
 }
 
 export default function CategoriesPage() {
@@ -126,6 +141,7 @@ export default function CategoriesPage() {
       description: c.description ?? "",
       parentId: c.parentId ? String(c.parentId) : "",
       imageUrl: c.imageUrl ?? "",
+      active: c.active ?? true,
       fr: translationFor(c, "fr"),
       ar: translationFor(c, "ar"),
     });
@@ -160,6 +176,7 @@ export default function CategoriesPage() {
       description: form.description.trim() || null,
       parentId: form.parentId ? Number(form.parentId) : null,
       imageUrl: form.imageUrl.trim() || null,
+      active: form.active,
       translations: [
         { lang: "fr", name: form.fr.name.trim(), description: form.fr.description.trim() },
         { lang: "ar", name: form.ar.name.trim(), description: form.ar.description.trim() },
@@ -306,6 +323,22 @@ export default function CategoriesPage() {
                 placeholder="Optional"
                 className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={form.active}
+                  onChange={(e) => setForm({ ...form, active: e.target.checked })}
+                  className="size-4 rounded border-gray-300"
+                />
+                <span className="text-sm font-medium text-gray-700">Active</span>
+              </label>
+              <p className="mt-1 text-xs text-gray-400">
+                Inactive categories are hidden from the storefront (home, menu, category
+                pages) but stay here so you can reactivate them. Their products are not
+                affected.
+              </p>
             </div>
             <div className="sm:col-span-2">
               <label className="mb-1 block text-sm font-medium text-gray-700">
@@ -470,6 +503,7 @@ export default function CategoriesPage() {
                     {root.children?.length ?? 0} subcategor
                     {(root.children?.length ?? 0) > 1 ? "ies" : "y"}
                   </span>
+                  <StatusPill active={root.active ?? true} />
                 </div>
                 <div className="flex items-center gap-1">
                   <button
@@ -498,6 +532,7 @@ export default function CategoriesPage() {
                   <div className="flex items-center gap-2 text-gray-700">
                     <CornerDownRight size={15} className="text-gray-400" />
                     <span className="text-sm">{child.name}</span>
+                    <StatusPill active={child.active ?? true} />
                   </div>
                   <div className="flex items-center gap-1">
                     <button

@@ -5,7 +5,8 @@ import { CategoryService } from "@/services/category.service";
 import { t } from "@/lib/i18n";
 
 export default async function Categories({ lang }: { lang: string }) {
-  const categories = await CategoryService.getAll(lang).catch(() => []);
+  // Storefront: only active categories are surfaced.
+  const categories = await CategoryService.getAll(lang, undefined, true).catch(() => []);
 
   if (!categories.length) {
     return null;

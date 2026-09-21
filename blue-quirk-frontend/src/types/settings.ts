@@ -101,6 +101,9 @@ export interface StoreSettings
   realShippingCost: number; // internal only — profit calculations, never shown
   packagingCost: number; // flat per-order packaging + confirmation cost (internal, profit only)
   freeShippingThreshold: number;
+  // Free shipping by product quantity (alternative to the subtotal threshold).
+  freeShippingByQuantityEnabled: boolean;
+  freeShippingQuantity: number;
   currency: string;
   defaultLang: string; // "fr" | "ar" | "en"
   contactPhone: string | null; // public contact / WhatsApp number (null = default)
@@ -119,6 +122,9 @@ export interface PublicShopConfig
   currency: string;
   shippingFee: number;
   freeShippingThreshold: number;
+  // Free shipping by product quantity (alternative to the subtotal threshold).
+  freeShippingByQuantityEnabled: boolean;
+  freeShippingQuantity: number;
   storeName: string;
   logoUrl: string | null;
   logoUrlDark: string | null; // alternate logo used in dark mode

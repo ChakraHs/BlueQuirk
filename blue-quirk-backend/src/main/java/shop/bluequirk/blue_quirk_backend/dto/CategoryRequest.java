@@ -13,5 +13,8 @@ public record CategoryRequest(
         String description,
         Long parentId,
         String imageUrl,
+        // Storefront visibility. Optional in the payload: null (or absent) means
+        // "active" so existing admin clients keep creating visible categories.
+        Boolean active,
         List<CategoryTranslationDto> translations
 ) {}

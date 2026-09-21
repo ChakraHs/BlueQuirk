@@ -5,15 +5,16 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
-  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet,
+  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet, ArrowLeft,
 } from "lucide-react";
-import { useCart, cartTotal, clearCart } from "@/lib/cart";
+import { useCart, cartTotal, cartCount, clearCart, cartItemKey } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
-import { colorLabel } from "@/lib/colors";
+import { formatVariant } from "@/lib/colors";
 import { thumbSrc } from "@/lib/productImage";
 import { quickAddProduct } from "@/lib/quickAdd";
 import { ProductService } from "@/services/product.service";
 import type { Product } from "@/types/product";
+import CheckoutItem from "@/components/checkout/CheckoutItem";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
 import { progressiveState } from "@/lib/progressive";
@@ -60,8 +61,9 @@ export default function CheckoutPage({
   const { lang } = use(params);
   const items = useCart();
   const total = cartTotal(items);
+  const itemCount = cartCount(items);
   const shippingConfig = useShippingConfig();
-  const shipping = computeShipping(total, shippingConfig);
+  const shipping = computeShipping(total, shippingConfig, itemCount);
   const grandTotal = total + shipping;
 
   // --- Coupon state. The server validates + reprices; we only display what it
@@ -77,6 +79,17 @@ export default function CheckoutPage({
   const [placed, setPlaced] = useState<OrderResponse | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [continueShoppingHref, setContinueShoppingHref] = useState(`/${lang}`);
+
+  // Continue shopping returns to the most recently viewed collection. A direct
+  // visit or a cleared browser store falls back cleanly to the storefront home.
+  useEffect(() => {
+    const rawCategoryId = localStorage.getItem(`bluequirk:last-category:${lang}`);
+    const categoryId = Number(rawCategoryId);
+    if (Number.isSafeInteger(categoryId) && categoryId > 0) {
+      setContinueShoppingHref(`/${lang}/category/${categoryId}`);
+    }
+  }, [lang]);
 
   // --- Authoritative pricing from the backend: subtotal + automatic bundle
   // discount + (optional) coupon, computed exactly as the order will be. We only
@@ -100,6 +113,13 @@ export default function CheckoutPage({
       : null;
   const effectiveShipping = quote ? quote.shippingFee : shipping;
   const finalTotal = quote ? quote.total : grandTotal;
+
+  // Shipping depends on the delivery city, so we don't show a concrete amount (nor
+  // add it to the total) until the customer has picked a ville. Before that the
+  // total reflects the items only; once a city is chosen the authoritative quote
+  // already carries its per-city fee.
+  const cityChosen = form.city.trim().length > 0;
+  const displayTotal = cityChosen ? finalTotal : finalTotal - effectiveShipping;
 
   // Prefill from the signed-in account if there is one — but never force login.
   useEffect(() => {
@@ -189,6 +209,35 @@ export default function CheckoutPage({
       });
     }
   }, [items]);
+
+  // --- Full products for the cart lines, so the order summary can offer inline
+  // size/colour editing (the cart line only stores the chosen labels, not the
+  // product's full option set). Each id is fetched once; results are keyed by id.
+  const [productMap, setProductMap] = useState<Record<number, Product>>({});
+  const fetchedProducts = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const missing = items.map((i) => i.id).filter((id) => !fetchedProducts.current.has(id));
+    if (missing.length === 0) return;
+    missing.forEach((id) => fetchedProducts.current.add(id));
+    let alive = true;
+    Promise.all(
+      missing.map((id) =>
+        ProductService.getById(id, lang)
+          .then((p) => [id, p] as const)
+          .catch(() => null)
+      )
+    ).then((results) => {
+      if (!alive) return;
+      setProductMap((prev) => {
+        const next = { ...prev };
+        for (const r of results) if (r) next[r[0]] = r[1];
+        return next;
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [items, lang]);
 
   // --- Order-bump: one trending product the customer can add in a single tap
   // before confirming. Fetched once; hidden once it's already in the cart.
@@ -282,7 +331,7 @@ export default function CheckoutPage({
       <main className="mx-auto max-w-2xl px-6 py-16 text-center">
         <h1 className="text-lg font-semibold text-gray-900">{t(lang, "checkout.emptyTitle")}</h1>
         <Link
-          href={`/${lang}`}
+          href={continueShoppingHref}
           className="mt-6 inline-block rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
         >
           {t(lang, "wishlist.browse")}
@@ -301,6 +350,13 @@ export default function CheckoutPage({
         <Truck className="size-4" />
         {t(lang, "checkout.codBadge")}
       </div>
+      <Link
+        href={continueShoppingHref}
+        className="mb-6 flex w-fit items-center gap-1.5 text-sm font-semibold text-gray-600 transition hover:text-primary"
+      >
+        <ArrowLeft className="size-4 rtl:rotate-180" />
+        {t(lang, "cart.continue")}
+      </Link>
 
       <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
         {/* ---- LEFT: Customer information ---- */}
@@ -370,41 +426,36 @@ export default function CheckoutPage({
         <aside className="h-fit rounded-2xl border border-gray-200 p-6 lg:sticky lg:top-6">
           <h2 className="text-lg font-bold text-gray-900">{t(lang, "checkout.yourOrder")}</h2>
 
-          <ul className="mt-4 space-y-4">
-            {items.map((item, idx) => {
-              const attrs = Object.entries(item.attributes).filter(([, v]) => v);
-              return (
-                <li key={idx} className="flex gap-3">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                    <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
-                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
-                      {item.quantity}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col">
-                    <span className="line-clamp-1 text-sm font-semibold text-gray-900">{item.name}</span>
-                    {attrs.length > 0 && (
-                      <span className="text-xs text-gray-500">{attrs.map(([k, v]) => `${k}: ${colorLabel(v, lang)}`).join(" · ")}</span>
-                    )}
-                    <span className="text-xs text-gray-500">
-                      {item.quantity} × {formatPrice(item.price, lang)}
-                    </span>
-                    <span className="mt-auto text-sm font-bold text-gray-900">
-                      {formatPrice(item.price * item.quantity, lang)}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
+          <ul className="mt-4 space-y-3">
+            {items.map((item) => (
+              <CheckoutItem
+                key={cartItemKey(item)}
+                item={item}
+                product={productMap[item.id]}
+                lang={lang}
+              />
+            ))}
           </ul>
 
-          <FreeShippingBar subtotal={total} lang={lang} className="mt-5" />
+          <FreeShippingBar subtotal={total} itemCount={itemCount} lang={lang} className="mt-5" />
 
           {/* Progressive multi-item discount incentive — states the discount already
               unlocked and how much more each added item earns (no progress bar). */}
           {progressive && (
             <ProgressiveIncentive state={progressive} lang={lang} className="mt-5" />
           )}
+
+          {/* Continue-shopping nudge under the incentives area so the shopper can go
+              add more items (to reach free shipping / unlock the multi-item discount).
+              Shown regardless of which incentive is active; returns to the collection
+              they were browsing (or the storefront home). */}
+          <Link
+            href={continueShoppingHref}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+          >
+            <ArrowLeft className="size-3.5 rtl:rotate-180" />
+            {t(lang, "cart.continue")}
+          </Link>
 
           {/* Order-bump — a single trending product added in one tap. Raises AOV
               without a detour to the product page. */}
@@ -428,6 +479,12 @@ export default function CheckoutPage({
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-semibold text-gray-900">{bump.name}</p>
                   <p className="text-xs font-medium text-gray-500">{formatPrice(bump.price, lang)}</p>
+                  <Link
+                    href={`/${lang}/product/${bump.id}`}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    {t(lang, "checkout.viewDetails")}
+                  </Link>
                 </div>
                 <button
                   type="button"
@@ -526,15 +583,19 @@ export default function CheckoutPage({
             )}
             <div className="flex justify-between text-gray-600">
               <dt>{t(lang, "cart.shipping")}</dt>
-              <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
-                {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
-              </dd>
+              {cityChosen ? (
+                <dd className={`font-medium ${effectiveShipping === 0 ? "text-emerald-600" : "text-gray-900"}`}>
+                  {effectiveShipping === 0 ? t(lang, "cart.free") : formatPrice(effectiveShipping, lang)}
+                </dd>
+              ) : (
+                <dd className="font-medium text-gray-500">{t(lang, "checkout.shippingAfterCity")}</dd>
+              )}
             </div>
           </dl>
 
           <div className="mt-4 flex justify-between border-t border-gray-200 pt-4">
             <span className="text-base font-bold text-gray-900">{t(lang, "cart.total")}</span>
-            <span className="text-base font-bold text-gray-900">{formatPrice(finalTotal, lang)}</span>
+            <span className="text-base font-bold text-gray-900">{formatPrice(displayTotal, lang)}</span>
           </div>
 
           <button
@@ -632,7 +693,7 @@ function Confirmation({
               )}
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-900">{it.name}</p>
-                {it.variant && <p className="text-xs text-gray-500">{it.variant}</p>}
+                {it.variant && <p className="text-xs text-gray-500">{formatVariant(it.variant, lang)}</p>}
                 <p className="text-xs text-gray-500">{it.quantity} × {formatPrice(it.unitPrice, lang)}</p>
               </div>
               <span className="text-sm font-semibold text-gray-900">{formatPrice(it.lineTotal, lang)}</span>

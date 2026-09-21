@@ -17,6 +17,7 @@ import GroupedTrendChart, {
   type TrendSeries,
 } from "@/components/admin/ui/GroupedTrendChart";
 import { FinanceService } from "@/services/finance.service";
+import type { Granularity } from "@/services/finance.service";
 import type {
   FinanceOverview,
   FinanceSummary,
@@ -32,6 +33,12 @@ const PERIOD_LABELS: Record<Period, string> = {
   year: "This Year",
 };
 
+const CHART_GRANULARITIES: { value: Granularity; label: string; title: string }[] = [
+  { value: "WEEK", label: "Weekly", title: "by week" },
+  { value: "HALF_MONTH", label: "Twice monthly", title: "twice monthly" },
+  { value: "MONTH", label: "Monthly", title: "by month" },
+];
+
 /**
  * Business performance header for the admin dashboard: Revenue, Net Profit
  * (order total − product cost − real shipping cost), Margin %, Orders, Average
@@ -43,27 +50,46 @@ export default function FinanceKpis() {
   const [overview, setOverview] = useState<FinanceOverview | null>(null);
   const [series, setSeries] = useState<FinanceTimePoint[]>([]);
   const [period, setPeriod] = useState<Period>("month");
+  const [granularity, setGranularity] = useState<Granularity>("WEEK");
   const [loading, setLoading] = useState(true);
+  const [seriesLoading, setSeriesLoading] = useState(true);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const year = new Date().getFullYear();
-      const [ov, ts] = await Promise.allSettled([
-        FinanceService.overview(),
-        FinanceService.timeSeries(`${year}-01-01`, `${year}-12-31`, "MONTH"),
-      ]);
+      const ov = await FinanceService.overview().then(
+        (value) => ({ status: "fulfilled" as const, value }),
+        () => ({ status: "rejected" as const })
+      );
       if (cancelled) return;
       if (ov.status === "fulfilled") setOverview(ov.value);
       else setError(true);
-      if (ts.status === "fulfilled") setSeries(ts.value);
       setLoading(false);
     })();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const year = new Date().getFullYear();
+    setSeriesLoading(true);
+    FinanceService.timeSeries(`${year}-01-01`, `${year}-12-31`, granularity)
+      .then((value) => {
+        if (!cancelled) setSeries(value);
+      })
+      .catch(() => {
+        if (!cancelled) setError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setSeriesLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [granularity]);
 
   const current: FinanceSummary | null = overview ? overview[period] : null;
 
@@ -87,6 +113,7 @@ export default function FinanceKpis() {
     { key: "expense", label: "Expenses", color: "#dc2626" },
     { key: "realProfit", label: "Real profit", color: "#059669" },
   ];
+  const chartGranularity = CHART_GRANULARITIES.find((item) => item.value === granularity)!;
 
   if (error) {
     return (
@@ -189,10 +216,32 @@ export default function FinanceKpis() {
 
       {/* Revenue, profit & real profit over the year — grouped bars per month */}
       <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h3 className="mb-4 text-sm font-semibold text-gray-700">
-          Revenue, profit, expenses &amp; real profit by month (this year)
-        </h3>
-        <GroupedTrendChart data={trendData} series={trendSeries} />
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h3 className="text-sm font-semibold text-gray-700">
+            Revenue, profit, expenses &amp; real profit {chartGranularity.title} (this year)
+          </h3>
+          <div className="inline-flex w-fit rounded-lg border border-gray-200 bg-gray-50 p-0.5">
+            {CHART_GRANULARITIES.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => setGranularity(item.value)}
+                className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
+                  granularity === item.value
+                    ? "bg-gray-900 text-white"
+                    : "text-gray-500 hover:text-gray-800"
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {seriesLoading ? (
+          <div className="h-[300px] animate-pulse rounded-lg bg-gray-100" />
+        ) : (
+          <GroupedTrendChart data={trendData} series={trendSeries} />
+        )}
       </div>
     </div>
   );

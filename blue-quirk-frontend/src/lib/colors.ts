@@ -126,6 +126,27 @@ export function colorLabel(value: string, lang = "fr"): string {
   return best ? localizedName(best, lang) : raw;
 }
 
+/**
+ * Localize a joined variant string like "Couleur: #111827 · Taille: M" so any
+ * colour value becomes a human name ("Couleur: Noir · Taille: M"). Splits on the
+ * " · " item separator and the "key: value" pair separator, then runs each value
+ * through {@link colorLabel} (a no-op for sizes / unknown names). Safe on an empty
+ * or oddly-shaped string — anything it can't parse is returned unchanged.
+ */
+export function formatVariant(variant: string, lang = "fr"): string {
+  if (!variant) return variant;
+  return variant
+    .split(" · ")
+    .map((part) => {
+      const idx = part.indexOf(": ");
+      if (idx === -1) return part;
+      const key = part.slice(0, idx);
+      const value = part.slice(idx + 2);
+      return `${key}: ${colorLabel(value, lang)}`;
+    })
+    .join(" · ");
+}
+
 /** True if a hex colour is light (so we add a darker border for visibility). */
 export function isLightColor(hex: string): boolean {
   let h = hex.replace("#", "");

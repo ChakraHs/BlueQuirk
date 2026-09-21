@@ -42,6 +42,8 @@ type FormState = {
   realShippingCost: string;
   packagingCost: string;
   freeShippingThreshold: string;
+  freeShippingByQuantityEnabled: boolean;
+  freeShippingQuantity: string;
   currency: string;
   defaultLang: string;
   contactPhone: string;
@@ -82,6 +84,8 @@ function toForm(s: StoreSettings): FormState {
     realShippingCost: String(s.realShippingCost ?? 0),
     packagingCost: String(s.packagingCost ?? 10),
     freeShippingThreshold: String(s.freeShippingThreshold ?? 0),
+    freeShippingByQuantityEnabled: s.freeShippingByQuantityEnabled ?? false,
+    freeShippingQuantity: String(s.freeShippingQuantity ?? 2),
     currency: s.currency ?? "DH",
     defaultLang: s.defaultLang ?? "fr",
     contactPhone: s.contactPhone ?? "",
@@ -221,6 +225,8 @@ export default function SettingsPage() {
         realShippingCost: Math.max(0, Number(form.realShippingCost) || 0),
         packagingCost: Math.max(0, Number(form.packagingCost) || 0),
         freeShippingThreshold: Math.max(0, Number(form.freeShippingThreshold) || 0),
+        freeShippingByQuantityEnabled: form.freeShippingByQuantityEnabled,
+        freeShippingQuantity: Math.max(1, Math.min(99, Number(form.freeShippingQuantity) || 2)),
         currency: form.currency.trim() || "DH",
         defaultLang: form.defaultLang,
         contactPhone: form.contactPhone.trim(),
@@ -734,21 +740,83 @@ export default function SettingsPage() {
                   order (not per product); internal — used in profit alongside real shipping.
                 </p>
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium text-gray-700">
-                  Free shipping threshold
+              {/* Free shipping rule — by subtotal threshold (default) OR by product
+                  quantity. The toggle picks which rule is active; the storefront shows
+                  and charges by whichever is on. */}
+              <div className="rounded-lg border border-gray-200 bg-gray-50/60 p-4 sm:col-span-2">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={form.freeShippingByQuantityEnabled}
+                    onClick={() =>
+                      update({ freeShippingByQuantityEnabled: !form.freeShippingByQuantityEnabled })
+                    }
+                    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition ${
+                      form.freeShippingByQuantityEnabled ? "bg-blue-600" : "bg-gray-300"
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                        form.freeShippingByQuantityEnabled ? "translate-x-5" : "translate-x-0.5"
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm font-medium text-gray-700">
+                    Free shipping by product quantity
+                  </span>
                 </label>
-                <input
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={form.freeShippingThreshold}
-                  onChange={(e) => update({ freeShippingThreshold: e.target.value })}
-                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                />
-                <p className="mt-1 text-xs text-gray-400">
-                  Order subtotal that unlocks free shipping. 0 = disabled.
+                <p className="mt-2 text-xs text-gray-400">
+                  When on, free shipping is unlocked by the number of products in the cart
+                  instead of the order subtotal. Only the active rule is shown to customers.
                 </p>
+
+                <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                  {/* Threshold — active only when quantity mode is OFF. */}
+                  <div className={form.freeShippingByQuantityEnabled ? "opacity-50" : ""}>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Free shipping threshold ({form.currency || "DH"})
+                      {!form.freeShippingByQuantityEnabled && (
+                        <span className="ml-1 text-emerald-600">• active</span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.freeShippingThreshold}
+                      onChange={(e) => update({ freeShippingThreshold: e.target.value })}
+                      disabled={form.freeShippingByQuantityEnabled}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+                    />
+                    <p className="mt-1 text-xs text-gray-400">
+                      Order subtotal that unlocks free shipping. 0 = disabled.
+                    </p>
+                  </div>
+
+                  {/* Quantity — active only when quantity mode is ON. */}
+                  <div className={form.freeShippingByQuantityEnabled ? "" : "opacity-50"}>
+                    <label className="mb-1 block text-sm font-medium text-gray-700">
+                      Free shipping from N products
+                      {form.freeShippingByQuantityEnabled && (
+                        <span className="ml-1 text-emerald-600">• active</span>
+                      )}
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={99}
+                      step="1"
+                      value={form.freeShippingQuantity}
+                      onChange={(e) => update({ freeShippingQuantity: e.target.value })}
+                      disabled={!form.freeShippingByQuantityEnabled}
+                      className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100"
+                    />
+                    <p className="mt-1 text-xs text-gray-400">
+                      Number of products in the cart that unlocks free shipping (e.g. 2 or 3).
+                    </p>
+                  </div>
+                </div>
               </div>
               <div>
                 <label className="mb-1 block text-sm font-medium text-gray-700">

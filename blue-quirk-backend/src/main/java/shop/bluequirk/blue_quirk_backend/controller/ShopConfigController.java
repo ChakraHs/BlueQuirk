@@ -53,6 +53,8 @@ public class ShopConfigController {
                 s.getCurrency(),
                 s.getShippingFee(),
                 s.getFreeShippingThreshold(),
+                s.isFreeShippingByQuantityEnabled(),
+                s.getFreeShippingQuantity(),
                 s.getStoreName(),
                 s.getLogoUrl(),
                 s.getLogoUrlDark(),
@@ -97,6 +99,11 @@ public class ShopConfigController {
             String currency,
             double shippingFee,
             double freeShippingThreshold,
+            // Free shipping by product quantity — when enabled the storefront shows
+            // "free shipping from N products" instead of the subtotal threshold, and
+            // the backend waives shipping once the cart holds at least this many items.
+            boolean freeShippingByQuantityEnabled,
+            int freeShippingQuantity,
             String storeName,
             String logoUrl,
             String logoUrlDark,

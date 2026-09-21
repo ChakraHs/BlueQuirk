@@ -32,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const entries: MetadataRoute.Sitemap = [...entriesFor("", "daily", 1)];
 
   const [categories, products] = await Promise.all([
-    CategoryService.getAll("fr").catch(() => []),
+    CategoryService.getAll("fr", undefined, true).catch(() => []),
     ProductService.getAll(0, 1000, "fr", "PUBLISHED")
       .then((r) => r.content)
       .catch(() => []),

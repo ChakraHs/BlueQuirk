@@ -1,10 +1,11 @@
 "use client";
 
-// Dynamic free-shipping progress bar for the cart / checkout. Reads the threshold
-// from the backend-driven shipping config and updates automatically as the
-// subtotal changes (the parent passes a live cart subtotal).
+// Dynamic free-shipping progress bar for the cart / checkout. Reads the active
+// rule from the backend-driven shipping config and updates automatically as the
+// cart changes. Supports two modes: by subtotal threshold (spend X more) or by
+// product quantity (add N more products) — whichever the admin has enabled.
 import { Truck, PartyPopper } from "lucide-react";
-import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
+import { useShippingConfig, freeShippingState } from "@/lib/shipping";
 import { formatPrice } from "@/lib/money";
 
 const COPY = {
@@ -12,6 +13,13 @@ const COPY = {
     away: (amount: string) => (
       <>
         Plus que <strong>{amount}</strong> pour profiter de la{" "}
+        <strong>LIVRAISON GRATUITE</strong> !
+      </>
+    ),
+    awayItems: (count: number) => (
+      <>
+        Ajoutez encore <strong>{count}</strong>{" "}
+        {count > 1 ? "produits" : "produit"} pour profiter de la{" "}
         <strong>LIVRAISON GRATUITE</strong> !
       </>
     ),
@@ -29,6 +37,31 @@ const COPY = {
         <strong>الشحن المجاني</strong> !
       </>
     ),
+    // Arabic number–noun agreement for "منتج" (product): singular for 1, dual for 2,
+    // the broken plural (منتجات) for 3–10, and the accusative singular (منتجًا) for 11+.
+    awayItems: (count: number) => {
+      if (count === 1) {
+        return (
+          <>
+            أضف منتجًا واحدًا فقط للاستفادة من <strong>الشحن المجاني</strong> !
+          </>
+        );
+      }
+      if (count === 2) {
+        return (
+          <>
+            أضف منتجَين فقط للاستفادة من <strong>الشحن المجاني</strong> !
+          </>
+        );
+      }
+      const noun = count >= 3 && count <= 10 ? "منتجات" : "منتجًا";
+      return (
+        <>
+          أضف <strong>{count}</strong> {noun} فقط للاستفادة من{" "}
+          <strong>الشحن المجاني</strong> !
+        </>
+      );
+    },
     qualified: (
       <>
         🎉 تهانينا ! طلبك مؤهّل للحصول على <strong>الشحن المجاني</strong>.
@@ -39,6 +72,13 @@ const COPY = {
     away: (amount: string) => (
       <>
         Only <strong>{amount}</strong> away from{" "}
+        <strong>FREE SHIPPING</strong>!
+      </>
+    ),
+    awayItems: (count: number) => (
+      <>
+        Add just <strong>{count}</strong> more{" "}
+        {count > 1 ? "products" : "product"} to get{" "}
         <strong>FREE SHIPPING</strong>!
       </>
     ),
@@ -53,20 +93,32 @@ const COPY = {
 
 export default function FreeShippingBar({
   subtotal,
+  itemCount = 0,
   lang = "fr",
   className = "",
 }: {
   subtotal: number;
+  // Total number of products in the cart. Drives the quantity-based mode; ignored
+  // in threshold mode.
+  itemCount?: number;
   lang?: string;
   className?: string;
 }) {
   const config = useShippingConfig();
-  const { qualified, remaining, percent, threshold } = freeShippingState(subtotal, config);
+  const state = freeShippingState(subtotal, config, itemCount);
+  const { mode, qualified, remaining, percent, itemsRemaining } = state;
   const t = lang === "ar" ? COPY.ar : lang === "en" ? COPY.en : COPY.fr;
-  const campaign = isFreeShippingCampaign(config);
 
-  // Feature disabled (no threshold configured) and no active campaign → nothing.
-  if (threshold <= 0 && !campaign) return null;
+  // No free-shipping perk configured → render nothing.
+  if (mode === "disabled") return null;
+
+  // Whether to show the "progress toward the goal" bar. During the campaign every
+  // order already ships free, so the progress bar is meaningless — hide it.
+  const showProgress = mode === "threshold" || mode === "quantity";
+
+  // The "keep going" message for the active mode.
+  const awayMessage =
+    mode === "quantity" ? t.awayItems(itemsRemaining) : t.away(formatPrice(remaining, lang));
 
   return (
     <div
@@ -82,13 +134,11 @@ export default function FreeShippingBar({
           {qualified ? <PartyPopper className="size-5" /> : <Truck className="size-5" />}
         </span>
         <p className={`text-sm leading-snug ${qualified ? "text-emerald-800" : "text-gray-700"}`}>
-          {qualified ? t.qualified : t.away(formatPrice(remaining, lang))}
+          {qualified ? t.qualified : awayMessage}
         </p>
       </div>
 
-      {/* During the free-shipping campaign every order already ships free, so the
-          "progress toward the threshold" bar is meaningless — hide it. */}
-      {!campaign && (
+      {showProgress && (
         <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-gray-200">
           <div
             className={`h-full rounded-full transition-all duration-500 ease-out ${

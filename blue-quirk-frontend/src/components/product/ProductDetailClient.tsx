@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShoppingBag, Sparkles, Star, Truck, Wallet, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
-import { addToCart } from "@/lib/cart";
+import { addToCart, readCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
 import { trackingService } from "@/lib/tracking/service";
 import ProductPrice from "@/components/ProductPrice";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
-import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
+import { findColorAttribute, findSizeAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
 import { colorSwatch, isLightColor } from "@/lib/colors";
 import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
@@ -23,14 +23,6 @@ import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
 import RatingSummary from "@/components/product/reviews/RatingSummary";
 import type { ReviewSummary } from "@/services/review.service";
-
-/** The product's SIZE attribute, by type (preferred) or a name match. */
-function findSizeAttribute<T extends { name: string; type?: string }>(attributes: T[]): T | undefined {
-  return (
-    attributes.find((a) => (a.type || "").toUpperCase() === "SIZE") ||
-    attributes.find((a) => /taille|size|مقاس/i.test(a.name))
-  );
-}
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
@@ -77,6 +69,13 @@ export default function ProductDetailClient({
   const productAttributes = useMemo(() => getProductAttributes(product), [product]);
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
+
+  // Checkout can send the shopper back to the collection they were exploring,
+  // instead of forcing them to restart at the home page.
+  useEffect(() => {
+    const category = product.categories?.[0];
+    if (category) localStorage.setItem(`bluequirk:last-category:${lang}`, String(category.id));
+  }, [lang, product.categories]);
 
   // Size guide + size recommendation (applied after mount to avoid SSR mismatch).
   const sizeAttribute = useMemo(() => findSizeAttribute(productAttributes), [productAttributes]);
@@ -260,11 +259,17 @@ export default function ProductDetailClient({
       return;
     }
     rememberSize();
-    addToCart(buildCartItem());
-    // Buy-now is a product-attributed checkout start (feeds the product funnel).
-    track("begin_checkout", { productId: product.id, meta: { source: "buy_now" } });
-    // The checkout page gates on auth (redirects guests to sign up).
-    router.push(`/${lang}/checkout`);
+    // Empty cart → add this product and jump straight to checkout, skipping the
+    // review drawer. If the cart already holds items, keep showing the drawer so
+    // the shopper can review everything before checking out.
+    const goStraightToCheckout = readCart().length === 0;
+    addToCart(buildCartItem(), { openSheet: !goStraightToCheckout });
+    if (goStraightToCheckout) {
+      // Buy-now is a product-attributed checkout start (feeds the product funnel).
+      track("begin_checkout", { productId: product.id, meta: { source: "buy_now" } });
+      // The checkout page gates on auth (redirects guests to sign up).
+      router.push(`/${lang}/checkout`);
+    }
   };
 
   // Free-shipping banner content. Rendered in two positions with complementary
@@ -287,6 +292,12 @@ export default function ProductDetailClient({
             {t(lang, "product.shipFreeCampaignSub")}
           </p>
         </div>
+      ) : freeShip.mode === "quantity" ? (
+        // Quantity mode: invite the customer to reach the free-shipping product count
+        // (a single product page can't know the whole cart, so it's always an invite).
+        <p className="text-sm font-medium text-gray-800">
+          {t(lang, "product.shipFreeQty", { count: freeShip.requiredQuantity })}
+        </p>
       ) : freeShip.qualified ? (
         <p className="text-sm text-gray-700">
           {t(lang, "product.shipQualified")}
@@ -299,12 +310,9 @@ export default function ProductDetailClient({
               currency: shippingConfig.currency,
             })}
           </p>
-          <p className="text-xs text-gray-500">
-            {t(lang, "product.shipOtherwise", {
-              amount: Math.round(shippingConfig.shippingFee),
-              currency: shippingConfig.currency,
-            })}
-          </p>
+          {/* The concrete delivery fee is intentionally not shown here: it depends
+              on the delivery city (per-city pricing), which isn't known until the
+              customer picks a ville at checkout. */}
         </div>
       )}
     </>
@@ -356,7 +364,7 @@ export default function ProductDetailClient({
 
           {/* Shipping info banner (desktop) — kept directly under the price so the
               md: layout is unchanged. The mobile instance lives below the buttons. */}
-          {(freeShippingCampaign || shippingConfig.freeShippingThreshold > 0) && (
+          {freeShip.mode !== "disabled" && (
             <div className="hidden items-start gap-2.5 rounded-lg border border-gray-200 bg-gray-50 px-3.5 py-2.5 md:flex">
               {shippingBannerInner}
             </div>

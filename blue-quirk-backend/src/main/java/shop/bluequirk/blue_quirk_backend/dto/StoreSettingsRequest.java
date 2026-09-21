@@ -65,5 +65,9 @@ public record StoreSettingsRequest(
         Integer reviewsPerPage,
         // Flat per-order packaging + confirmation cost (internal; profit only). Null
         // leaves it unchanged.
-        Double packagingCost
+        Double packagingCost,
+        // Free shipping by product quantity (alternative to the subtotal threshold).
+        // enabled null = leave unchanged; quantity null = unchanged (clamped >= 1).
+        Boolean freeShippingByQuantityEnabled,
+        Integer freeShippingQuantity
 ) {}

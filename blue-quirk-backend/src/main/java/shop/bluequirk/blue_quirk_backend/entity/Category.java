@@ -42,7 +42,15 @@ public class Category {
     
     @Column(name = "image_url")
     private String imageUrl;
-    
+
+    // Storefront visibility. Inactive categories are hidden from every customer-facing
+    // surface (home, nav, category pages, sitemap) but stay in the catalog and in Admin
+    // so they can be reactivated later — products, category links and orders are left
+    // untouched. The column default (true) back-fills existing rows on migration, so
+    // enabling this feature never hides the store's current categories.
+    @Column(nullable = false, columnDefinition = "boolean not null default true")
+    private boolean active = true;
+
 
 	public String getImageUrl() {
 		return imageUrl;
@@ -50,6 +58,14 @@ public class Category {
 
 	public void setImageUrl(String imageUrl) {
 		this.imageUrl = imageUrl;
+	}
+
+	public boolean isActive() {
+		return active;
+	}
+
+	public void setActive(boolean active) {
+		this.active = active;
 	}
 
 	public Long getId() {

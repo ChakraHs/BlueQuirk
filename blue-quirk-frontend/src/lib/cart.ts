@@ -40,7 +40,7 @@ export function cartItemKey(item: Pick<CartItem, "id" | "lang" | "attributes">) 
   return JSON.stringify({ id: item.id, lang: item.lang, attributes: item.attributes });
 }
 
-export function addToCart(item: CartItem) {
+export function addToCart(item: CartItem, options: { openSheet?: boolean } = {}) {
   const cart = readCart();
   const key = cartItemKey(item);
   const index = cart.findIndex((line) => cartItemKey(line) === key);
@@ -52,7 +52,9 @@ export function addToCart(item: CartItem) {
   }
   writeCart(cart);
   // Announce the specific line that was just added (for the "added to cart" sheet).
-  if (typeof window !== "undefined") {
+  // Callers can suppress this (e.g. Buy-Now on an empty cart, which goes straight
+  // to checkout) by passing `openSheet: false`.
+  if (typeof window !== "undefined" && options.openSheet !== false) {
     window.dispatchEvent(new CustomEvent(CART_ADD_EVENT, { detail: item }));
   }
   // Native business-metrics event (internal pipeline).
@@ -72,6 +74,39 @@ export function setQuantity(key: string, quantity: number) {
     cart.splice(index, 1);
   } else {
     cart[index] = { ...cart[index], quantity };
+  }
+  writeCart(cart);
+}
+
+/**
+ * Change a cart line's variant selection (inline size/colour edit at checkout),
+ * optionally swapping its thumbnail to match the new colour. If a line carrying
+ * the resulting variant already exists the two merge (quantities add); otherwise
+ * the line is updated in place. No-op when the key is unknown. Fires CART_EVENT
+ * only (never the added-to-cart sheet), so totals/discounts refresh silently.
+ */
+export function updateItemAttributes(
+  key: string,
+  attributes: Record<string, string>,
+  image?: string
+) {
+  const cart = readCart();
+  const index = cart.findIndex((line) => cartItemKey(line) === key);
+  if (index < 0) return;
+
+  const line = cart[index];
+  const updated: CartItem = { ...line, attributes, ...(image ? { image } : {}) };
+  const newKey = cartItemKey(updated);
+  const mergeIndex = cart.findIndex((l, i) => i !== index && cartItemKey(l) === newKey);
+
+  if (newKey !== key && mergeIndex >= 0) {
+    cart[mergeIndex] = {
+      ...cart[mergeIndex],
+      quantity: cart[mergeIndex].quantity + line.quantity,
+    };
+    cart.splice(index, 1);
+  } else {
+    cart[index] = updated;
   }
   writeCart(cart);
 }

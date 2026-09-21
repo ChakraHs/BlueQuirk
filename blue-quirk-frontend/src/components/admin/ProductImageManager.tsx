@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, useCallback } from "react";
-import { Star, Trash2, UploadCloud, Loader2, GripVertical, AlertCircle } from "lucide-react";
+import { useRef, useState, useCallback, useEffect } from "react";
+import { Star, Trash2, UploadCloud, Loader2, GripVertical, AlertCircle, ChevronDown, Check } from "lucide-react";
 import { ImageService } from "@/services/image.service";
 import type { ProductImage } from "@/types/product";
 import { thumbSrc } from "@/lib/productImage";
 import { compressImage } from "@/lib/imageCompression";
+import { colorSwatch, colorLabel, isLightColor } from "@/lib/colors";
 
 export type ColorOption = { id: number; label: string };
 
@@ -291,21 +292,11 @@ export default function ProductImageManager({
 
               {/* per-image color link (only when the product has a color attribute) */}
               {colorOptions.length > 0 && (
-                <select
-                  value={img.colorValueId ?? ""}
-                  onChange={(e) =>
-                    setColor(img.id, e.target.value ? Number(e.target.value) : null)
-                  }
-                  title="Linked color"
-                  className="w-full rounded-md border border-gray-300 bg-white px-1.5 py-1 text-[11px] text-gray-700 outline-none focus:border-blue-500"
-                >
-                  <option value="">All colors</option>
-                  {colorOptions.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
+                <ColorLinkSelect
+                  options={colorOptions}
+                  value={img.colorValueId ?? null}
+                  onChange={(id) => setColor(img.id, id)}
+                />
               )}
             </div>
           ))}
@@ -330,6 +321,105 @@ export default function ProductImageManager({
             </div>
           ))}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** A round colour swatch for a raw attribute value (hex or a known name). */
+function Swatch({ value, size = "size-3.5" }: { value: string; size?: string }) {
+  const hex = colorSwatch(value);
+  return (
+    <span
+      className={`${size} shrink-0 rounded-full ${isLightColor(hex) ? "border border-gray-300" : ""}`}
+      style={{ backgroundColor: hex }}
+    />
+  );
+}
+
+/**
+ * Compact dropdown to link an image to one of the product's colours. Shows the
+ * colour as a swatch + human name (never the raw hex code), with an "All colors"
+ * option that clears the link. Closes on an outside click (like {@link CitySelect}).
+ */
+function ColorLinkSelect({
+  options,
+  value,
+  onChange,
+}: {
+  options: ColorOption[];
+  value: number | null;
+  onChange: (id: number | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDoc = (e: MouseEvent) => {
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, [open]);
+
+  const selected = options.find((c) => c.id === value) ?? null;
+
+  const choose = (id: number | null) => {
+    onChange(id);
+    setOpen(false);
+  };
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        title="Linked color"
+        className="flex w-full items-center gap-1.5 rounded-md border border-gray-300 bg-white px-1.5 py-1 text-[11px] text-gray-700 outline-none focus:border-blue-500"
+      >
+        {selected ? (
+          <>
+            <Swatch value={selected.label} />
+            <span className="truncate">{colorLabel(selected.label, "en")}</span>
+          </>
+        ) : (
+          <span className="truncate text-gray-500">All colors</span>
+        )}
+        <ChevronDown size={12} className="ml-auto shrink-0 text-gray-400" />
+      </button>
+
+      {open && (
+        <ul className="absolute z-20 mt-1 max-h-56 w-full min-w-[9rem] overflow-auto rounded-md border border-gray-200 bg-white py-1 shadow-lg">
+          <li>
+            <button
+              type="button"
+              onClick={() => choose(null)}
+              className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-[11px] transition hover:bg-gray-50 ${
+                value == null ? "text-blue-700" : "text-gray-600"
+              }`}
+            >
+              <span className="w-3.5" />
+              <span className="flex-1 truncate">All colors</span>
+              {value == null && <Check size={12} className="shrink-0 text-blue-600" />}
+            </button>
+          </li>
+          {options.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                onClick={() => choose(c.id)}
+                className={`flex w-full items-center gap-2 px-2 py-1.5 text-left text-[11px] transition hover:bg-gray-50 ${
+                  c.id === value ? "text-blue-700" : "text-gray-700"
+                }`}
+              >
+                <Swatch value={c.label} />
+                <span className="flex-1 truncate">{colorLabel(c.label, "en")}</span>
+                {c.id === value && <Check size={12} className="shrink-0 text-blue-600" />}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

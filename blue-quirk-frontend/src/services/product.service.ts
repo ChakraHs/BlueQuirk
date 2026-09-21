@@ -65,6 +65,27 @@ export const ProductService = {
     return res.json();
   },
 
+  /** Published storefront products belonging to a category. */
+  getByCategory: async (
+    categoryId: number,
+    lang?: string,
+    revalidate?: number
+  ): Promise<Product[]> => {
+    const params = new URLSearchParams({ status: "PUBLISHED" });
+    if (lang) params.set("lang", lang);
+
+    const res = await fetch(
+      `${API_BASE_URL}/products/category/${categoryId}?${params.toString()}`,
+      serverReadInit(revalidate)
+    );
+
+    if (!res.ok) {
+      throw new Error(`Failed to fetch category products: ${res.status}`);
+    }
+
+    return res.json();
+  },
+
   getById: async (
     id: number,
     lang?: string,

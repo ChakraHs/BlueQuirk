@@ -103,6 +103,15 @@ public class StoreSettingsService {
         if (req.freeShippingThreshold() != null) {
             s.setFreeShippingThreshold(Math.max(0, req.freeShippingThreshold()));
         }
+        // Free shipping by product quantity: toggle null = unchanged; the quantity is
+        // clamped to a sane 1–99 range so a bad admin value can't disable the perk or
+        // demand an impossible cart.
+        if (req.freeShippingByQuantityEnabled() != null) {
+            s.setFreeShippingByQuantityEnabled(req.freeShippingByQuantityEnabled());
+        }
+        if (req.freeShippingQuantity() != null) {
+            s.setFreeShippingQuantity(Math.max(1, Math.min(99, req.freeShippingQuantity())));
+        }
         if (req.currency() != null && !req.currency().isBlank()) {
             s.setCurrency(req.currency().trim());
         }
