@@ -121,27 +121,29 @@ export default async function ProductPage({
     notFound();
   }
 
-  // "You may also like" surfaces the store's trending products (ranked
+  // Resolve the category tree before loading related products.
   // server-side by recent sales → recent views → newest) instead of an arbitrary
   // first-page slice, so shoppers see what actually sells. Fetch a few extra so
   // dropping the current product still leaves a full row of 4.
-  const [trendingProducts, config, categoryTree] = await Promise.all([
-    ProductService.getTrending(8, lang, undefined, STOREFRONT_REVALIDATE).catch(() => []),
+  const [config, categoryTree] = await Promise.all([
     getPublicShopConfig(STOREFRONT_REVALIDATE),
     CategoryService.getAll(lang, STOREFRONT_REVALIDATE, true).catch(() => []),
   ]);
-  const relatedProducts = trendingProducts
-    .filter((relatedProduct) => relatedProduct.id !== product.id)
-    .slice(0, 4);
-
   // Category breadcrumb: broadest → most specific, each linking to that category's
   // listing so shoppers can browse all products of the same category.
   const categoryPath = buildCategoryPath(categoryTree, product.categories);
 
+  const relatedCategory = categoryPath.at(-1) ?? product.categories?.at(-1) ?? null;
+  const relatedProducts = relatedCategory
+    ? (await ProductService.getByCategory(relatedCategory.id, lang, STOREFRONT_REVALIDATE).catch(() => []))
+        .filter((relatedProduct) => relatedProduct.id !== product.id)
+        .slice(0, 4)
+    : [];
+
   // "Explore more" target for the button under the related grid: the product's most
   // specific category listing (browse all same-category products), falling back to
   // the storefront home when the product has no category.
-  const exploreCategory = categoryPath.at(-1) ?? null;
+  const exploreCategory = relatedCategory;
   const exploreMoreHref = exploreCategory
     ? `/${lang}/category/${exploreCategory.id}`
     : `/${lang}`;
