@@ -60,7 +60,7 @@ public class FinanceController {
         return ResponseEntity.ok(reports.summary(from.atStartOfDay(), to.plusDays(1).atStartOfDay()));
     }
 
-    /** Revenue / profit / orders over time (daily or monthly buckets). */
+    /** Revenue / profit / orders over time (daily, weekly, half-month or monthly buckets). */
     @GetMapping("/timeseries")
     public ResponseEntity<List<FinanceTimePoint>> timeSeries(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
