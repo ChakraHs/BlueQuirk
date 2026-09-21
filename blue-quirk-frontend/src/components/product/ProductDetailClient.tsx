@@ -78,6 +78,13 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
 
+  // Checkout can send the shopper back to the collection they were exploring,
+  // instead of forcing them to restart at the home page.
+  useEffect(() => {
+    const category = product.categories?.[0];
+    if (category) localStorage.setItem(`bluequirk:last-category:${lang}`, String(category.id));
+  }, [lang, product.categories]);
+
   // Size guide + size recommendation (applied after mount to avoid SSR mismatch).
   const sizeAttribute = useMemo(() => findSizeAttribute(productAttributes), [productAttributes]);
   const [sizeGuideOpen, setSizeGuideOpen] = useState(false);

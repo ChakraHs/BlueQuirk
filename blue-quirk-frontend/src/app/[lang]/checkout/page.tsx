@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
-  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet,
+  User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet, ArrowLeft,
 } from "lucide-react";
 import { useCart, cartTotal, cartCount, clearCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
@@ -78,6 +78,17 @@ export default function CheckoutPage({
   const [placed, setPlaced] = useState<OrderResponse | null>(null);
   const [loginOpen, setLoginOpen] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [continueShoppingHref, setContinueShoppingHref] = useState(`/${lang}`);
+
+  // Continue shopping returns to the most recently viewed collection. A direct
+  // visit or a cleared browser store falls back cleanly to the storefront home.
+  useEffect(() => {
+    const rawCategoryId = localStorage.getItem(`bluequirk:last-category:${lang}`);
+    const categoryId = Number(rawCategoryId);
+    if (Number.isSafeInteger(categoryId) && categoryId > 0) {
+      setContinueShoppingHref(`/${lang}/category/${categoryId}`);
+    }
+  }, [lang]);
 
   // --- Authoritative pricing from the backend: subtotal + automatic bundle
   // discount + (optional) coupon, computed exactly as the order will be. We only
@@ -290,7 +301,7 @@ export default function CheckoutPage({
       <main className="mx-auto max-w-2xl px-6 py-16 text-center">
         <h1 className="text-lg font-semibold text-gray-900">{t(lang, "checkout.emptyTitle")}</h1>
         <Link
-          href={`/${lang}`}
+          href={continueShoppingHref}
           className="mt-6 inline-block rounded-full bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700"
         >
           {t(lang, "wishlist.browse")}
@@ -309,6 +320,13 @@ export default function CheckoutPage({
         <Truck className="size-4" />
         {t(lang, "checkout.codBadge")}
       </div>
+      <Link
+        href={continueShoppingHref}
+        className="mb-6 flex w-fit items-center gap-1.5 text-sm font-semibold text-gray-600 transition hover:text-primary"
+      >
+        <ArrowLeft className="size-4 rtl:rotate-180" />
+        {t(lang, "cart.continue")}
+      </Link>
 
       <form onSubmit={handleSubmit} className="grid gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
         {/* ---- LEFT: Customer information ---- */}
