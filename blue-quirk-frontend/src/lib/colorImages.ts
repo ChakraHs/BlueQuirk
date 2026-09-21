@@ -22,6 +22,15 @@ export function findColorAttribute<T extends AttrLike>(attributes?: T[]): T | un
   );
 }
 
+/** The product's SIZE attribute, by type (preferred) or a name match. */
+export function findSizeAttribute<T extends AttrLike>(attributes?: T[]): T | undefined {
+  if (!attributes) return undefined;
+  return (
+    attributes.find((a) => (a.type || "").toUpperCase() === "SIZE") ||
+    attributes.find((a) => /taille|size|مقاس/i.test(a.name))
+  );
+}
+
 /**
  * Color options to link images to: the product's selected colors when any are
  * selected, otherwise every color value (e.g. a brand-new product).

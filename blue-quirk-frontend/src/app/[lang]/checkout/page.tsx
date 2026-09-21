@@ -7,13 +7,14 @@ import {
   Truck, ShieldCheck, Loader2, AlertCircle, CheckCircle2, Phone, MapPin,
   User as UserIcon, Mail, Package, LogIn, Tag, X, Check, Plus, Wallet, ArrowLeft,
 } from "lucide-react";
-import { useCart, cartTotal, cartCount, clearCart } from "@/lib/cart";
+import { useCart, cartTotal, cartCount, clearCart, cartItemKey } from "@/lib/cart";
 import { formatPrice } from "@/lib/money";
-import { colorLabel, formatVariant } from "@/lib/colors";
+import { formatVariant } from "@/lib/colors";
 import { thumbSrc } from "@/lib/productImage";
 import { quickAddProduct } from "@/lib/quickAdd";
 import { ProductService } from "@/services/product.service";
 import type { Product } from "@/types/product";
+import CheckoutItem from "@/components/checkout/CheckoutItem";
 import { useShippingConfig, computeShipping } from "@/lib/shipping";
 import { useCartQuote } from "@/lib/bundle";
 import { progressiveState } from "@/lib/progressive";
@@ -209,6 +210,35 @@ export default function CheckoutPage({
     }
   }, [items]);
 
+  // --- Full products for the cart lines, so the order summary can offer inline
+  // size/colour editing (the cart line only stores the chosen labels, not the
+  // product's full option set). Each id is fetched once; results are keyed by id.
+  const [productMap, setProductMap] = useState<Record<number, Product>>({});
+  const fetchedProducts = useRef<Set<number>>(new Set());
+  useEffect(() => {
+    const missing = items.map((i) => i.id).filter((id) => !fetchedProducts.current.has(id));
+    if (missing.length === 0) return;
+    missing.forEach((id) => fetchedProducts.current.add(id));
+    let alive = true;
+    Promise.all(
+      missing.map((id) =>
+        ProductService.getById(id, lang)
+          .then((p) => [id, p] as const)
+          .catch(() => null)
+      )
+    ).then((results) => {
+      if (!alive) return;
+      setProductMap((prev) => {
+        const next = { ...prev };
+        for (const r of results) if (r) next[r[0]] = r[1];
+        return next;
+      });
+    });
+    return () => {
+      alive = false;
+    };
+  }, [items, lang]);
+
   // --- Order-bump: one trending product the customer can add in a single tap
   // before confirming. Fetched once; hidden once it's already in the cart.
   const [bumpPool, setBumpPool] = useState<Product[]>([]);
@@ -396,40 +426,34 @@ export default function CheckoutPage({
         <aside className="h-fit rounded-2xl border border-gray-200 p-6 lg:sticky lg:top-6">
           <h2 className="text-lg font-bold text-gray-900">{t(lang, "checkout.yourOrder")}</h2>
 
-          <ul className="mt-4 space-y-4">
-            {items.map((item, idx) => {
-              const attrs = Object.entries(item.attributes).filter(([, v]) => v);
-              return (
-                <li key={idx} className="flex gap-3">
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                    <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
-                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1 text-[11px] font-bold text-white">
-                      {item.quantity}
-                    </span>
-                  </div>
-                  <div className="flex flex-1 flex-col">
-                    <span className="line-clamp-1 text-sm font-semibold text-gray-900">{item.name}</span>
-                    {attrs.length > 0 && (
-                      <span className="text-xs text-gray-500">{attrs.map(([k, v]) => `${k}: ${colorLabel(v, lang)}`).join(" · ")}</span>
-                    )}
-                    <span className="text-xs text-gray-500">
-                      {item.quantity} × {formatPrice(item.price, lang)}
-                    </span>
-                    <span className="mt-auto text-sm font-bold text-gray-900">
-                      {formatPrice(item.price * item.quantity, lang)}
-                    </span>
-                  </div>
-                </li>
-              );
-            })}
+          <ul className="mt-4 space-y-3">
+            {items.map((item) => (
+              <CheckoutItem
+                key={cartItemKey(item)}
+                item={item}
+                product={productMap[item.id]}
+                lang={lang}
+              />
+            ))}
           </ul>
 
           <FreeShippingBar subtotal={total} itemCount={itemCount} lang={lang} className="mt-5" />
 
           {/* Progressive multi-item discount incentive — states the discount already
-              unlocked and how much more each added item earns (no progress bar). */}
+              unlocked and how much more each added item earns (no progress bar). A
+              "continue shopping" link lets the shopper go add more items (to earn the
+              per-item discount) — back to the collection they were browsing. */}
           {progressive && (
-            <ProgressiveIncentive state={progressive} lang={lang} className="mt-5" />
+            <div className="mt-5">
+              <ProgressiveIncentive state={progressive} lang={lang} />
+              <Link
+                href={continueShoppingHref}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+              >
+                <ArrowLeft className="size-3.5 rtl:rotate-180" />
+                {t(lang, "cart.continue")}
+              </Link>
+            </div>
           )}
 
           {/* Order-bump — a single trending product added in one tap. Raises AOV
@@ -454,6 +478,12 @@ export default function CheckoutPage({
                 <div className="min-w-0 flex-1">
                   <p className="line-clamp-1 text-sm font-semibold text-gray-900">{bump.name}</p>
                   <p className="text-xs font-medium text-gray-500">{formatPrice(bump.price, lang)}</p>
+                  <Link
+                    href={`/${lang}/product/${bump.id}`}
+                    className="text-xs font-medium text-blue-600 hover:text-blue-700"
+                  >
+                    {t(lang, "checkout.viewDetails")}
+                  </Link>
                 </div>
                 <button
                   type="button"

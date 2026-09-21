@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShoppingBag, Sparkles, Star, Truck, Wallet, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
-import { addToCart } from "@/lib/cart";
+import { addToCart, readCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
 import { trackingService } from "@/lib/tracking/service";
 import ProductPrice from "@/components/ProductPrice";
 import { isWishlisted, toggleWishlist, WISHLIST_EVENT } from "@/lib/wishlist";
-import { findColorAttribute, imagesForColor } from "@/lib/colorImages";
+import { findColorAttribute, findSizeAttribute, imagesForColor } from "@/lib/colorImages";
 import { thumbSrc } from "@/lib/productImage";
 import { colorSwatch, isLightColor } from "@/lib/colors";
 import { useShippingConfig, freeShippingState, isFreeShippingCampaign } from "@/lib/shipping";
@@ -23,14 +23,6 @@ import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
 import RatingSummary from "@/components/product/reviews/RatingSummary";
 import type { ReviewSummary } from "@/services/review.service";
-
-/** The product's SIZE attribute, by type (preferred) or a name match. */
-function findSizeAttribute<T extends { name: string; type?: string }>(attributes: T[]): T | undefined {
-  return (
-    attributes.find((a) => (a.type || "").toUpperCase() === "SIZE") ||
-    attributes.find((a) => /taille|size|مقاس/i.test(a.name))
-  );
-}
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
@@ -267,11 +259,17 @@ export default function ProductDetailClient({
       return;
     }
     rememberSize();
-    addToCart(buildCartItem());
-    // Buy-now is a product-attributed checkout start (feeds the product funnel).
-    track("begin_checkout", { productId: product.id, meta: { source: "buy_now" } });
-    // The checkout page gates on auth (redirects guests to sign up).
-    router.push(`/${lang}/checkout`);
+    // Empty cart → add this product and jump straight to checkout, skipping the
+    // review drawer. If the cart already holds items, keep showing the drawer so
+    // the shopper can review everything before checking out.
+    const goStraightToCheckout = readCart().length === 0;
+    addToCart(buildCartItem(), { openSheet: !goStraightToCheckout });
+    if (goStraightToCheckout) {
+      // Buy-now is a product-attributed checkout start (feeds the product funnel).
+      track("begin_checkout", { productId: product.id, meta: { source: "buy_now" } });
+      // The checkout page gates on auth (redirects guests to sign up).
+      router.push(`/${lang}/checkout`);
+    }
   };
 
   // Free-shipping banner content. Rendered in two positions with complementary
