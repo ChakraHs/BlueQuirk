@@ -440,21 +440,22 @@ export default function CheckoutPage({
           <FreeShippingBar subtotal={total} itemCount={itemCount} lang={lang} className="mt-5" />
 
           {/* Progressive multi-item discount incentive — states the discount already
-              unlocked and how much more each added item earns (no progress bar). A
-              "continue shopping" link lets the shopper go add more items (to earn the
-              per-item discount) — back to the collection they were browsing. */}
+              unlocked and how much more each added item earns (no progress bar). */}
           {progressive && (
-            <div className="mt-5">
-              <ProgressiveIncentive state={progressive} lang={lang} />
-              <Link
-                href={continueShoppingHref}
-                className="mt-2 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
-              >
-                <ArrowLeft className="size-3.5 rtl:rotate-180" />
-                {t(lang, "cart.continue")}
-              </Link>
-            </div>
+            <ProgressiveIncentive state={progressive} lang={lang} className="mt-5" />
           )}
+
+          {/* Continue-shopping nudge under the incentives area so the shopper can go
+              add more items (to reach free shipping / unlock the multi-item discount).
+              Shown regardless of which incentive is active; returns to the collection
+              they were browsing (or the storefront home). */}
+          <Link
+            href={continueShoppingHref}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"
+          >
+            <ArrowLeft className="size-3.5 rtl:rotate-180" />
+            {t(lang, "cart.continue")}
+          </Link>
 
           {/* Order-bump — a single trending product added in one tap. Raises AOV
               without a detour to the product page. */}
