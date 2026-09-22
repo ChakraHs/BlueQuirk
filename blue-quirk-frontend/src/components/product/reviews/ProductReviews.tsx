@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { BadgeCheck, X } from "lucide-react";
-import { t } from "@/lib/i18n";
+import { t, reviewCount } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
 import {
   loadReviewPage,
@@ -111,7 +111,7 @@ export default function ProductReviews({
               <div className="mb-1 space-y-1">
                 <Stars value={summary.average} size={18} />
                 <p className="text-xs text-gray-500">
-                  {t(lang, "reviews.count", { count: summary.total })}
+                  {reviewCount(lang, summary.total)}
                 </p>
               </div>
             </div>

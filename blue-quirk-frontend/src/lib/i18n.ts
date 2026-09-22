@@ -281,7 +281,8 @@ const fr: Dict = {
   "reviews.sectionTitle": "Ce que disent nos clients",
   "reviews.sectionSubtitle": "Avis vérifiés de clients ayant reçu leur commande.",
   "reviews.count": "{count} avis",
-  "reviews.summaryAria": "{rating} sur 5, {count} avis",
+  "reviews.countPlural": "{count} avis",
+  "reviews.summaryAria": "{rating} sur 5, {countLabel}",
   "reviews.distribution": "Répartition des notes",
   "reviews.customerPhotos": "Photos des clients",
   "reviews.viewPhoto": "Voir la photo",
@@ -568,8 +569,9 @@ const en: Dict = {
   // Reviews / social proof
   "reviews.sectionTitle": "What our customers say",
   "reviews.sectionSubtitle": "Verified reviews from customers who received their order.",
-  "reviews.count": "{count} reviews",
-  "reviews.summaryAria": "{rating} out of 5, {count} reviews",
+  "reviews.count": "{count} review",
+  "reviews.countPlural": "{count} reviews",
+  "reviews.summaryAria": "{rating} out of 5, {countLabel}",
   "reviews.distribution": "Rating distribution",
   "reviews.customerPhotos": "Customer photos",
   "reviews.viewPhoto": "View photo",
@@ -856,7 +858,8 @@ const ar: Dict = {
   "reviews.sectionTitle": "شنو كيقولو العملاء ديالنا",
   "reviews.sectionSubtitle": "تقييمات حقيقية من عملاء توصلو بالطلبات ديالهم.",
   "reviews.count": "{count} تقييم",
-  "reviews.summaryAria": "{rating} من 5، {count} تقييم",
+  "reviews.countPlural": "{count} تقييمات",
+  "reviews.summaryAria": "{rating} من 5، {countLabel}",
   "reviews.distribution": "توزيع التقييمات",
   "reviews.customerPhotos": "صور العملاء",
   "reviews.viewPhoto": "عرض الصورة",
@@ -923,6 +926,16 @@ export function t(
 /** Curried translator bound to a language: `const tt = makeT(lang)`. */
 export function makeT(lang: string) {
   return (key: string, vars?: Record<string, string | number>) => t(lang, key, vars);
+}
+
+/**
+ * Localized, plural-aware "N reviews" label. Arabic needs the plural form
+ * (تقييمات) for any count other than 1 (تقييم); French "avis" is invariable;
+ * English switches between "review" and "reviews". Product-page counts are small,
+ * so a simple one-vs-other rule is used (matches Moroccan storefront usage).
+ */
+export function reviewCount(lang: string, count: number): string {
+  return t(lang, count === 1 ? "reviews.count" : "reviews.countPlural", { count });
 }
 
 // The default composition ("100% Cotton") is stored on the product as a single

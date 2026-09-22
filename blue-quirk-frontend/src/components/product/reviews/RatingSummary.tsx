@@ -1,6 +1,6 @@
 "use client";
 
-import { t } from "@/lib/i18n";
+import { t, reviewCount } from "@/lib/i18n";
 import type { ReviewSummary } from "@/services/review.service";
 import Stars from "./Stars";
 
@@ -26,14 +26,14 @@ export default function RatingSummary({
       className="inline-flex items-center gap-2 text-sm text-gray-700 transition hover:text-gray-900"
       aria-label={t(lang, "reviews.summaryAria", {
         rating: summary.average.toFixed(1),
-        count: summary.total,
+        countLabel: reviewCount(lang, summary.total),
       })}
     >
       <Stars value={summary.average} size={16} />
       <span className="font-semibold text-gray-900">{summary.average.toFixed(1)}</span>
       <span className="text-gray-400">·</span>
       <span className="underline decoration-gray-300 underline-offset-2">
-        {t(lang, "reviews.count", { count: summary.total })}
+        {reviewCount(lang, summary.total)}
       </span>
     </a>
   );
