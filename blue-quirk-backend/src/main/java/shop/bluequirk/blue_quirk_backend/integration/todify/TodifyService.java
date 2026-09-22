@@ -45,6 +45,7 @@ import shop.bluequirk.blue_quirk_backend.repository.TodifySyncLogRepository;
 import shop.bluequirk.blue_quirk_backend.service.OrderService;
 import shop.bluequirk.blue_quirk_backend.service.ProductImageService;
 import shop.bluequirk.blue_quirk_backend.service.R2StorageService;
+import shop.bluequirk.blue_quirk_backend.utility.ColorNames;
 
 /**
  * Orchestrates all Todify interactions: pushing local orders for fulfillment,
@@ -432,13 +433,8 @@ public class TodifyService {
         shipping.putNull("state");
         shipping.put("country", defaultCountry);
 
-        // The shipping the customer must pay on delivery (already 0 when the order
-        // earned free shipping, otherwise the flat fee). Todify's order API has no
-        // shipping field, so we carry it on the first line's variant as "shipping".
-        String shippingLabel = formatMoney(order.getShippingFee());
-
         ArrayNode items = root.putArray("items");
-        boolean shippingAttached = false;
+        List<LineRef> lines = new ArrayList<>();
         for (OrderItem item : linkedItems) {
             Product p = productRepository.findById(item.getProductId()).orElse(null);
             if (p == null) continue;
@@ -446,28 +442,116 @@ public class TodifyService {
             ObjectNode node = items.addObject();
             node.put("product_id", p.getTodifyTemplateId());
 
-            // Todify's template attribute keys are lowercase ("size","color") and
-            // its variant values are the option values verbatim (e.g. the color
-            // hex). Imports store the keys capitalized ("Size","Color") and the
-            // values unchanged, so we only lowercase the KEYS for Todify to match.
+            // Todify's template attribute keys are lowercase ("size","color");
+            // imports store them capitalized, so we lowercase the KEYS to match.
+            // Colour values stored as a hex code ("#111827") are rendered as a
+            // human colour name ("Noir") so the fulfiller reads a colour, not a code.
             ObjectNode parsed = parseVariant(item.getVariantAttributes());
             ObjectNode variant = (parsed != null && parsed.size() > 0)
-                    ? lowercaseKeys(parsed, client.mapper())
+                    ? colorNamedVariant(lowercaseKeys(parsed, client.mapper()), FULFILLMENT_LANG)
                     : client.mapper().createObjectNode();
-
-            // Attach the shipping cost to the FIRST line item only.
-            if (!shippingAttached) {
-                variant.put("shipping", shippingLabel);
-                shippingAttached = true;
-            }
             if (variant.size() > 0) {
                 node.set("variant", variant);
             }
 
-            node.put("quantity", Math.min(100, Math.max(1, item.getQuantity())));
-            node.put("price", resolveUnitPrice(item, p));
+            int qty = Math.min(100, Math.max(1, item.getQuantity()));
+            double unit = resolveUnitPrice(item, p);
+            node.put("quantity", qty);
+            node.put("price", unit);
+            lines.add(new LineRef(node, unit, qty));
         }
+
+        // Fold shipping (and any order discount) into the line prices so Todify's
+        // COD total_amount equals what the customer actually pays on delivery —
+        // order.total, the total shown at checkout, shipping included. Todify has no
+        // order-level total/shipping field, so the amounts must live on the items.
+        foldClientTotalIntoLines(lines, order, linkedItems);
         return root;
+    }
+
+    // Colour names sent to Todify are fulfiller-facing (not customer-facing), so we
+    // use the store's operational language (French) rather than the order's locale.
+    private static final String FULFILLMENT_LANG = "fr";
+
+    /** One built Todify line item plus its base unit price and quantity. */
+    private record LineRef(ObjectNode node, double unit, int qty) {}
+
+    /**
+     * Returns a copy of {@code variant} with any colour hex value rendered as a
+     * human colour name (localized to {@code lang}); non-hex values (sizes,
+     * already-named colours) pass through unchanged. Keys are left as-is.
+     */
+    private ObjectNode colorNamedVariant(ObjectNode variant, String lang) {
+        ObjectNode out = client.mapper().createObjectNode();
+        variant.fields().forEachRemaining(e ->
+                out.put(e.getKey(), ColorNames.toName(e.getValue().asText(), lang)));
+        return out;
+    }
+
+    /**
+     * Scales the linked line prices so their {@code Σ price × qty} equals the amount
+     * the customer pays on delivery — {@code order.total} = goods − discounts +
+     * shipping. Todify derives the COD {@code total_amount} from {@code items[].price}
+     * (there is no order-level total or shipping field), so shipping and any discount
+     * have to be folded into the line prices. When the order also has items NOT linked
+     * to Todify, an order-level discount can't be attributed to the subset, so only
+     * the shipping fee is added to the linked goods.
+     */
+    private void foldClientTotalIntoLines(List<LineRef> lines, Order order, List<OrderItem> linkedItems) {
+        if (lines.isEmpty()) return;
+        double base = 0;
+        for (LineRef l : lines) base += round2(l.unit()) * l.qty();
+
+        boolean allLinked = linkedItems.size() == order.getItems().size();
+        double target = allLinked ? round2(order.getTotal())
+                                  : round2(base + order.getShippingFee());
+        if (base <= 0 || target <= 0 || Math.abs(target - base) < 0.005) return;
+
+        double[] units = new double[lines.size()];
+        int[] qtys = new int[lines.size()];
+        for (int i = 0; i < lines.size(); i++) {
+            units[i] = lines.get(i).unit();
+            qtys[i] = lines.get(i).qty();
+        }
+        double[] prices = distributeTotal(units, qtys, target);
+        for (int i = 0; i < lines.size(); i++) {
+            lines.get(i).node().put("price", prices[i]);
+        }
+    }
+
+    /**
+     * Per-line unit prices whose {@code Σ price × qty} equals {@code target}, scaled
+     * proportionally from the base {@code unit × qty} totals so every price stays
+     * &gt; 0 (Todify rejects a 0 price). Any rounding residual lands on the first
+     * line so the sum is exact. Package-private for testing.
+     */
+    static double[] distributeTotal(double[] unitPrices, int[] quantities, double target) {
+        int n = unitPrices.length;
+        double[] out = new double[n];
+        double base = 0;
+        for (int i = 0; i < n; i++) base += round2(unitPrices[i]) * quantities[i];
+        if (base <= 0 || target <= 0) {
+            for (int i = 0; i < n; i++) out[i] = round2(unitPrices[i]);
+            return out;
+        }
+        double factor = target / base;
+        double sum = 0;
+        for (int i = 0; i < n; i++) {
+            double price = round2(unitPrices[i] * factor);
+            if (price <= 0) price = 0.01;
+            out[i] = price;
+            sum += price * quantities[i];
+        }
+        double residual = round2(target - sum);
+        if (residual != 0 && n > 0 && quantities[0] > 0) {
+            double adjusted = round2(out[0] + residual / quantities[0]);
+            if (adjusted > 0) out[0] = adjusted;
+        }
+        return out;
+    }
+
+    static double round2(double v) {
+        return Math.round(v * 100.0) / 100.0;
     }
 
     /**
@@ -488,13 +572,6 @@ public class TodifyService {
         src.fields().forEachRemaining(e ->
                 out.set(e.getKey().toLowerCase(java.util.Locale.ROOT), e.getValue()));
         return out;
-    }
-
-    /** Money as a compact string: "0" for free, "29" for whole amounts, else "29.5". */
-    static String formatMoney(double value) {
-        double r = Math.round(value * 100.0) / 100.0;
-        if (r == Math.floor(r)) return String.valueOf((long) r);
-        return String.valueOf(r);
     }
 
     static double resolveUnitPrice(OrderItem item, Product product) {

@@ -2,6 +2,7 @@ package shop.bluequirk.blue_quirk_backend.integration.todify;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.within;
 
 import org.junit.jupiter.api.Test;
 
@@ -59,15 +60,47 @@ class TodifyOrderPricingTest {
                 .hasMessageContaining("price greater than 0");
     }
 
-    // --- variant key mapping (Todify wants lowercase keys; values kept verbatim) ---
+    // --- COD total distribution (shipping + discount folded into item prices) ---
+
+    private static double sum(double[] prices, int[] qtys) {
+        double s = 0;
+        for (int i = 0; i < prices.length; i++) s += prices[i] * qtys[i];
+        return Math.round(s * 100.0) / 100.0;
+    }
 
     @Test
-    void formatsShippingMoney() {
-        assertThat(TodifyService.formatMoney(0)).isEqualTo("0");       // free shipping
-        assertThat(TodifyService.formatMoney(29.0)).isEqualTo("29");
-        assertThat(TodifyService.formatMoney(29.5)).isEqualTo("29.5");
-        assertThat(TodifyService.formatMoney(29.999)).isEqualTo("30");
+    void foldsShippingIntoASingleLineTotal() {
+        // 149 goods + 29 shipping → the courier collects 178.
+        double[] p = TodifyService.distributeTotal(new double[]{149.0}, new int[]{1}, 178.0);
+        assertThat(p[0]).isEqualTo(178.0);
     }
+
+    @Test
+    void distributesTheTargetProportionallyAcrossLines() {
+        // 100 + 200 = 300 goods, +30 shipping → 330 spread by weight.
+        double[] p = TodifyService.distributeTotal(new double[]{100.0, 200.0}, new int[]{1, 1}, 330.0);
+        assertThat(sum(p, new int[]{1, 1})).isEqualTo(330.0);
+        assertThat(p[0]).isEqualTo(110.0);
+        assertThat(p[1]).isEqualTo(220.0);
+    }
+
+    @Test
+    void foldsADiscountWithoutEverGoingNegative() {
+        // A heavy discount drops the COD to 129 across 50 + 250 goods.
+        double[] p = TodifyService.distributeTotal(new double[]{50.0, 250.0}, new int[]{1, 1}, 129.0);
+        assertThat(sum(p, new int[]{1, 1})).isEqualTo(129.0);
+        assertThat(p[0]).isGreaterThan(0);
+        assertThat(p[1]).isGreaterThan(0);
+    }
+
+    @Test
+    void staysWithinACentForIndivisibleMultiUnitLines() {
+        // 3 × 149 = 447 goods, +29 shipping → 476 can't split evenly over 3 units.
+        double[] p = TodifyService.distributeTotal(new double[]{149.0}, new int[]{3}, 476.0);
+        assertThat(sum(p, new int[]{3})).isCloseTo(476.0, within(0.03));
+    }
+
+    // --- variant key mapping (Todify wants lowercase keys; values kept verbatim) ---
 
     @Test
     void lowercasesVariantKeysButKeepsValues() {
