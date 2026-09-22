@@ -20,10 +20,14 @@ public record OrderFinancialsResponse(
         double realShippingCost,   // internal logistics cost (never shown to customer)
         double packagingCost,  // flat per-order packaging + confirmation cost (internal)
         double grossProfit,    // sellingTotal − costTotal (goods only)
-        double netProfit,      // finalTotal − costTotal − realShippingCost − packagingCost
+        double netProfit,      // finalTotal − costTotal − realShippingCost − packagingCost (= net contribution)
         double marginPercent,  // grossProfit / sellingTotal
         double netSales,       // sellingTotal − discount
         double operationalRevenue, // sellingTotal + shipping
+        // --- Order-details roll-up (spec: total revenue / total costs / contribution) ---
+        double totalCosts,     // costTotal + realShippingCost + packagingCost (all internal + goods)
+        boolean realized,      // status == DELIVERED — contribution is realized (cash collected)
+        boolean cancelled,     // status == CANCELLED — never counts as realized profit
         List<Item> items
 ) {
     public record Item(

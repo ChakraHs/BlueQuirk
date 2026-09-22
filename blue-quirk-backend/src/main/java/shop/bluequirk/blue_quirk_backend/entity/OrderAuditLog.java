@@ -39,6 +39,8 @@ public class OrderAuditLog {
         TODIFY_SET_AUTO,
         /** Admin linked the order to an existing Todify order created by hand. */
         TODIFY_LINKED,
+        /** Admin edited operational fields (costs, shipping, address, city, note). */
+        DETAILS_EDITED,
         /** The order was permanently deleted. */
         DELETED
     }

@@ -73,9 +73,22 @@ public class ReviewAdminController {
         return service.edit(id, req, actor());
     }
 
+    /**
+     * Approve a review. Optionally send a moderation body to apply last-minute edits
+     * (rating/body/title + displayed-name choice) before approval — the "choose the
+     * displayed name before approving" flow. The original submission is preserved.
+     */
     @PatchMapping("/{id}/approve")
-    public ReviewResponse approve(@PathVariable Long id) {
-        return service.approve(id, actor());
+    public ReviewResponse approve(@PathVariable Long id,
+                                  @RequestBody(required = false) ReviewModerationRequest req) {
+        return service.approve(id, req, actor());
+    }
+
+    /** Full moderation audit trail for one review (who changed what, when). */
+    @GetMapping("/{id}/audit")
+    public java.util.List<shop.bluequirk.blue_quirk_backend.review.entity.ReviewAuditLog> audit(
+            @PathVariable Long id) {
+        return service.getAudit(id);
     }
 
     @PatchMapping("/{id}/reject")

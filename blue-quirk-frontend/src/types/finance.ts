@@ -73,11 +73,33 @@ export interface OrderFinancials {
   realShippingCost: number; // internal logistics cost (never shown to customer)
   packagingCost: number; // per-order packaging + confirmation cost (internal)
   grossProfit: number; // sellingTotal − costTotal (goods only)
-  netProfit: number; // finalTotal − costTotal − realShippingCost − packagingCost
+  netProfit: number; // finalTotal − costTotal − realShippingCost − packagingCost (= net contribution)
   marginPercent: number;
   netSales: number;
   operationalRevenue: number;
+  totalCosts: number; // costTotal + realShippingCost + packagingCost
+  realized: boolean; // true when the order is DELIVERED (contribution is realized)
+  cancelled: boolean; // true when CANCELLED (never counts as realized profit)
   items: OrderFinancialsItem[];
+}
+
+/**
+ * Compact per-order profitability row for the admin order LIST (net-contribution
+ * column). Admin-only — confidential cost figures, fetched separately from the
+ * order list so public order DTOs never carry costs.
+ */
+export interface OrderContribution {
+  orderId: number;
+  status: string;
+  productRevenue: number;
+  shippingCharged: number;
+  discount: number;
+  productCost: number;
+  deliveryCost: number;
+  packagingCost: number;
+  netContribution: number; // total − productCost − deliveryCost − packagingCost
+  realized: boolean; // DELIVERED — cash collected
+  cancelled: boolean; // CANCELLED — never realized profit
 }
 
 export interface OrderFinancialsItem {

@@ -9,8 +9,10 @@ import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import CancelOrderDialog from "@/components/admin/CancelOrderDialog";
 import ConfirmDialog from "@/components/admin/ui/ConfirmDialog";
 import { OrderService, type OrderResponse } from "@/services/order.service";
+import type { OrderContribution } from "@/types/finance";
 import { ORDER_STATUSES, ORDER_STATUS_LABELS, type OrderStatus } from "@/types/order";
 import { formatPrice } from "@/lib/money";
+import NetContributionCell from "@/components/admin/ui/NetContributionCell";
 
 // Statuses offered in the quick inline dropdown (cancellation is a separate
 // button so it can collect a reason).
@@ -38,6 +40,12 @@ function formatDate(iso: string): string {
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponse[]>([]);
+  // Per-order net-contribution rows (admin-only), keyed by order id for the
+  // profitability column. Fetched separately from the orders so the public order
+  // DTO never carries confidential cost figures.
+  const [contributions, setContributions] = useState<Map<number, OrderContribution>>(
+    new Map()
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"ALL" | OrderStatus>("ALL");
@@ -52,7 +60,14 @@ export default function OrdersPage() {
   useEffect(() => {
     (async () => {
       try {
-        setOrders(await OrderService.getAll());
+        // Orders + their net-contribution rows in parallel. The contribution
+        // fetch is best-effort so a failure there never blocks the order list.
+        const [list, contribs] = await Promise.all([
+          OrderService.getAll(),
+          OrderService.getContributions().catch(() => [] as OrderContribution[]),
+        ]);
+        setOrders(list);
+        setContributions(new Map(contribs.map((c) => [c.orderId, c])));
       } catch {
         setError("Unable to load orders.");
       } finally {
@@ -238,6 +253,12 @@ export default function OrdersPage() {
                 <th className="px-5 py-3 text-center">Items</th>
                 <th className="px-5 py-3 text-left">Status</th>
                 <th className="px-5 py-3 text-right">Total</th>
+                <th
+                  className="px-5 py-3 text-right"
+                  title="Order profitability: revenue + shipping − discount − product cost − delivery − packaging. Realized once delivered."
+                >
+                  Net contribution
+                </th>
                 <th className="px-5 py-3 text-right">Actions</th>
               </tr>
             </thead>
@@ -270,6 +291,9 @@ export default function OrdersPage() {
                   </td>
                   <td className="px-5 py-3 text-right font-semibold text-gray-800">
                     {formatPrice(o.total)}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <NetContributionCell contribution={contributions.get(o.id)} />
                   </td>
                   <td className="px-5 py-3">
                     <div className="flex items-center justify-end gap-2">

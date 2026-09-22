@@ -19,6 +19,7 @@ import {
   Send,
   Copy,
   Check,
+  Coins,
 } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import StatusBadge from "@/components/admin/ui/StatusBadge";
@@ -29,6 +30,7 @@ import {
   type OrderResponse,
   type OrderAuditLog,
   type TodifySyncLog,
+  type OrderDetailsPayload,
 } from "@/services/order.service";
 import { EmailService } from "@/services/email.service";
 import type { OrderFinancials } from "@/types/finance";
@@ -47,6 +49,7 @@ const ACTION_LABELS: Record<string, string> = {
   TODIFY_CANCEL_CONFIRMED: "Todify cancellation confirmed",
   TODIFY_CANCEL_FAILED: "Todify cancellation failed",
   TODIFY_CANCEL_RETRIED: "Todify cancellation retried",
+  DETAILS_EDITED: "Order details edited",
   DELETED: "Order deleted",
 };
 
@@ -98,6 +101,17 @@ export default function OrderDetailPage() {
   const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const [savingFulfillment, setSavingFulfillment] = useState(false);
 
+  // Operational-fields correction form (real delivery cost, customer shipping fee,
+  // packaging cost, address, city, internal note). Strings so the inputs stay
+  // controlled; parsed to numbers on save.
+  const [editReal, setEditReal] = useState("");
+  const [editShip, setEditShip] = useState("");
+  const [editPack, setEditPack] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editCity, setEditCity] = useState("");
+  const [editNote, setEditNote] = useState("");
+  const [savingDetails, setSavingDetails] = useState(false);
+
   // Review request (manual send + copyable link).
   const [reviewBusy, setReviewBusy] = useState<"email" | "link" | null>(null);
   const [reviewLink, setReviewLink] = useState<string | null>(null);
@@ -124,6 +138,13 @@ export default function OrderDetailPage() {
         setTrackingNumber(o.trackingNumber ?? "");
         setEstimatedDelivery(o.estimatedDelivery ?? "");
         setEmailTo(o.email ?? "");
+        // Seed the operational-correction form from the order + its financials.
+        setEditShip(String(o.shippingFee ?? 0));
+        setEditReal(String(fin?.realShippingCost ?? 0));
+        setEditPack(String(fin?.packagingCost ?? 0));
+        setEditAddress(o.address ?? "");
+        setEditCity(o.city ?? "");
+        setEditNote(o.note ?? "");
       } catch {
         setError("Order not found.");
       } finally {
@@ -184,6 +205,64 @@ export default function OrderDetailPage() {
       setError("Failed to save fulfillment details.");
     } finally {
       setSavingFulfillment(false);
+    }
+  };
+
+  /**
+   * Persist the operational-field corrections. Only fields that actually changed
+   * are sent, so the audit log stays meaningful. On success we refresh the order,
+   * its financials (recalculated contribution) and the audit trail.
+   */
+  const saveDetails = async () => {
+    if (!order || !financials) return;
+    const num = (s: string) => {
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.round(n * 100) / 100 : NaN;
+    };
+    const realNum = num(editReal);
+    const shipNum = num(editShip);
+    const packNum = num(editPack);
+    if ([realNum, shipNum, packNum].some((n) => Number.isNaN(n) || n < 0)) {
+      setError("Amounts must be positive numbers.");
+      return;
+    }
+    if (!editAddress.trim() || !editCity.trim()) {
+      setError("Address and city cannot be empty.");
+      return;
+    }
+    const payload: OrderDetailsPayload = {};
+    if (realNum !== financials.realShippingCost) payload.realShippingCost = realNum;
+    if (shipNum !== order.shippingFee) payload.shippingFee = shipNum;
+    if (packNum !== financials.packagingCost) payload.packagingCost = packNum;
+    if (editAddress.trim() !== order.address) payload.address = editAddress.trim();
+    if (editCity.trim() !== order.city) payload.city = editCity.trim();
+    if ((editNote.trim() || "") !== (order.note ?? "")) payload.note = editNote.trim();
+
+    if (Object.keys(payload).length === 0) {
+      setNotice("No changes to save.");
+      return;
+    }
+
+    setSavingDetails(true);
+    setNotice(null);
+    setError(null);
+    try {
+      const updated = await OrderService.updateDetails(id, payload);
+      setOrder(updated);
+      // Recalculated contribution + refreshed audit trail.
+      const [fin] = await Promise.all([
+        OrderService.getFinancials(id).catch(() => financials),
+        refreshAudit(),
+      ]);
+      setFinancials(fin);
+      setNotice("Order details updated. Contribution recalculated.");
+    } catch (e) {
+      setError(
+        (e as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+          "Failed to update the order details."
+      );
+    } finally {
+      setSavingDetails(false);
     }
   };
 
@@ -565,17 +644,58 @@ export default function OrderDetailPage() {
                   <span>−{formatPrice(financials.packagingCost)}</span>
                 </div>
                 <div
-                  className={`mt-1 flex justify-between border-t border-gray-100 pt-2 text-base font-bold ${
+                  className={`mt-1 flex items-center justify-between border-t border-gray-100 pt-2 text-base font-bold ${
                     financials.netProfit < 0 ? "text-rose-600" : "text-emerald-600"
                   }`}
                 >
-                  <span>Net profit</span>
+                  <span className="inline-flex items-center gap-2">
+                    Net contribution
+                    {financials.cancelled ? (
+                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                        Void · cancelled
+                      </span>
+                    ) : financials.realized ? (
+                      <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-600">
+                        Realized
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                        Estimated
+                      </span>
+                    )}
+                  </span>
                   <span>
                     {formatPrice(financials.netProfit)}
                     <span className="ml-2 text-sm font-medium">
                       ({formatPercent(financials.finalTotal > 0 ? (financials.netProfit / financials.finalTotal) * 100 : 0)})
                     </span>
                   </span>
+                </div>
+              </div>
+
+              {/* Spec roll-up: total revenue / total costs / total contribution. */}
+              <div className="mt-4 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-gray-50 px-2 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Total revenue</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-800">
+                    {formatPrice(financials.finalTotal)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-50 px-2 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Total costs</p>
+                  <p className="mt-0.5 text-sm font-semibold text-gray-800">
+                    {formatPrice(financials.totalCosts)}
+                  </p>
+                </div>
+                <div className="rounded-lg bg-gray-50 px-2 py-2">
+                  <p className="text-[11px] uppercase tracking-wide text-gray-400">Contribution</p>
+                  <p
+                    className={`mt-0.5 text-sm font-semibold ${
+                      financials.netProfit < 0 ? "text-rose-600" : "text-emerald-600"
+                    }`}
+                  >
+                    {formatPrice(financials.netProfit)}
+                  </p>
                 </div>
               </div>
             </div>
@@ -734,6 +854,101 @@ export default function OrderDetailPage() {
               >
                 {savingFulfillment ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
                 Save
+              </button>
+            </div>
+          </div>
+
+          {/* Costs & correction — admin edits operational fields. Changing the
+              customer shipping fee re-derives the order total; every change is
+              recorded in the activity log with who/when + a before→after diff. */}
+          <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+            <div className="mb-1 flex items-center gap-2">
+              <Coins size={16} className="text-gray-500" />
+              <h2 className="text-sm font-semibold text-gray-700">Costs &amp; correction</h2>
+              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-gray-500">
+                Admin only
+              </span>
+            </div>
+            <p className="mb-3 text-xs text-gray-400">
+              Correct the internal costs, the shipping charged, or the delivery
+              address. The net contribution recalculates on save.
+            </p>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Delivery cost
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editReal}
+                  onChange={(e) => setEditReal(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Shipping charged
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editShip}
+                  onChange={(e) => setEditShip(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Packaging
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editPack}
+                  onChange={(e) => setEditPack(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-2 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="mt-2 space-y-2">
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">Address</label>
+                <input
+                  value={editAddress}
+                  onChange={(e) => setEditAddress(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">City</label>
+                <input
+                  value={editCity}
+                  onChange={(e) => setEditCity(e.target.value)}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-medium text-gray-500">
+                  Internal note
+                </label>
+                <textarea
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  rows={2}
+                  className="w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                />
+              </div>
+              <button
+                onClick={saveDetails}
+                disabled={savingDetails}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-gray-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-gray-800 disabled:opacity-60"
+              >
+                {savingDetails ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
+                Save corrections
               </button>
             </div>
           </div>

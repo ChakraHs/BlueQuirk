@@ -27,7 +27,14 @@ public record ReviewResponse(
         String lang,
         String createdAt,
         String approvedAt,
-        String moderatedByEmail
+        String moderatedByEmail,
+        // --- Preserved original submission + display-name moderation (admin view) ---
+        String originalAuthorName,
+        String originalBody,
+        String originalTitle,
+        Integer originalRating,
+        String displayNameMode,
+        String customDisplayName
 ) {
     public static ReviewResponse from(Review r, String productName) {
         return new ReviewResponse(
@@ -49,6 +56,12 @@ public record ReviewResponse(
                 r.getLang(),
                 r.getCreatedAt() != null ? r.getCreatedAt().toString() : null,
                 r.getApprovedAt() != null ? r.getApprovedAt().toString() : null,
-                r.getModeratedByEmail());
+                r.getModeratedByEmail(),
+                r.getOriginalAuthorName(),
+                r.getOriginalBody(),
+                r.getOriginalTitle(),
+                r.getOriginalRating(),
+                r.getDisplayNameMode() != null ? r.getDisplayNameMode().name() : null,
+                r.getCustomDisplayName());
     }
 }

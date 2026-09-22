@@ -4,7 +4,7 @@
 // token, when present, links the order to that login account.
 import api from "./api";
 import type { CartItem } from "@/lib/cart";
-import type { OrderFinancials } from "@/types/finance";
+import type { OrderFinancials, OrderContribution } from "@/types/finance";
 
 export type OrderItemPayload = {
   productId: number;
@@ -111,6 +111,43 @@ export type FulfillmentPayload = {
   estimatedDelivery?: string; // YYYY-MM-DD
 };
 
+// Operational-field correction payload (admin). Any omitted field is left
+// unchanged; the backend validates amounts, re-derives the total when the
+// shipping fee changes, and records the change in the order audit log.
+export type OrderDetailsPayload = {
+  realShippingCost?: number;
+  shippingFee?: number;
+  packagingCost?: number;
+  address?: string;
+  city?: string;
+  note?: string;
+};
+
+// One bucket of the orders-over-time chart (zero-filled server-side).
+export type OrderTimeseriesBucket = {
+  period: string; // "yyyy-MM-dd" (day/week start) or "yyyy-MM" (month)
+  all: number;
+  pending: number;
+  confirmed: number;
+  shipped: number;
+  delivered: number;
+  cancelled: number;
+};
+
+export type OrderTimeseries = {
+  granularity: string;
+  from: string;
+  to: string;
+  buckets: OrderTimeseriesBucket[];
+};
+
+export type TimeseriesQuery = {
+  range?: string; // 7d | 30d | 90d | year | custom
+  from?: string; // YYYY-MM-DD (custom)
+  to?: string; // YYYY-MM-DD (custom)
+  granularity?: string; // day | week | month
+};
+
 // Durable order-lifecycle audit entry (cancel / Todify cancel / delete).
 export type OrderAuditLog = {
   id: number;
@@ -195,6 +232,37 @@ export const OrderService = {
   /** Admin-only cost/profit/margin breakdown for one order (confidential). */
   getFinancials: async (id: number): Promise<OrderFinancials> => {
     const { data } = await api.get<OrderFinancials>(`/orders/${id}/financials`);
+    return data;
+  },
+
+  /**
+   * Admin-only net-contribution summary for EVERY order — backs the order list
+   * profitability column. Confidential (carries costs); fetched separately from
+   * the order list so the public order DTO never leaks cost figures.
+   */
+  getContributions: async (): Promise<OrderContribution[]> => {
+    const { data } = await api.get<OrderContribution[]>("/orders/contributions");
+    return data;
+  },
+
+  /** Admin-only orders-over-time series for the dashboard chart (zero-filled). */
+  getTimeseries: async (params: TimeseriesQuery): Promise<OrderTimeseries> => {
+    const { data } = await api.get<OrderTimeseries>("/orders/stats/timeseries", {
+      params,
+    });
+    return data;
+  },
+
+  /**
+   * Admin: correct an order's operational fields (real delivery cost, customer
+   * shipping fee, packaging cost, address, city, internal note). Returns the
+   * updated order; refetch financials to see the recalculated contribution.
+   */
+  updateDetails: async (
+    id: number,
+    payload: OrderDetailsPayload
+  ): Promise<OrderResponse> => {
+    const { data } = await api.patch<OrderResponse>(`/orders/${id}/details`, payload);
     return data;
   },
 

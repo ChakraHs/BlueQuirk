@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { BadgeCheck, Check, Loader2, Search, Star, Trash2, X } from "lucide-react";
+import { BadgeCheck, Check, Loader2, Pencil, Search, Star, Trash2, X } from "lucide-react";
 import PageHeader from "@/components/admin/ui/PageHeader";
 import api from "@/services/api";
+
+type DisplayNameMode = "ORIGINAL" | "FIRST_NAME" | "ANONYMIZED" | "CUSTOM";
 
 type AdminReview = {
   id: number;
@@ -22,7 +24,48 @@ type AdminReview = {
   photoUrl: string | null;
   photoThumbnailUrl: string | null;
   createdAt: string | null;
+  // Preserved original submission + display-name moderation.
+  originalAuthorName: string | null;
+  originalBody: string | null;
+  originalTitle: string | null;
+  originalRating: number | null;
+  displayNameMode: DisplayNameMode | null;
+  customDisplayName: string | null;
 };
+
+const DISPLAY_MODES: { key: DisplayNameMode; label: string }[] = [
+  { key: "ORIGINAL", label: "Original name" },
+  { key: "FIRST_NAME", label: "First name only" },
+  { key: "ANONYMIZED", label: "Anonymized" },
+  { key: "CUSTOM", label: "Custom" },
+];
+
+/**
+ * Client-side preview of the public display name for each mode. Mirrors the
+ * backend {@code ReviewService.resolveDisplayName} so the admin sees exactly what
+ * will be published before approving; the server remains authoritative.
+ */
+function previewDisplayName(
+  original: string,
+  mode: DisplayNameMode,
+  custom: string
+): string {
+  const name = (original || "").trim() || "Client";
+  switch (mode) {
+    case "CUSTOM":
+      return custom.trim() || "…";
+    case "FIRST_NAME":
+      return name.split(/\s+/)[0];
+    case "ANONYMIZED": {
+      const parts = name.split(/\s+/);
+      if (parts.length < 2 || !parts[1]) return parts[0];
+      return `${parts[0]} ${parts[1][0].toUpperCase()}.`;
+    }
+    case "ORIGINAL":
+    default:
+      return name;
+  }
+}
 
 type AdminPage = {
   reviews: AdminReview[];
@@ -56,6 +99,37 @@ export default function AdminReviewsPage() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
 
+  // Inline moderation editor: which review is open + its working copy.
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [form, setForm] = useState({
+    rating: 5,
+    title: "",
+    body: "",
+    mode: "ORIGINAL" as DisplayNameMode,
+    custom: "",
+  });
+
+  const openEditor = (r: AdminReview) => {
+    setEditingId(r.id);
+    setForm({
+      rating: r.rating,
+      title: r.title ?? "",
+      body: r.body,
+      mode: r.displayNameMode ?? "ORIGINAL",
+      custom: r.customDisplayName ?? r.authorName ?? "",
+    });
+  };
+  const closeEditor = () => setEditingId(null);
+
+  // Only send fields that can be moderated; the server preserves the original.
+  const moderationPayload = () => ({
+    rating: form.rating,
+    title: form.title.trim() || null,
+    body: form.body,
+    displayNameMode: form.mode,
+    customDisplayName: form.mode === "CUSTOM" ? form.custom.trim() : undefined,
+  });
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -84,12 +158,27 @@ export default function AdminReviewsPage() {
     }
   };
 
-  const approve = (id: number) => act(id, () => api.patch(`/reviews/${id}/approve`));
   const reject = (id: number) => act(id, () => api.patch(`/reviews/${id}/reject`));
   const feature = (id: number, featured: boolean) =>
     act(id, () => api.patch(`/reviews/${id}/feature`, { featured }));
   const remove = (id: number) =>
     act(id, () => api.delete(`/reviews/${id}`));
+
+  // Save moderation edits (rating/body/title + chosen display name) WITHOUT
+  // changing the status.
+  const saveEdit = (id: number) =>
+    act(id, async () => {
+      await api.put(`/reviews/${id}`, moderationPayload());
+      closeEditor();
+    });
+
+  // Approve WITH the moderation edits applied — the "choose the displayed name
+  // before approving" flow. The original submission is preserved server-side.
+  const approveEdited = (id: number) =>
+    act(id, async () => {
+      await api.patch(`/reviews/${id}/approve`, moderationPayload());
+      closeEditor();
+    });
 
   return (
     <div>
@@ -193,9 +282,12 @@ export default function AdminReviewsPage() {
                     <Loader2 className="size-4 animate-spin text-gray-400" />
                   ) : (
                     <>
-                      {r.status !== "APPROVED" && (
-                        <ActionBtn onClick={() => approve(r.id)} tone="emerald" icon={Check} label="Approve" />
-                      )}
+                      <ActionBtn
+                        onClick={() => (editingId === r.id ? closeEditor() : openEditor(r))}
+                        tone="emerald"
+                        icon={r.status !== "APPROVED" ? Check : Pencil}
+                        label={r.status !== "APPROVED" ? "Review & approve" : "Moderate"}
+                      />
                       {r.status !== "REJECTED" && (
                         <ActionBtn onClick={() => reject(r.id)} tone="amber" icon={X} label="Reject" />
                       )}
@@ -210,6 +302,129 @@ export default function AdminReviewsPage() {
                   )}
                 </div>
               </div>
+
+              {editingId === r.id && (
+                <div className="mt-4 space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  {/* Preserved original submission — never overwritten. */}
+                  <div className="rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-500">
+                    <p className="mb-1 font-semibold uppercase tracking-wide text-gray-400">
+                      Original submission (preserved)
+                    </p>
+                    <p>
+                      <span className="text-gray-400">Name:</span>{" "}
+                      {r.originalAuthorName ?? r.authorName} ·{" "}
+                      <span className="text-gray-400">Rating:</span>{" "}
+                      {r.originalRating ?? r.rating}/5
+                    </p>
+                    <p className="mt-1 whitespace-pre-line text-gray-600">
+                      {r.originalBody ?? r.body}
+                    </p>
+                  </div>
+
+                  {/* Rating + text moderation */}
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-gray-500">Rating</span>
+                    <span className="inline-flex">
+                      {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, rating: n }))}
+                          aria-label={`${n} stars`}
+                        >
+                          <Star
+                            className={`size-5 ${
+                              n <= form.rating ? "fill-amber-400 text-amber-400" : "text-gray-300"
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </span>
+                  </div>
+                  <input
+                    value={form.title}
+                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                    placeholder="Title (optional)"
+                    className="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+                  <textarea
+                    value={form.body}
+                    onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
+                    rows={3}
+                    className="w-full resize-y rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                  />
+
+                  {/* Displayed name chooser */}
+                  <div>
+                    <p className="mb-1.5 text-xs font-medium text-gray-500">Displayed name</p>
+                    <div className="flex flex-wrap gap-2">
+                      {DISPLAY_MODES.map((m) => {
+                        const original = r.originalAuthorName ?? r.authorName ?? "";
+                        const active = form.mode === m.key;
+                        return (
+                          <button
+                            key={m.key}
+                            type="button"
+                            onClick={() => setForm((f) => ({ ...f, mode: m.key }))}
+                            className={`rounded-md border px-2.5 py-1.5 text-left text-xs transition ${
+                              active
+                                ? "border-emerald-400 bg-emerald-50 text-emerald-700"
+                                : "border-gray-300 bg-white text-gray-600 hover:bg-gray-50"
+                            }`}
+                          >
+                            <span className="block font-medium">{m.label}</span>
+                            {m.key !== "CUSTOM" && (
+                              <span className="block text-[11px] text-gray-400">
+                                “{previewDisplayName(original, m.key, "")}”
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {form.mode === "CUSTOM" && (
+                      <input
+                        value={form.custom}
+                        onChange={(e) => setForm((f) => ({ ...f, custom: e.target.value }))}
+                        placeholder="Custom display name"
+                        className="mt-2 w-full max-w-xs rounded-md border border-gray-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      />
+                    )}
+                    <p className="mt-1.5 text-xs text-gray-500">
+                      Will be shown as{" "}
+                      <span className="font-semibold text-gray-800">
+                        “{previewDisplayName(r.originalAuthorName ?? r.authorName ?? "", form.mode, form.custom)}”
+                      </span>
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {r.status !== "APPROVED" && (
+                      <button
+                        type="button"
+                        onClick={() => approveEdited(r.id)}
+                        className="inline-flex items-center gap-1.5 rounded-md bg-emerald-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+                      >
+                        <Check className="size-4" /> Approve &amp; publish
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => saveEdit(r.id)}
+                      className="inline-flex items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+                    >
+                      Save changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={closeEditor}
+                      className="inline-flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-medium text-gray-500 transition hover:bg-gray-100"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
             </article>
           ))}
         </div>

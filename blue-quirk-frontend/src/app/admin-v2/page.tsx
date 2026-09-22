@@ -14,6 +14,7 @@ import MiniBarChart, {
 } from "@/components/admin/ui/MiniBarChart";
 import { TableSkeleton } from "@/components/admin/ui/Skeleton";
 import FinanceKpis from "@/components/admin/FinanceKpis";
+import OrdersOverTimeChart from "@/components/admin/OrdersOverTimeChart";
 import { OrderService, type OrderResponse } from "@/services/order.service";
 import { ProductService } from "@/services/product.service";
 import { CustomerService } from "@/services/customer.service";
@@ -129,6 +130,11 @@ export default function AdminDashboard() {
 
       {/* Business performance — revenue, profit, margin, AOV, products sold */}
       <FinanceKpis />
+
+      {/* Orders over time — volume trend with date range + grouping + status series */}
+      <div className="mt-6">
+        <OrdersOverTimeChart />
+      </div>
 
       {/* Operational snapshot — order pipeline beside catalog/customer counts.
           Revenue/profit trends live in Business performance above (no duplicates). */}

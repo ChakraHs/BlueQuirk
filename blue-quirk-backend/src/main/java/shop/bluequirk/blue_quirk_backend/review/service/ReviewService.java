@@ -19,6 +19,7 @@ import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.StoreSettings;
 import shop.bluequirk.blue_quirk_backend.repository.OrderRepository;
 import shop.bluequirk.blue_quirk_backend.repository.ProductRepository;
+import shop.bluequirk.blue_quirk_backend.review.domain.DisplayNameMode;
 import shop.bluequirk.blue_quirk_backend.review.domain.ReviewStatus;
 import shop.bluequirk.blue_quirk_backend.review.dto.ReviewModerationRequest;
 import shop.bluequirk.blue_quirk_backend.review.dto.ProductRatingsResponse;
@@ -29,7 +30,9 @@ import shop.bluequirk.blue_quirk_backend.review.dto.ReviewSubmissionRequest;
 import shop.bluequirk.blue_quirk_backend.review.dto.ReviewSummaryResponse;
 import shop.bluequirk.blue_quirk_backend.review.dto.ReviewTokenInfo;
 import shop.bluequirk.blue_quirk_backend.review.entity.Review;
+import shop.bluequirk.blue_quirk_backend.review.entity.ReviewAuditLog;
 import shop.bluequirk.blue_quirk_backend.review.entity.ReviewRequestToken;
+import shop.bluequirk.blue_quirk_backend.review.repository.ReviewAuditLogRepository;
 import shop.bluequirk.blue_quirk_backend.review.repository.ReviewRepository;
 import shop.bluequirk.blue_quirk_backend.review.repository.ReviewRequestTokenRepository;
 import shop.bluequirk.blue_quirk_backend.service.StoreSettingsService;
@@ -62,17 +65,20 @@ public class ReviewService {
     private final OrderRepository orders;
     private final ProductRepository products;
     private final StoreSettingsService settingsService;
+    private final ReviewAuditLogRepository auditLogs;
 
     public ReviewService(ReviewRepository reviews,
                          ReviewRequestTokenRepository tokens,
                          OrderRepository orders,
                          ProductRepository products,
-                         StoreSettingsService settingsService) {
+                         StoreSettingsService settingsService,
+                         ReviewAuditLogRepository auditLogs) {
         this.reviews = reviews;
         this.tokens = tokens;
         this.orders = orders;
         this.products = products;
         this.settingsService = settingsService;
+        this.auditLogs = auditLogs;
     }
 
     // ------------------------------------------------------------------ public
@@ -281,13 +287,32 @@ public class ReviewService {
         return ReviewSummaryResponse.from(reviews.aggregate(productId, ReviewStatus.APPROVED));
     }
 
+    /** Approve as-is (no edits). */
     @Transactional
     public ReviewResponse approve(Long id, String actor) {
+        return approve(id, null, actor);
+    }
+
+    /**
+     * Approve a review, optionally applying last-minute moderation first (edit the
+     * rating/body/title and pick the displayed name) — the "review before approve"
+     * flow. The original submission is preserved; every change is recorded in the
+     * review audit log.
+     */
+    @Transactional
+    public ReviewResponse approve(Long id, ReviewModerationRequest req, String actor) {
         Review r = find(id);
+        java.util.List<String> changes = new java.util.ArrayList<>();
+        if (req != null) applyModeration(r, req, changes);
         r.setStatus(ReviewStatus.APPROVED);
-        r.setApprovedAt(Instant.now());
+        if (r.getApprovedAt() == null) r.setApprovedAt(Instant.now());
         r.setModeratedByEmail(actor);
-        return toResponse(reviews.save(r));
+        Review saved = reviews.save(r);
+        if (!changes.isEmpty()) {
+            audit(saved.getId(), ReviewAuditLog.Action.EDITED, actor, String.join("; ", changes));
+        }
+        audit(saved.getId(), ReviewAuditLog.Action.APPROVED, actor, "Review approved.");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -295,7 +320,9 @@ public class ReviewService {
         Review r = find(id);
         r.setStatus(ReviewStatus.REJECTED);
         r.setModeratedByEmail(actor);
-        return toResponse(reviews.save(r));
+        Review saved = reviews.save(r);
+        audit(saved.getId(), ReviewAuditLog.Action.REJECTED, actor, "Review rejected.");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -303,7 +330,10 @@ public class ReviewService {
         Review r = find(id);
         r.setFeatured(featured);
         r.setModeratedByEmail(actor);
-        return toResponse(reviews.save(r));
+        Review saved = reviews.save(r);
+        audit(saved.getId(), ReviewAuditLog.Action.FEATURED, actor,
+                featured ? "Marked as featured." : "Unfeatured.");
+        return toResponse(saved);
     }
 
     @Transactional
@@ -317,26 +347,131 @@ public class ReviewService {
     @Transactional
     public ReviewResponse edit(Long id, ReviewModerationRequest req, String actor) {
         Review r = find(id);
+        java.util.List<String> changes = new java.util.ArrayList<>();
+        applyModeration(r, req, changes);
+        r.setModeratedByEmail(actor);
+        Review saved = reviews.save(r);
+        if (!changes.isEmpty()) {
+            audit(saved.getId(), ReviewAuditLog.Action.EDITED, actor, String.join("; ", changes));
+        }
+        return toResponse(saved);
+    }
+
+    /** Full moderation audit trail for one review (admin). */
+    @Transactional(readOnly = true)
+    public List<ReviewAuditLog> getAudit(Long id) {
+        return auditLogs.findByReviewIdOrderByCreatedAtDesc(id);
+    }
+
+    /**
+     * Applies the non-null fields of a moderation request to a review, recording each
+     * change into {@code changes}. Ensures the customer's original submission is
+     * snapshotted before the first edit, and resolves the public display name from the
+     * chosen {@link DisplayNameMode} (falling back to a raw authorName override).
+     */
+    private void applyModeration(Review r, ReviewModerationRequest req, java.util.List<String> changes) {
+        backfillOriginals(r);
         if (req.rating() != null) {
             if (req.rating() < 1 || req.rating() > 5) throw badRequest("Rating must be 1–5.");
+            if (req.rating() != r.getRating()) changes.add("rating " + r.getRating() + "→" + req.rating());
             r.setRating(req.rating());
         }
-        if (req.title() != null) r.setTitle(clip(trimToNull(req.title()), MAX_TITLE));
-        if (req.body() != null) r.setBody(requireText(req.body(), MAX_BODY, "review"));
-        if (req.authorName() != null) r.setAuthorName(requireText(req.authorName(), MAX_NAME, "name"));
+        if (req.title() != null) {
+            String v = clip(trimToNull(req.title()), MAX_TITLE);
+            if (!java.util.Objects.equals(v, r.getTitle())) changes.add("title edited");
+            r.setTitle(v);
+        }
+        if (req.body() != null) {
+            String v = requireText(req.body(), MAX_BODY, "review");
+            if (!v.equals(r.getBody())) changes.add("body edited");
+            r.setBody(v);
+        }
         if (req.sizePurchased() != null) r.setSizePurchased(clip(trimToNull(req.sizePurchased()), 40));
         if (req.variantColor() != null) r.setVariantColor(clip(trimToNull(req.variantColor()), 60));
         if (req.featured() != null) r.setFeatured(req.featured());
         if (req.photoUrl() != null) r.setPhotoUrl(trimToNull(req.photoUrl()));
         if (req.photoThumbnailUrl() != null) r.setPhotoThumbnailUrl(trimToNull(req.photoThumbnailUrl()));
+
+        // Display name: an explicit mode wins; otherwise a raw authorName override.
+        DisplayNameMode mode = parseDisplayMode(req.displayNameMode());
+        if (mode != null) {
+            String custom = clip(trimToNull(req.customDisplayName()), MAX_NAME);
+            String resolved = resolveDisplayName(r, mode, custom);
+            if (!java.util.Objects.equals(resolved, r.getAuthorName())) {
+                changes.add("display name → \"" + resolved + "\" (" + mode + ")");
+            }
+            r.setDisplayNameMode(mode);
+            r.setCustomDisplayName(mode == DisplayNameMode.CUSTOM ? custom : null);
+            r.setAuthorName(resolved);
+        } else if (req.authorName() != null) {
+            String v = requireText(req.authorName(), MAX_NAME, "name");
+            if (!v.equals(r.getAuthorName())) changes.add("display name → \"" + v + "\"");
+            r.setAuthorName(v);
+            r.setDisplayNameMode(DisplayNameMode.CUSTOM);
+            r.setCustomDisplayName(v);
+        }
+
         if (req.status() != null) {
             ReviewStatus st = parseStatusOrNull(req.status());
             if (st == null) throw badRequest("Unknown status: " + req.status());
+            if (st != r.getStatus()) changes.add("status " + r.getStatus() + "→" + st);
             r.setStatus(st);
             if (st == ReviewStatus.APPROVED && r.getApprovedAt() == null) r.setApprovedAt(Instant.now());
         }
-        r.setModeratedByEmail(actor);
-        return toResponse(reviews.save(r));
+    }
+
+    /** Snapshot the original submission onto the row before the first moderation edit. */
+    private void backfillOriginals(Review r) {
+        if (r.getOriginalAuthorName() == null) r.setOriginalAuthorName(r.getAuthorName());
+        if (r.getOriginalBody() == null) r.setOriginalBody(r.getBody());
+        if (r.getOriginalTitle() == null) r.setOriginalTitle(r.getTitle());
+        if (r.getOriginalRating() == null) r.setOriginalRating(r.getRating());
+    }
+
+    private DisplayNameMode parseDisplayMode(String raw) {
+        String v = trimToNull(raw);
+        if (v == null) return null;
+        try {
+            return DisplayNameMode.valueOf(v.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw badRequest("Unknown display name mode: " + raw);
+        }
+    }
+
+    /**
+     * Derives the public display name from the preserved original name and the chosen
+     * mode. FIRST_NAME → first word; ANONYMIZED → "First L."; CUSTOM → the custom
+     * value (required); ORIGINAL → the full original name. Falls back to the current
+     * author name when no original was captured (legacy rows).
+     */
+    String resolveDisplayName(Review r, DisplayNameMode mode, String custom) {
+        String original = trimToNull(r.getOriginalAuthorName());
+        if (original == null) original = trimToNull(r.getAuthorName());
+        if (original == null) original = "Client";
+        switch (mode) {
+            case CUSTOM:
+                if (custom == null) throw badRequest("A custom display name is required.");
+                return custom;
+            case FIRST_NAME:
+                return original.split("\\s+")[0];
+            case ANONYMIZED: {
+                String[] parts = original.split("\\s+");
+                if (parts.length < 2 || parts[1].isEmpty()) return parts[0];
+                return parts[0] + " " + Character.toUpperCase(parts[1].charAt(0)) + ".";
+            }
+            case ORIGINAL:
+            default:
+                return original;
+        }
+    }
+
+    /** Best-effort moderation audit entry — never breaks the moderation action. */
+    private void audit(Long reviewId, ReviewAuditLog.Action action, String actor, String detail) {
+        try {
+            auditLogs.save(new ReviewAuditLog(reviewId, action, actor, detail));
+        } catch (Exception ignored) {
+            // audit must never fail the operation
+        }
     }
 
     /**
@@ -377,7 +512,9 @@ public class ReviewService {
             r.setApprovedAt(Instant.now());
         }
         r.setModeratedByEmail(actor);
-        return toResponse(reviews.save(r));
+        Review saved = reviews.save(r);
+        audit(saved.getId(), ReviewAuditLog.Action.CREATED, actor, "Admin-entered review created.");
+        return toResponse(saved);
     }
 
     // ----------------------------------------------------------------- helpers

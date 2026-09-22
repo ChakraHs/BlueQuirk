@@ -6,6 +6,7 @@ import org.hibernate.annotations.ColumnDefault;
 
 import jakarta.persistence.*;
 
+import shop.bluequirk.blue_quirk_backend.review.domain.DisplayNameMode;
 import shop.bluequirk.blue_quirk_backend.review.domain.ReviewStatus;
 
 /**
@@ -52,9 +53,36 @@ public class Review {
     @Column(nullable = false, length = 2000)
     private String body;
 
-    /** Display name shown on the card (first name / initial — never the full PII). */
+    /** Display name shown on the card (derived per {@link #displayNameMode}). */
     @Column(name = "author_name", nullable = false, length = 120)
     private String authorName;
+
+    // --- Preserved original submission (never overwritten by moderation) -------
+    // The customer's exact submitted values, snapshotted once at creation via
+    // @PrePersist. Moderation edits only touch the public fields above; these keep
+    // the review verifiable and let the admin revert. Nullable so the columns are
+    // added non-destructively to existing rows (backfilled lazily on first edit).
+    @Column(name = "original_author_name", length = 120)
+    private String originalAuthorName;
+
+    @Column(name = "original_body", length = 2000)
+    private String originalBody;
+
+    @Column(name = "original_title", length = 140)
+    private String originalTitle;
+
+    @Column(name = "original_rating")
+    private Integer originalRating;
+
+    /** How the public {@link #authorName} is derived from the original name. */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "display_name_mode", length = 16)
+    @ColumnDefault("'ORIGINAL'")
+    private DisplayNameMode displayNameMode = DisplayNameMode.ORIGINAL;
+
+    /** The admin's custom display name (only used when mode == CUSTOM). */
+    @Column(name = "custom_display_name", length = 120)
+    private String customDisplayName;
 
     /** Optional size the customer bought (e.g. "M"). */
     @Column(name = "size_purchased", length = 40)
@@ -115,6 +143,12 @@ public class Review {
         Instant now = Instant.now();
         this.createdAt = now;
         this.updatedAt = now;
+        // Snapshot the original submission exactly once, so moderation can never
+        // permanently overwrite the customer's own words/name/rating.
+        if (this.originalAuthorName == null) this.originalAuthorName = this.authorName;
+        if (this.originalBody == null) this.originalBody = this.body;
+        if (this.originalTitle == null) this.originalTitle = this.title;
+        if (this.originalRating == null) this.originalRating = this.rating;
     }
 
     @PreUpdate
@@ -145,6 +179,24 @@ public class Review {
 
     public String getAuthorName() { return authorName; }
     public void setAuthorName(String authorName) { this.authorName = authorName; }
+
+    public String getOriginalAuthorName() { return originalAuthorName; }
+    public void setOriginalAuthorName(String originalAuthorName) { this.originalAuthorName = originalAuthorName; }
+
+    public String getOriginalBody() { return originalBody; }
+    public void setOriginalBody(String originalBody) { this.originalBody = originalBody; }
+
+    public String getOriginalTitle() { return originalTitle; }
+    public void setOriginalTitle(String originalTitle) { this.originalTitle = originalTitle; }
+
+    public Integer getOriginalRating() { return originalRating; }
+    public void setOriginalRating(Integer originalRating) { this.originalRating = originalRating; }
+
+    public DisplayNameMode getDisplayNameMode() { return displayNameMode; }
+    public void setDisplayNameMode(DisplayNameMode displayNameMode) { this.displayNameMode = displayNameMode; }
+
+    public String getCustomDisplayName() { return customDisplayName; }
+    public void setCustomDisplayName(String customDisplayName) { this.customDisplayName = customDisplayName; }
 
     public String getSizePurchased() { return sizePurchased; }
     public void setSizePurchased(String sizePurchased) { this.sizePurchased = sizePurchased; }

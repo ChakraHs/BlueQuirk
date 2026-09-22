@@ -12,6 +12,7 @@ import shop.bluequirk.blue_quirk_backend.domain.OrderStatus;
 import shop.bluequirk.blue_quirk_backend.domain.PaymentStatus;
 import shop.bluequirk.blue_quirk_backend.domain.TodifySyncState;
 import shop.bluequirk.blue_quirk_backend.dto.CreateOrderRequest;
+import shop.bluequirk.blue_quirk_backend.dto.OrderContributionSummary;
 import shop.bluequirk.blue_quirk_backend.dto.OrderFinancialsResponse;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.Customer;
@@ -370,9 +371,139 @@ public class OrderService {
                     finance.marginPercent(selling, cost),
                     finance.netSales(selling, order.getDiscountAmount()),
                     finance.operationalRevenue(selling, order.getShippingFee()),
+                    finance.round(cost + realShipping + packaging),
+                    order.getStatus() == OrderStatus.DELIVERED,
+                    order.getStatus() == OrderStatus.CANCELLED,
                     items
             );
         });
+    }
+
+    /**
+     * Admin-only per-order profitability rows for the order LIST "Net contribution"
+     * column. Confidential (carries cost figures) — served from a dedicated admin
+     * endpoint, never folded into the public {@link OrderResponse}. Every figure is a
+     * frozen order-time snapshot: contribution is {@code total − costTotal −
+     * realShippingCost − packagingCost} via the central finance service, and
+     * {@code realized} is true only for DELIVERED orders (cash collected); CANCELLED
+     * orders are flagged so the UI never counts them as realized profit.
+     */
+    @Transactional(readOnly = true)
+    public List<OrderContributionSummary> getAllOrderContributions() {
+        return orderRepository.findAll().stream().map(this::contributionOf).toList();
+    }
+
+    private OrderContributionSummary contributionOf(Order o) {
+        return new OrderContributionSummary(
+                o.getId(),
+                o.getStatus() != null ? o.getStatus().name() : null,
+                o.getSubtotal(),
+                o.getShippingFee(),
+                o.getDiscountAmount(),
+                o.getCostTotal(),
+                o.getRealShippingCost(),
+                o.getPackagingCost(),
+                finance.netProfit(o.getTotal(), o.getCostTotal(), o.getRealShippingCost(), o.getPackagingCost()),
+                o.getStatus() == OrderStatus.DELIVERED,
+                o.getStatus() == OrderStatus.CANCELLED);
+    }
+
+    /**
+     * Admin: correct an order's operational fields — the internal real delivery cost,
+     * the shipping fee charged to the customer, the flat packaging/other cost, and the
+     * delivery address / city / internal note. Any null argument leaves that field
+     * unchanged; blank strings clear the note. All amounts are validated (finite and
+     * non-negative). Changing the customer shipping fee re-derives the order total (and
+     * original total) so the profitability figures stay consistent; the frozen cost
+     * snapshots are untouched. Every change is recorded in the durable order audit log
+     * with the actor, timestamp and a field-by-field before→after diff, so historical
+     * values are never silently overwritten.
+     */
+    @Transactional
+    public OrderResponse updateOrderDetails(Long id, Double realShippingCost, Double shippingFee,
+                                            Double packagingCost, String address, String city,
+                                            String note) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found"));
+
+        java.util.List<String> changes = new java.util.ArrayList<>();
+        boolean totalAffected = false;
+
+        if (realShippingCost != null) {
+            double v = validateAmount(realShippingCost, "Real shipping cost");
+            if (v != order.getRealShippingCost()) {
+                changes.add(diff("realShippingCost", order.getRealShippingCost(), v));
+                order.setRealShippingCost(v);
+            }
+        }
+        if (packagingCost != null) {
+            double v = validateAmount(packagingCost, "Packaging cost");
+            if (v != order.getPackagingCost()) {
+                changes.add(diff("packagingCost", order.getPackagingCost(), v));
+                order.setPackagingCost(v);
+            }
+        }
+        if (shippingFee != null) {
+            double v = validateAmount(shippingFee, "Shipping fee");
+            if (v != order.getShippingFee()) {
+                changes.add(diff("shippingFee", order.getShippingFee(), v));
+                order.setShippingFee(v);
+                totalAffected = true;
+            }
+        }
+        if (address != null) {
+            String v = trimToNull(address);
+            require(v != null, "Address cannot be empty");
+            if (!v.equals(order.getAddress())) {
+                changes.add(diff("address", order.getAddress(), v));
+                order.setAddress(v);
+            }
+        }
+        if (city != null) {
+            String v = trimToNull(city);
+            require(v != null, "City cannot be empty");
+            if (!v.equals(order.getCity())) {
+                changes.add(diff("city", order.getCity(), v));
+                order.setCity(v);
+            }
+        }
+        if (note != null) {
+            String v = trimToNull(note); // blank clears the note
+            if (!java.util.Objects.equals(v, order.getNote())) {
+                changes.add(diff("note", order.getNote(), v));
+                order.setNote(v);
+            }
+        }
+
+        // Re-derive the total (and original total) from the frozen goods subtotal +
+        // discount when the customer shipping fee was corrected, so profitability and
+        // the customer-facing total stay in sync. Cost snapshots are never recomputed.
+        if (totalAffected) {
+            double newOriginal = round(order.getSubtotal() + order.getShippingFee());
+            double newTotal = Math.max(0, round(order.getSubtotal() - order.getDiscountAmount() + order.getShippingFee()));
+            order.setOriginalTotal(newOriginal);
+            order.setTotal(newTotal);
+        }
+
+        if (!changes.isEmpty()) {
+            audit(order, OrderAuditLog.Action.DETAILS_EDITED, currentActor(), null,
+                    "Order details edited: " + String.join("; ", changes));
+        }
+        return OrderResponse.from(orderRepository.save(order));
+    }
+
+    /** Validates a money amount is a finite, non-negative number; returns it rounded. */
+    private double validateAmount(double value, String field) {
+        if (Double.isNaN(value) || Double.isInfinite(value) || value < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    field + " must be a positive amount.");
+        }
+        return round(value);
+    }
+
+    /** "field: old → new" for the audit diff (nulls shown as "∅"). */
+    private String diff(String field, Object oldValue, Object newValue) {
+        return field + ": " + (oldValue == null ? "∅" : oldValue) + " → " + (newValue == null ? "∅" : newValue);
     }
 
     /** Public order tracking — look up by the BQ-YYYY-NNNNNN reference. */

@@ -54,4 +54,21 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findDueForReviewRequest(@Param("status") OrderStatus status,
                                         @Param("cutoff") LocalDateTime cutoff,
                                         Pageable pageable);
+
+    // --- Dashboard: orders-over-time -------------------------------------------
+    /** Lightweight (orderDate, status) projection for one order used by the chart. */
+    interface OrderDateStatus {
+        LocalDateTime getOrderDate();
+        OrderStatus getStatus();
+    }
+
+    /**
+     * Minimal (date + status) rows for orders placed in the half-open window
+     * {@code [from, to)}. Used by the orders-over-time chart, which buckets and
+     * zero-fills in the service (DB-agnostic — no MariaDB-specific date functions).
+     */
+    @Query("select o.orderDate as orderDate, o.status as status from Order o " +
+           "where o.orderDate >= :from and o.orderDate < :to")
+    List<OrderDateStatus> findDateStatusBetween(@Param("from") LocalDateTime from,
+                                                @Param("to") LocalDateTime to);
 }

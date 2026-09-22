@@ -15,7 +15,10 @@ import shop.bluequirk.blue_quirk_backend.dto.CreateOrderRequest;
 import shop.bluequirk.blue_quirk_backend.dto.OrderResponse;
 import shop.bluequirk.blue_quirk_backend.entity.User;
 import shop.bluequirk.blue_quirk_backend.repository.UserRepository;
+import shop.bluequirk.blue_quirk_backend.analytics.support.DateRange;
+import shop.bluequirk.blue_quirk_backend.dto.OrderTimeseriesResponse;
 import shop.bluequirk.blue_quirk_backend.service.OrderService;
+import shop.bluequirk.blue_quirk_backend.service.OrderStatsService;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
@@ -26,11 +29,14 @@ import java.util.List;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderStatsService orderStatsService;
     private final UserRepository userRepository;
 
     public OrderController(OrderService orderService,
+                           OrderStatsService orderStatsService,
                            UserRepository userRepository) {
         this.orderService = orderService;
+        this.orderStatsService = orderStatsService;
         this.userRepository = userRepository;
     }
 
@@ -86,6 +92,35 @@ public class OrderController {
         return orderService.getOrderById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Admin-only: per-order net-contribution summary for the order LIST profitability
+     * column. Confidential (carries cost figures) — kept out of {@link OrderResponse}
+     * so public order tracking / customer history never leak costs. Admin-locked via
+     * SecurityConfig's fail-closed default (not in the public allowlist).
+     */
+    @GetMapping("/contributions")
+    public List<shop.bluequirk.blue_quirk_backend.dto.OrderContributionSummary> getContributions() {
+        return orderService.getAllOrderContributions();
+    }
+
+    /**
+     * Admin-only: orders-over-time series for the dashboard chart. Accepts the same
+     * filter params as the analytics dashboard ({@code range} =
+     * 7d|30d|90d|year|custom, plus {@code from}/{@code to}) and a
+     * {@code granularity} of day|week|month. Zero-filled and per-status broken down.
+     * Admin-locked via SecurityConfig's fail-closed default.
+     */
+    @GetMapping("/stats/timeseries")
+    public OrderTimeseriesResponse timeseries(
+            @RequestParam(required = false) String range,
+            @RequestParam(required = false) String from,
+            @RequestParam(required = false) String to,
+            @RequestParam(required = false) String granularity) {
+        return orderStatsService.timeseries(
+                DateRange.of(range, from, to),
+                OrderStatsService.parseGranularity(granularity));
     }
 
     /**
@@ -165,6 +200,31 @@ public class OrderController {
     }
 
     public record UpdateFulfillmentRequest(String paymentStatus, String trackingNumber, String estimatedDelivery) {}
+
+    /**
+     * Admin: correct an order's operational fields — internal real delivery cost, the
+     * customer shipping fee, the packaging/other cost, and the delivery address / city
+     * / internal note. Any null field is left unchanged. The service validates amounts,
+     * re-derives the total when the shipping fee changes, and records the actor + a
+     * before→after diff in the order audit log (historical values are never silently
+     * overwritten). Admin-locked via SecurityConfig's fail-closed default.
+     */
+    @PatchMapping("/{id}/details")
+    public ResponseEntity<OrderResponse> updateDetails(
+            @PathVariable Long id,
+            @RequestBody UpdateDetailsRequest request) {
+        return ResponseEntity.ok(orderService.updateOrderDetails(
+                id, request.realShippingCost(), request.shippingFee(), request.packagingCost(),
+                request.address(), request.city(), request.note()));
+    }
+
+    public record UpdateDetailsRequest(
+            Double realShippingCost,
+            Double shippingFee,
+            Double packagingCost,
+            String address,
+            String city,
+            String note) {}
 
     /**
      * Admin: full lifecycle audit trail for an order (cancellation, Todify
