@@ -238,7 +238,7 @@ export default function ProductGallery({
       <div className="min-w-0 flex-1">
         <div
           style={bgColor ? { backgroundColor: bgColor } : undefined}
-          className={`group relative aspect-square overflow-hidden rounded-2xl ${
+          className={`group relative aspect-[4/5] overflow-hidden rounded-2xl ${
             onVideoSlide ? "cursor-default" : "cursor-zoom-in"
           } ${bgColor ? "" : "bg-gray-100"}`}
           onTouchStart={onTouchStart}
