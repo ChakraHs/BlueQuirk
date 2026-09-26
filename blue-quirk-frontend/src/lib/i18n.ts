@@ -87,6 +87,8 @@ const fr: Dict = {
   "product.highlightsTitle": "Points forts du produit",
   "product.composition": "Composition",
   "product.materialDefault": "100% Coton",
+  "product.fitNormal": "Coupe normale",
+  "product.fitOversized": "Coupe oversize",
   "product.premiumQuality": "Qualité premium",
   "product.fastShipping": "Livraison rapide",
   "product.addToWishlist": "Ajouter aux favoris",
@@ -97,6 +99,8 @@ const fr: Dict = {
   "product.calcSize": "Calculer ma taille",
   "product.recommended": "Recommandé : {size}",
   "product.sizeGuide": "Guide des tailles",
+  "product.size": "Taille",
+  "product.color": "Couleur",
   "product.shipQualified": "🚚 Cet article est éligible à la livraison gratuite.",
   "product.shipFreeFrom": "🚚 Livraison gratuite dès {amount} {currency}",
   "product.shipFreeQty": "🚚 Livraison gratuite dès {count} produits",
@@ -385,6 +389,8 @@ const en: Dict = {
   "product.highlightsTitle": "Product highlights",
   "product.composition": "Composition",
   "product.materialDefault": "100% Cotton",
+  "product.fitNormal": "Regular fit",
+  "product.fitOversized": "Oversized fit",
   "product.premiumQuality": "Premium quality",
   "product.fastShipping": "Fast shipping",
   "product.addToWishlist": "Add to wishlist",
@@ -395,6 +401,8 @@ const en: Dict = {
   "product.calcSize": "Calculate my size",
   "product.recommended": "Recommended: {size}",
   "product.sizeGuide": "Size Guide",
+  "product.size": "Size",
+  "product.color": "Color",
   "product.shipQualified": "🚚 This item qualifies for free shipping.",
   "product.shipFreeFrom": "🚚 Free shipping from {amount} {currency}",
   "product.shipFreeQty": "🚚 Free shipping from {count} products",
@@ -674,6 +682,8 @@ const ar: Dict = {
   "product.highlightsTitle": "مميزات المنتج",
   "product.composition": "المكوّن",
   "product.materialDefault": "قطن 100%",
+  "product.fitNormal": "قصة عادية",
+  "product.fitOversized": "قصة واسعة",
   "product.premiumQuality": "جودة ممتازة",
   "product.fastShipping": "شحن سريع",
   "product.addToWishlist": "أضف إلى المفضلة",
@@ -684,6 +694,8 @@ const ar: Dict = {
   "product.calcSize": "احسب مقاسي",
   "product.recommended": "موصى به: {size}",
   "product.sizeGuide": "دليل المقاسات",
+  "product.size": "المقاس",
+  "product.color": "اللون",
   "product.shipQualified": "🚚 هذا المنتج مؤهّل للشحن المجاني.",
   "product.shipFreeFrom": "🚚 شحن مجاني ابتداءً من {amount} {currency}",
   "product.shipFreeQty": "🚚 شحن مجاني عند شراء {count} منتجات",
@@ -959,6 +971,29 @@ export function localizedMaterial(material: string | null | undefined, lang: str
   const norm = (material ?? "").toLowerCase().replace(/\s+/g, "");
   if (!norm || DEFAULT_MATERIAL_FORMS.has(norm)) return t(lang, "product.materialDefault");
   return material as string;
+}
+
+// Fit is stored on the product as a fixed English enum from the admin form
+// ("Normal" / "Oversized"), so — like material — it must be shown in the
+// storefront language rather than verbatim English. Known values map to a
+// localized label; any custom/unknown value is returned unchanged so real
+// values still show through.
+const FIT_LABEL_KEYS: Record<string, string> = {
+  normal: "product.fitNormal",
+  oversized: "product.fitOversized",
+  oversize: "product.fitOversized",
+};
+
+/**
+ * Localized fit label for a product (e.g. "Oversized" → "Coupe oversize" /
+ * "قصة واسعة"). A blank fit returns "" so callers can skip it; a custom value
+ * outside the known enum is returned unchanged.
+ */
+export function localizedFit(fit: string | null | undefined, lang: string): string {
+  const norm = (fit ?? "").toLowerCase().trim();
+  if (!norm) return "";
+  const key = FIT_LABEL_KEYS[norm];
+  return key ? t(lang, key) : (fit as string);
 }
 
 export type { LangCode };

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, ShoppingCart, Menu, User as UserIcon, LogOut, X } from "lucide-react";
+import { Heart, ShoppingCart, Menu, Search, User as UserIcon, LogOut, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import SearchBar from "./SearchBar";
@@ -27,6 +27,7 @@ export default function Header({
   logoDarkUrl?: string | null;
 }) {
   const [open, setOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
   // Where "Account" points depends on the role in the JWT: admins go to the
   // dashboard, customers go to their profile page.
@@ -68,7 +69,14 @@ export default function Header({
       <header className="relative z-[60] bg-surface md:sticky md:top-[var(--announce-h,0px)] md:border-b md:border-gray-200">
         {/* ---- Top row ---- */}
         <div className="mx-auto max-w-7xl px-4 md:px-6">
-          <div className="flex h-16 items-center gap-2 md:gap-4">
+          <div className="grid h-16 grid-cols-[1fr_auto_1fr] items-center md:flex md:gap-4">
+            <button
+              aria-label={t(lang, "nav.menu")}
+              onClick={() => setOpen((o) => !o)}
+              className="flex h-10 w-10 items-center justify-center rounded-full text-gray-900 transition hover:bg-gray-100 md:hidden"
+            >
+              {open ? <X size={24} /> : <Menu size={25} />}
+            </button>
             {/* Logo — uploaded image when set, otherwise the store name as text.
                 min-w-0 + truncate let the logo yield/shrink first on tiny screens
                 so the action icons (and the menu button) are never pushed off the
@@ -76,7 +84,7 @@ export default function Header({
             <Link
               href={`/${lang}`}
               aria-label={storeName}
-              className="flex min-w-0 items-center"
+              className="col-start-2 flex min-w-0 items-center justify-self-center md:col-auto md:justify-self-auto"
             >
               {logoUrl ? (
                 <>
@@ -98,7 +106,7 @@ export default function Header({
                   )}
                 </>
               ) : (
-                <span className="truncate text-xl font-extrabold tracking-tight text-gray-900 md:text-2xl">
+                <span className="truncate text-xl font-black uppercase tracking-[-0.08em] text-gray-950 md:text-2xl">
                   {storeName}
                 </span>
               )}
@@ -111,7 +119,7 @@ export default function Header({
 
             {/* Actions — shrink-0 so the icons and the mobile menu button always
                 stay fully visible (the logo above absorbs any tight space). */}
-            <nav className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
+            <nav className="col-start-3 ms-auto flex shrink-0 items-center gap-0.5 sm:gap-2 md:col-auto md:ms-auto">
               {loggedIn ? (
                 <>
                   <Link
@@ -146,14 +154,26 @@ export default function Header({
                 </>
               )}
 
-              <ThemeToggle lang={lang} />
+              <ThemeToggle lang={lang} className="hidden md:flex" />
 
-              <LanguageSwitcher current={lang} />
+              <div className="hidden md:block">
+                <LanguageSwitcher current={lang} />
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSearchOpen((value) => !value)}
+                aria-label={t(lang, "search.title")}
+                aria-expanded={searchOpen}
+                className="flex h-10 w-9 items-center justify-center rounded-full text-gray-900 transition hover:bg-gray-100 md:hidden"
+              >
+                <Search size={22} />
+              </button>
 
               <Link
                 href={`/${lang}/wishlist`}
                 aria-label={t(lang, "nav.wishlist")}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
+                className="relative flex h-10 w-9 items-center justify-center rounded-full text-gray-900 transition hover:bg-gray-100 md:w-10"
               >
                 <Heart size={20} />
                 {wishlist.length > 0 && (
@@ -165,24 +185,16 @@ export default function Header({
               <Link
                 href={`/${lang}/cart`}
                 aria-label={t(lang, "nav.cart")}
-                className="relative flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100"
+                className="relative flex h-10 w-9 items-center justify-center rounded-full text-gray-900 transition hover:bg-gray-100 md:w-10"
               >
                 <ShoppingCart size={20} />
                 {cartQty > 0 && (
-                  <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-bold text-white">
+                  <span className="absolute right-0 top-0 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
                     {cartQty}
                   </span>
                 )}
               </Link>
 
-              {/* Mobile menu toggle */}
-              <button
-                aria-label={t(lang, "nav.menu")}
-                onClick={() => setOpen((o) => !o)}
-                className="flex h-10 w-10 items-center justify-center rounded-full text-gray-700 hover:bg-gray-100 md:hidden"
-              >
-                {open ? <X size={22} /> : <Menu size={22} />}
-              </button>
             </nav>
           </div>
         </div>
@@ -213,7 +225,7 @@ export default function Header({
           containing block is the whole page: it rides up with the content and
           pins to the top the moment it gets there, staying visible for the rest
           of the scroll. */}
-      <div className="sticky top-[var(--announce-h,0px)] z-50 border-b border-gray-200 bg-surface md:hidden">
+      <div className={`sticky top-[var(--announce-h,0px)] z-50 overflow-hidden border-b border-gray-200 bg-surface transition-[max-height,opacity] duration-200 md:hidden ${searchOpen ? "max-h-20 opacity-100" : "max-h-0 border-b-0 opacity-0"}`}>
         <div className="mx-auto max-w-7xl px-4">
           <div className="py-2">
             <SearchBar lang={lang} />

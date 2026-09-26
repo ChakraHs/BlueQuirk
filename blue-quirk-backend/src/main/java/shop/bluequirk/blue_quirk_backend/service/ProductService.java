@@ -122,6 +122,12 @@ public class ProductService {
         if (dto.getMaterial() != null && !dto.getMaterial().isBlank()) {
             existing.setMaterial(dto.getMaterial().trim());
         }
+        if (dto.getFabricWeight() != null) {
+            existing.setFabricWeight(normalizedFabricWeight(dto.getFabricWeight()));
+        }
+        if (dto.getFit() != null) {
+            existing.setFit(normalizedOptionalFact(dto.getFit()));
+        }
         existing.setStatus(dto.getStatus());
         applyImages(existing, dto.getImages());
         applyVideo(existing, dto.getVideo());
@@ -331,6 +337,8 @@ public class ProductService {
             product.getStockQuantity(),
             resolveDescription(product, lang),
             product.getMaterial(),
+            product.getFabricWeight(),
+            product.getFit(),
             product.getStatus(),
             sortedImages(product),
             ProductVideoResponse.from(product.getVideo()),
@@ -446,6 +454,19 @@ public class ProductService {
     /** Trims the submitted material, falling back to the default when blank. */
     private String normalizedMaterial(String material) {
         return (material == null || material.isBlank()) ? DEFAULT_MATERIAL : material.trim();
+    }
+
+    /** Optional storefront fact: blank input clears the value rather than
+     * manufacturing a claim for products that do not have one. */
+    private String normalizedOptionalFact(String value) {
+        return (value == null || value.isBlank()) ? null : value.trim();
+    }
+
+    /** Convert the common admin entry "220" to the customer-facing "220G",
+     * while preserving explicit values such as "220 GSM". */
+    private String normalizedFabricWeight(String value) {
+        String normalized = normalizedOptionalFact(value);
+        return normalized != null && normalized.matches("\\d+") ? normalized + "G" : normalized;
     }
 
     /** Rejects a negative cost (400); otherwise returns the value unchanged. */
@@ -630,6 +651,8 @@ public class ProductService {
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
         product.setMaterial(normalizedMaterial(dto.getMaterial()));
+        product.setFabricWeight(normalizedFabricWeight(dto.getFabricWeight()));
+        product.setFit(normalizedOptionalFact(dto.getFit()));
         product.setStatus(dto.getStatus());
         applyImages(product, dto.getImages());
         applyVideo(product, dto.getVideo());
@@ -693,6 +716,8 @@ public class ProductService {
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
                 product.getMaterial(),
+                product.getFabricWeight(),
+                product.getFit(),
                 product.getStatus(),
                 sortedImages(product),
                 ProductVideoResponse.from(product.getVideo()),

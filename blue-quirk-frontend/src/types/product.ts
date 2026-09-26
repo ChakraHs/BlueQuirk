@@ -10,6 +10,10 @@ export interface Product {
   // Materials / composition (e.g. "100% Cotton"). Shown in the storefront
   // "Product Highlights" and editable from the admin product form.
   material?: string;
+  // Admin-selected presentation facts for the product page (e.g. "220G",
+  // "Oversized"). Optional so products without them make no claim.
+  fabricWeight?: string | null;
+  fit?: string | null;
   quantity?: number;
   stockQuantity?: number;
   status: string;

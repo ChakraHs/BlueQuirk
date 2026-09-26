@@ -30,6 +30,8 @@ type FormState = {
   stockQuantity: number;
   description: string;
   material: string;
+  fabricWeight: string;
+  fit: string;
   status: string;
 };
 
@@ -75,6 +77,8 @@ export default function EditProductPage() {
     stockQuantity: 0,
     description: "",
     material: "100% Cotton",
+    fabricWeight: "",
+    fit: "",
     status: "PUBLISHED",
   });
 
@@ -97,6 +101,8 @@ export default function EditProductPage() {
           stockQuantity: p.stockQuantity ?? 0,
           description: p.description ?? "",
           material: p.material ?? "100% Cotton",
+          fabricWeight: p.fabricWeight ?? "",
+          fit: p.fit ?? "",
           status: p.status ?? "PUBLISHED",
         });
         setAttributes(p.attributes ?? []);
@@ -227,6 +233,33 @@ export default function EditProductPage() {
               required
               className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
             />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Fabric weight</label>
+              <input
+                name="fabricWeight"
+                value={form.fabricWeight}
+                onChange={handleChange}
+                placeholder="e.g. 220G"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">Fit</label>
+              <select
+                name="fit"
+                value={form.fit}
+                onChange={handleChange}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <option value="">Not shown</option>
+                <option value="Normal">Normal</option>
+                <option value="Oversized">Oversized</option>
+              </select>
+            </div>
+            <p className="sm:col-span-2 text-xs text-gray-400">Optional. Set values here to show the weight and fit icon squares on the product page.</p>
           </div>
 
           <PricingFields

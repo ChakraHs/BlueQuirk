@@ -114,7 +114,7 @@ export default function ProductCard({
           the image is zoomed slightly so the tee fills the frame — the source
           padding already gives us room to crop into. */}
       <div
-        className={`relative aspect-[4/5] overflow-hidden ${radius} bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-xl`}
+        className={`relative aspect-square overflow-hidden ${radius} bg-gray-100 shadow-sm transition-shadow duration-300 group-hover:shadow-xl`}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
       >

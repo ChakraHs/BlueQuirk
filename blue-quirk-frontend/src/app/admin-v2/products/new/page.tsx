@@ -43,6 +43,8 @@ export default function NewProductPage() {
     stockQuantity: 0,
     description: "",
     material: "100% Cotton",
+    fabricWeight: "",
+    fit: "",
     status: "PUBLISHED",
   });
   const [translations, setTranslations] = useState<TranslationDrafts>(
@@ -139,6 +141,33 @@ export default function NewProductPage() {
                          text-gray-900 placeholder-gray-400
                          focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fabric weight</label>
+              <input
+                name="fabricWeight"
+                placeholder="e.g. 220G"
+                value={form.fabricWeight}
+                onChange={handleChange}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Fit</label>
+              <select
+                name="fit"
+                value={form.fit}
+                onChange={handleChange}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+              >
+                <option value="">Not shown</option>
+                <option value="Normal">Normal</option>
+                <option value="Oversized">Oversized</option>
+              </select>
+            </div>
+            <p className="sm:col-span-2 text-xs text-gray-400">Optional. Set values here to show the weight and fit icon squares on the product page.</p>
           </div>
 
           {/* Pricing (cost + selling price + live margin) */}

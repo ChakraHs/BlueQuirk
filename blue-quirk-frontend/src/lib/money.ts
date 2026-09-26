@@ -6,7 +6,10 @@ const CURRENCY_LABEL: Record<string, string> = { fr: "DH", en: "DH", ar: "دره
 
 export function formatPrice(value: number, lang?: string): string {
   const currency = (lang && CURRENCY_LABEL[lang]) || "DH";
-  return `${value.toFixed(2)} ${currency}`;
+  // Whole prices show as just the number ("199 DH"); genuine fractional prices
+  // keep their decimals ("49.99 DH"). Only a trailing ".00" is dropped.
+  const amount = value.toFixed(2).replace(/\.00$/, "");
+  return `${amount} ${currency}`;
 }
 
 // --- Cost & margin helpers ---------------------------------------------------

@@ -14,27 +14,29 @@ import Stars from "./Stars";
 export default function RatingSummary({
   summary,
   lang,
+  compact = false,
 }: {
   summary: ReviewSummary;
   lang: string;
+  // Smaller stars + text, so the line sits comfortably under a narrow price.
+  compact?: boolean;
 }) {
   if (!summary.enabled || summary.total <= 0) return null;
 
   return (
     <a
       href="#reviews"
-      className="inline-flex items-center gap-2 text-sm text-gray-700 transition hover:text-gray-900"
+      className={`inline-flex items-center text-gray-700 transition hover:text-gray-900 ${
+        compact ? "gap-1 text-xs" : "gap-2 text-sm"
+      }`}
       aria-label={t(lang, "reviews.summaryAria", {
         rating: summary.average.toFixed(1),
         countLabel: reviewCount(lang, summary.total),
       })}
     >
-      <Stars value={summary.average} size={16} />
+      <Stars value={summary.average} size={compact ? 13 : 16} />
       <span className="font-semibold text-gray-900">{summary.average.toFixed(1)}</span>
-      <span className="text-gray-400">·</span>
-      <span className="underline decoration-gray-300 underline-offset-2">
-        {reviewCount(lang, summary.total)}
-      </span>
+      <span className="text-gray-500">({summary.total})</span>
     </a>
   );
 }

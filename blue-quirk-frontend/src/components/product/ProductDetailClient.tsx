@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Award, Check, Heart, Leaf, Minus, Plus, RotateCcw, Ruler, ShoppingBag, Sparkles, Star, Truck, Wallet, Zap } from "lucide-react";
+import { Award, Check, Heart, Layers, Leaf, RotateCcw, Ruler, Shirt, ShoppingBag, Sparkles, Star, Truck, Wallet, Zap } from "lucide-react";
 import { Product, ProductImage } from "@/types/product";
 import { addToCart, readCart } from "@/lib/cart";
 import { track } from "@/lib/analytics/tracker";
@@ -17,7 +17,7 @@ import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import { useActiveBundles, offerForProductPage } from "@/lib/bundle";
 import BundleBuilder from "@/components/product/BundleBuilder";
 import ProgressiveProductHint from "@/components/product/ProgressiveProductHint";
-import { t, localizedMaterial } from "@/lib/i18n";
+import { t, localizedMaterial, localizedFit } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -26,6 +26,10 @@ import type { ReviewSummary } from "@/services/review.service";
 
 const FALLBACK_IMAGE =
   "https://images.ctfassets.net/5hig0ukq7ib0/bUmu6RBCWC5TTscquxd16/041978fd5b8a89923e2bcf646f24c71c/2352468_LocalizationUpdates40offPromo_800x800_1_081824.jpg?fm=jpg&q=85&w=800&fl=progressive";
+
+// Temporarily disabled per request: the mobile sticky bottom purchase bar
+// (Buy Now). Flip back to `true` to restore it.
+const SHOW_MOBILE_STICKY_BAR = false;
 
 // The API returns every attribute with each value flagged `selected` for this
 // product. Like a real store (WooCommerce-style), a product should only expose
@@ -67,7 +71,9 @@ export default function ProductDetailClient({
     [product.images]
   );
   const productAttributes = useMemo(() => getProductAttributes(product), [product]);
-  const [quantity, setQuantity] = useState(1);
+  // Quantity is fixed at 1 — the on-page stepper was removed (order data showed
+  // it was never used). Shoppers adjust the count in the cart if needed.
+  const [quantity] = useState(1);
   const [selectedAttributes, setSelectedAttributes] = useState(() => getInitialSelection(productAttributes));
 
   // Checkout can send the shopper back to the collection they were exploring,
@@ -226,6 +232,36 @@ export default function ProductDetailClient({
     );
   }, [productAttributes, selectedAttributes]);
 
+  // These are intentionally product-driven. The catalog controls whether a
+  // garment has a composition, weight, fit or other merchandising fact; we do
+  // not invent a universal "220G" or "oversized" promise for every product.
+  const characteristics = useMemo(() => {
+    const facts: { label: string; icon: typeof Leaf }[] = [];
+    if (product.material?.trim()) {
+      facts.push({ label: localizedMaterial(product.material, lang), icon: Leaf });
+    }
+    if (product.fabricWeight?.trim()) {
+      const weight = product.fabricWeight.trim();
+      facts.push({ label: /^\d+$/.test(weight) ? `${weight}G` : weight, icon: Layers });
+    }
+    if (product.fit?.trim()) {
+      facts.push({ label: localizedFit(product.fit, lang), icon: Shirt });
+    }
+    const factAttributes = productAttributes.filter((attribute) => {
+      if (attribute.id === sizeAttribute?.id || attribute.id === colorAttribute?.id) return false;
+      return /weight|gram|gsm|poids|fit|coupe|oversized|cut|mati[eè]re|material|composition/i.test(attribute.name);
+    });
+    factAttributes.forEach((attribute) => {
+      const value = selectedAttributeLabels[attribute.name];
+      if (!value) return;
+      facts.push({
+        label: `${attribute.name}: ${value}`,
+        icon: /weight|gram|gsm|poids/i.test(attribute.name) ? Layers : Shirt,
+      });
+    });
+    return facts.slice(0, 3);
+  }, [colorAttribute?.id, lang, product.fabricWeight, product.fit, product.material, productAttributes, selectedAttributeLabels, sizeAttribute?.id]);
+
   const buildCartItem = () => ({
     id: product.id,
     name: product.name,
@@ -319,7 +355,7 @@ export default function ProductDetailClient({
   );
 
   return (
-    <div className="mx-auto grid max-w-7xl gap-6 px-4 py-6 sm:px-6 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:gap-10 md:px-12 md:py-12">
+    <div className="mx-auto grid max-w-7xl gap-4 px-4 pb-8 pt-3 sm:px-6 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:gap-10 md:px-12 md:py-12">
       <section aria-label="Product images">
         <ProductGallery
           images={galleryImages}
@@ -334,33 +370,32 @@ export default function ProductDetailClient({
           promoted above the description via `order-*` utilities; on desktop
           (md:) the natural DOM order is restored so the layout is unchanged. */}
       <section className="flex flex-col gap-7 text-gray-900">
-        <div className="order-1 space-y-3">
-          {/* Storefront only ever renders PUBLISHED products, so the status enum
-              was noise (and leaked an English admin label into a French UI). Keep
-              only the customer-meaningful in-stock pill. */}
-          {canBuy && (
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
-                <Check className="size-3" />
-                {t(lang, "product.inStock")}
-              </span>
-            </div>
+        <div className="order-1 space-y-1.5">
+          {/* Most-specific (leaf) category — the last element is the deepest in
+              the hierarchy (e.g. "Women Shirt" rather than the parent "Shirt"). */}
+          {product.categories?.at(-1)?.name && (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-gray-500">
+              {product.categories.at(-1)!.name}
+            </p>
           )}
 
-          <h1 className="text-3xl font-semibold leading-tight md:text-5xl">
-            {product.name}
-          </h1>
-
-          {/* Compact rating line — renders nothing until there are approved reviews. */}
-          {reviewSummary && <RatingSummary summary={reviewSummary} lang={lang} />}
-
-          <ProductPrice
-            price={product.price}
-            compareAt={product.compareAtPrice}
-            lang={lang}
-            size="lg"
-            showDiscount
-          />
+          <div className="flex items-start justify-between gap-4">
+            <h1 className="font-editorial min-w-0 flex-1 text-3xl uppercase leading-[1.15] text-gray-950 md:text-4xl">
+              {product.name}
+            </h1>
+            <div className="flex shrink-0 flex-col items-end gap-1.5">
+              <ProductPrice
+                price={product.price}
+                compareAt={product.compareAtPrice}
+                lang={lang}
+                size="xl"
+                showDiscount
+                smallUnit
+                className="whitespace-nowrap"
+              />
+              {reviewSummary && <RatingSummary summary={reviewSummary} lang={lang} compact />}
+            </div>
+          </div>
 
           {/* Shipping info banner (desktop) — kept directly under the price so the
               md: layout is unchanged. The mobile instance lives below the buttons. */}
@@ -373,13 +408,24 @@ export default function ProductDetailClient({
 
         {product.description && (
           <div
-            className="prose prose-sm order-7 max-w-none text-gray-600 md:order-2"
+            className="prose prose-sm order-2 -mt-4 max-w-none text-[15px] leading-relaxed text-gray-600 md:order-2 md:mt-0"
             dangerouslySetInnerHTML={{ __html: product.description }}
           />
         )}
 
+        {characteristics.length > 0 && (
+          <div className="order-3 flex divide-x divide-gray-200 py-2 md:order-3">
+            {characteristics.map(({ icon: Icon, label }) => (
+              <div key={label} className="flex min-w-0 flex-1 items-center justify-center gap-2 px-2 text-center first:pl-0 last:pr-0">
+                <Icon className="size-6 shrink-0 text-gray-950" strokeWidth={1.8} />
+                <span className="text-xs font-semibold leading-tight text-gray-800 sm:text-sm">{label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {!!productAttributes.length && (
-          <div className="order-2 flex flex-col gap-5 md:order-3">
+          <div className="order-4 flex flex-col gap-5 md:order-4">
             {productAttributes.map((attribute) => {
               const isSize = sizeAttribute?.id === attribute.id;
               const isColor = colorAttribute?.id === attribute.id;
@@ -390,7 +436,7 @@ export default function ProductDetailClient({
               <fieldset key={attribute.id} className={`${mobileOrder} space-y-3 md:order-none`}>
                 <legend className="flex w-full items-center justify-between gap-3 text-sm font-semibold text-gray-800">
                   <span className="flex flex-wrap items-center gap-2">
-                    {attribute.name}
+                    {isSize ? t(lang, "product.size") : isColor ? t(lang, "product.color") : attribute.name}
                     {isSize && (
                       <button
                         type="button"
@@ -420,7 +466,7 @@ export default function ProductDetailClient({
                   )}
                 </legend>
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className={isSize ? "grid grid-flow-col auto-cols-fr gap-2" : "flex flex-wrap items-center gap-2"}>
                   {attribute.values.map((value) => {
                     const selected = selectedAttributes[String(attribute.id)] === String(value.id);
                     const select = () => {
@@ -467,10 +513,12 @@ export default function ProductDetailClient({
                         key={value.id}
                         type="button"
                         onClick={select}
-                        className={`min-h-10 rounded-full border px-4 text-sm font-medium transition ${
+                        className={`flex min-h-12 items-center justify-center rounded-xl border text-sm font-semibold uppercase transition ${
+                          isSize ? "w-full" : "min-w-12 px-4"
+                        } ${
                           selected
-                            ? "border-blue-600 bg-blue-600 text-white"
-                            : "border-gray-300 bg-surface text-gray-700 hover:border-blue-400"
+                            ? "border-primary bg-blue-50 text-primary"
+                            : "border-gray-300 bg-surface text-gray-800 hover:border-primary"
                         }`}
                       >
                         {value.value}
@@ -484,58 +532,34 @@ export default function ProductDetailClient({
           </div>
         )}
 
-        <div ref={purchaseRef} className="order-3 flex flex-col gap-3 md:order-4">
-          <div className="flex flex-col gap-3 sm:flex-row">
-            <div className="grid h-12 w-full grid-cols-3 overflow-hidden rounded-full border border-gray-300 sm:w-36">
-              <button
-                type="button"
-                onClick={() => setQuantity((value) => Math.max(1, value - 1))}
-                className="flex items-center justify-center hover:bg-gray-50"
-                aria-label={t(lang, "product.decreaseQty")}
-              >
-                <Minus className="size-4" />
-              </button>
-              <div className="flex items-center justify-center text-sm font-semibold">
-                {quantity}
-              </div>
-              <button
-                type="button"
-                onClick={() => setQuantity((value) => value + 1)}
-                className="flex items-center justify-center hover:bg-gray-50"
-                aria-label={t(lang, "product.increaseQty")}
-              >
-                <Plus className="size-4" />
-              </button>
-            </div>
+        <div ref={purchaseRef} className="order-5 flex flex-col gap-3 md:order-5">
+          {/* Cart + wishlist, side by side. The quantity stepper was removed —
+              order data showed shoppers never changed it; they add one and adjust
+              the count in the cart if needed. */}
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={!canBuy}
+              className="inline-flex h-14 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-300 bg-surface px-5 text-base font-bold text-gray-900 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+            >
+              <ShoppingBag className="size-4" />
+              {canBuy ? t(lang, "product.addToCart") : t(lang, "product.unavailable")}
+            </button>
 
-            {/* Cart + wishlist always sit side by side (even on mobile), so the
-                Add-to-cart `flex-1` governs width — not height — and the button
-                keeps its full h-12 height instead of collapsing in a column. */}
-            <div className="flex flex-1 gap-3">
-              <button
-                type="button"
-                onClick={handleAddToCart}
-                disabled={!canBuy}
-                className="inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-full border border-blue-600 bg-surface px-5 text-sm font-semibold text-blue-600 transition hover:bg-blue-50 disabled:cursor-not-allowed disabled:border-gray-300 disabled:text-gray-400"
-              >
-                <ShoppingBag className="size-4" />
-                {canBuy ? t(lang, "product.addToCart") : t(lang, "product.unavailable")}
-              </button>
-
-              <button
-                type="button"
-                onClick={toggleWishlistItem}
-                aria-label={wishlisted ? t(lang, "product.removeFromWishlist") : t(lang, "product.addToWishlist")}
-                aria-pressed={wishlisted}
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full border transition ${
-                  wishlisted
-                    ? "border-blue-600 bg-blue-50 text-blue-600"
-                    : "border-gray-300 text-gray-600 hover:border-blue-400 hover:text-blue-600"
-                }`}
-              >
-                <Heart className={`size-5 ${wishlisted ? "fill-blue-600" : ""}`} />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={toggleWishlistItem}
+              aria-label={wishlisted ? t(lang, "product.removeFromWishlist") : t(lang, "product.addToWishlist")}
+              aria-pressed={wishlisted}
+              className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border transition ${
+                wishlisted
+                  ? "border-primary bg-blue-50 text-primary"
+                  : "border-gray-300 text-gray-800 hover:border-primary hover:text-primary"
+              }`}
+            >
+              <Heart className={`size-6 ${wishlisted ? "fill-primary" : ""}`} />
+            </button>
           </div>
 
           {/* Buy Now — adds to cart and jumps straight to the COD checkout. Uses the
@@ -547,7 +571,7 @@ export default function ProductDetailClient({
             type="button"
             onClick={handleBuyNow}
             disabled={!canBuy}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-5 text-sm font-semibold text-white shadow-[0_8px_20px_-6px_rgba(220,38,38,0.5)] transition hover:bg-primary-hover hover:shadow-[0_12px_26px_-6px_rgba(185,28,28,0.6)] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-white disabled:shadow-none"
+            className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 text-base font-bold text-white shadow-[0_10px_24px_-10px_color-mix(in_srgb,var(--c-primary)_80%,transparent)] transition hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-gray-300"
           >
             <Zap className="size-4" />
             {canBuy ? t(lang, "product.buyNow") : t(lang, "product.unavailable")}
@@ -557,21 +581,29 @@ export default function ProductDetailClient({
         {/* Reassurance line — the three objections a Moroccan COD shopper has right
             before adding to cart: how they pay, when it arrives, and returns. */}
         {canBuy && (
-          <ul className="order-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs font-medium text-gray-600 md:order-4">
+          <ul className="order-6 grid grid-cols-3 divide-x divide-gray-200 border-t border-gray-200 pt-4 text-center text-xs font-medium text-gray-700 md:order-6">
             <li className="inline-flex items-center gap-1.5">
-              <Wallet className="size-3.5 text-emerald-600" />
+              <Wallet className="size-4 shrink-0 text-gray-950" />
               {t(lang, "product.trustCod")}
             </li>
-            <li className="inline-flex items-center gap-1.5">
-              <Truck className="size-3.5 text-emerald-600" />
-              {t(lang, "product.trustEta")}
+            <li className="inline-flex items-center justify-center gap-1.5 px-2">
+              <Truck className="size-4 shrink-0 text-gray-950" />
+              {t(lang, "trust2.delivery")}
+            </li>
+            <li className="inline-flex items-center justify-end gap-1.5 ps-2">
+              <RotateCcw className="size-4 shrink-0 text-gray-950" />
+              {t(lang, "product.returns")}
             </li>
           </ul>
         )}
 
         {/* Progressive multi-item discount incentive. Dynamic to the current cart;
             renders nothing when off or product ineligible. */}
-        {canBuy && <ProgressiveProductHint product={product} lang={lang} />}
+        {canBuy && (
+          <div className="order-7 md:order-7">
+            <ProgressiveProductHint product={product} lang={lang} />
+          </div>
+        )}
 
         {added && (
           <p className="order-4 rounded-sm bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 md:order-5">
@@ -600,7 +632,7 @@ export default function ProductDetailClient({
         )}
 
         {/* Product Highlights — premium value props rendered as clean icon cards. */}
-        <div className="order-6 space-y-3">
+        <div className="hidden">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500">
             {t(lang, "product.highlightsTitle")}
           </h2>
@@ -662,6 +694,7 @@ export default function ProductDetailClient({
           (fixed → no layout shift); slides up/fades in when shown and slides
           down/fades out when the real controls are visible. Its button reuses
           the exact same handlers/state as the section above. */}
+      {SHOW_MOBILE_STICKY_BAR && (
       <div
         aria-hidden={!showSticky}
         style={{
@@ -712,6 +745,7 @@ export default function ProductDetailClient({
           )}
         </div>
       </div>
+      )}
     </div>
   );
 }

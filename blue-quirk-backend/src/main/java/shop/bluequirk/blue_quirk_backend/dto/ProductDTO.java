@@ -25,6 +25,8 @@ public class ProductDTO {
     // Materials / composition (e.g. "100% Cotton"). Optional; when blank on
     // create the service falls back to the default value.
     private String material;
+    private String fabricWeight;
+    private String fit;
     private ProductStatus status;
     
     private Set<Image> images;
@@ -76,6 +78,12 @@ public class ProductDTO {
 
     public String getMaterial() { return material; }
     public void setMaterial(String material) { this.material = material; }
+
+    public String getFabricWeight() { return fabricWeight; }
+    public void setFabricWeight(String fabricWeight) { this.fabricWeight = fabricWeight; }
+
+    public String getFit() { return fit; }
+    public void setFit(String fit) { this.fit = fit; }
 
     public Set<AttributeDto> getAttributes() { return attributes; }
     public void setAttributes(Set<AttributeDto> attributes) { this.attributes = attributes; }

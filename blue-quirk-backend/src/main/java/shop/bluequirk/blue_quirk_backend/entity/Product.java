@@ -34,6 +34,15 @@ public class Product {
     @Column(name = "material")
     private String material = "100% Cotton";
 
+    // Optional editorial product facts. These are product properties (not
+    // purchasable variants) selected by the admin and shown beside material on
+    // the storefront product page.
+    @Column(name = "fabric_weight")
+    private String fabricWeight;
+
+    @Column(name = "fit")
+    private String fit;
+
     @Column(nullable = false)
     private double price;
 
@@ -142,6 +151,12 @@ public class Product {
 
     public String getMaterial() { return material; }
     public void setMaterial(String material) { this.material = material; }
+
+    public String getFabricWeight() { return fabricWeight; }
+    public void setFabricWeight(String fabricWeight) { this.fabricWeight = fabricWeight; }
+
+    public String getFit() { return fit; }
+    public void setFit(String fit) { this.fit = fit; }
 
     public double getPrice() { return price; }
     public void setPrice(double price) { this.price = price; }

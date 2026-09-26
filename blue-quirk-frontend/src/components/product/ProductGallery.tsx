@@ -182,7 +182,7 @@ export default function ProductGallery({
     // LTR image order, making navigation feel backwards (appearing to start from
     // the last image). LTR keeps images, dots and arrows moving the same way in
     // every language; the images themselves are direction-agnostic.
-    <div dir="ltr" className="flex gap-3 sm:gap-4">
+    <div dir="ltr" className="flex flex-col gap-3 sm:flex-row sm:gap-4">
       {/* desktop vertical thumbnails (in slide order) */}
       {count > 1 && (
         <div className="hidden max-h-[600px] w-16 shrink-0 flex-col gap-3 overflow-y-auto sm:flex md:w-20">
@@ -196,8 +196,8 @@ export default function ProductGallery({
                 aria-label="Voir la vidéo"
                 aria-current={s === safeIndex}
                 style={bgColor ? { backgroundColor: bgColor } : undefined}
-                className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 bg-gray-900 transition ${
-                  s === safeIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"
+                className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 bg-clip-padding bg-gray-900 transition ${
+                  s === safeIndex ? "border-primary" : "border-transparent"
                 }`}
               >
                 {video?.posterImageUrl && (
@@ -223,9 +223,9 @@ export default function ProductGallery({
                 aria-label={`Voir l'image ${slide.imageIndex + 1}`}
                 aria-current={s === safeIndex}
                 style={bgColor ? { backgroundColor: bgColor } : undefined}
-                className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 transition ${
+                className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 bg-clip-padding transition ${
                   bgColor ? "" : "bg-gray-100"
-                } ${s === safeIndex ? "border-gray-900" : "border-transparent hover:border-gray-300"}`}
+                } ${s === safeIndex ? "border-primary" : "border-transparent"}`}
               >
                 <Image src={thumbUrls[slide.imageIndex]} alt="" fill sizes="80px" className="object-cover" />
               </button>
@@ -356,21 +356,70 @@ export default function ProductGallery({
             </>
           )}
 
-          {/* mobile dot indicators (one per slide, incl. the video) */}
+          {/* Editorial mobile controls: arrows stay on the photograph and the
+              counter replaces dots, so the stage remains quiet and useful. */}
           {count > 1 && (
-            <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5 sm:hidden">
-              {slides.map((_, i) => (
-                <span
-                  key={i}
-                  className={`h-2 rounded-full transition-all ${
-                    i === safeIndex ? "w-5 bg-gray-900" : "w-2 bg-gray-900/40"
-                  }`}
-                />
-              ))}
-            </div>
+            <>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); go(-1); }}
+                aria-label="Image précédente"
+                className="absolute left-3 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/95 text-gray-950 shadow-sm sm:hidden"
+              >
+                <ChevronLeft className="size-6" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); go(1); }}
+                aria-label="Image suivante"
+                className="absolute right-3 top-1/2 z-10 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-surface/95 text-gray-950 shadow-sm sm:hidden"
+              >
+                <ChevronRight className="size-6" />
+              </button>
+              <span className="absolute bottom-3 right-3 rounded-full bg-surface/95 px-3 py-1.5 text-sm font-semibold text-gray-900 shadow-sm sm:hidden">
+                {safeIndex + 1} / {count}
+              </span>
+            </>
           )}
         </div>
       </div>
+
+      {/* Mobile thumbnail rail mirrors the desktop selector and deliberately
+          uses the same slide index, including the optional product video. */}
+      {count > 1 && (
+        <div className="grid grid-flow-col auto-cols-[92px] gap-2 overflow-x-auto pb-1 sm:hidden">
+          {slides.map((slide, s) =>
+            slide.kind === "video" ? (
+              <button
+                key="mobile-video-thumb"
+                type="button"
+                onClick={() => setIndex(s)}
+                aria-label="Voir la vidéo"
+                aria-current={s === safeIndex}
+                className={`relative aspect-square overflow-hidden rounded-xl border-2 bg-clip-padding bg-gray-900 ${s === safeIndex ? "border-primary" : "border-transparent"}`}
+              >
+                {video?.posterImageUrl && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={video.posterImageUrl} alt="" className="h-full w-full object-cover opacity-80" />
+                )}
+                <Play className="absolute left-1/2 top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 fill-white text-white" />
+              </button>
+            ) : (
+              <button
+                key={`mobile-${images[slide.imageIndex].id ?? images[slide.imageIndex].url}`}
+                type="button"
+                onClick={() => setIndex(s)}
+                aria-label={`Voir l'image ${slide.imageIndex + 1}`}
+                aria-current={s === safeIndex}
+                style={bgColor ? { backgroundColor: bgColor } : undefined}
+                className={`relative aspect-square overflow-hidden rounded-xl border-2 bg-clip-padding ${bgColor ? "" : "bg-gray-100"} ${s === safeIndex ? "border-primary" : "border-transparent"}`}
+              >
+                <Image src={thumbUrls[slide.imageIndex]} alt="" fill sizes="92px" className="object-cover" />
+              </button>
+            )
+          )}
+        </div>
+      )}
 
       {lightboxOpen && activeImageIndex >= 0 && (
         <ImageLightbox

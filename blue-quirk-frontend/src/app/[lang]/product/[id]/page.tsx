@@ -29,7 +29,9 @@ import { t } from "@/lib/i18n";
 // config/categories) from TTFB for the overwhelming majority of ad clicks. Kept
 // as a literal (Next requires `revalidate` to be statically analyzable);
 // mirrors STOREFRONT_REVALIDATE used for the data reads below.
-export const revalidate = 300;
+// Product facts are edited from the admin dashboard. Render this route from
+// current product data so a saved material/weight/fit appears on refresh.
+export const dynamic = "force-dynamic";
 
 // Prebuild NO product pages at build time (the catalog is large and changes), but
 // opt the dynamic [id] route into the Full Route Cache: with an (empty)
@@ -58,7 +60,7 @@ async function getProduct(id: string, lang: string) {
   }
 
   try {
-    return await ProductService.getById(productId, lang, STOREFRONT_REVALIDATE);
+    return await ProductService.getById(productId, lang);
   } catch (error) {
     // Only a genuine 404 (product doesn't exist) should collapse to notFound() —
     // that is safe to ISR-cache. Any other failure (backend restarting, 5xx,
@@ -223,7 +225,7 @@ export default async function ProductPage({
           category. */}
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-1.5 gap-y-1 px-6 pt-6 text-sm md:px-12"
+        className="mx-auto hidden max-w-7xl flex-wrap items-center gap-x-1.5 gap-y-1 px-6 pt-6 text-sm md:flex md:px-12"
       >
         {(categoryPath.length > 0
           ? categoryPath.map((c) => ({ id: c.id, name: c.name, href: `/${lang}/category/${c.id}` }))

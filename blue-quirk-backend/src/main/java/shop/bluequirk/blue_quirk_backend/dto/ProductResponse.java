@@ -16,6 +16,8 @@ public record ProductResponse(
 	    String description,
 	    // Materials / composition (e.g. "100% Cotton") shown in the storefront.
 	    String material,
+	    String fabricWeight,
+	    String fit,
 	    ProductStatus status,
 	    List<Image> images,
 	    // Optional featured video — null when the product has none, so existing

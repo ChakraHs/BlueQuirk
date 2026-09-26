@@ -201,6 +201,15 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Editorial display face for product names. These system fallbacks keep the
+   fashion-style condensed rhythm without adding a blocking third-party font. */
+.font-editorial {
+  font-family: "Arial Narrow", Arial, Helvetica, sans-serif;
+  font-stretch: condensed;
+  font-weight: 800;
+  letter-spacing: 0.018em;
+}
+
 /* Smooth, subtle crossfade when the theme flips between light and dark. Scoped
    to color properties only (never layout) and disabled for reduced-motion. The
    `[data-theme-ready]` gate means the transition is armed only AFTER the initial
