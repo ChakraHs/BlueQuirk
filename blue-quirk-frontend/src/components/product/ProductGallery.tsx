@@ -182,7 +182,7 @@ export default function ProductGallery({
     // LTR image order, making navigation feel backwards (appearing to start from
     // the last image). LTR keeps images, dots and arrows moving the same way in
     // every language; the images themselves are direction-agnostic.
-    <div dir="ltr" className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+    <div dir="ltr" className="flex min-w-0 flex-col gap-3 sm:flex-row sm:gap-4">
       {/* desktop vertical thumbnails (in slide order) */}
       {count > 1 && (
         <div className="hidden max-h-[600px] w-16 shrink-0 flex-col gap-3 overflow-y-auto sm:flex md:w-20">
@@ -387,7 +387,7 @@ export default function ProductGallery({
       {/* Mobile thumbnail rail mirrors the desktop selector and deliberately
           uses the same slide index, including the optional product video. */}
       {count > 1 && (
-        <div className="grid grid-flow-col auto-cols-[92px] gap-2 overflow-x-auto pb-1 sm:hidden">
+        <div className="no-scrollbar grid min-w-0 grid-flow-col auto-cols-[92px] gap-2 overflow-x-auto pb-1 sm:hidden">
           {slides.map((slide, s) =>
             slide.kind === "video" ? (
               <button

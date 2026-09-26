@@ -210,6 +210,16 @@ body {
   letter-spacing: 0.018em;
 }
 
+/* Hide the scrollbar while keeping scroll/swipe functionality — used by the
+   horizontal thumbnail rail so the bar doesn't clutter the gallery. */
+.no-scrollbar {
+  -ms-overflow-style: none; /* IE/old Edge */
+  scrollbar-width: none; /* Firefox */
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
+}
+
 /* Smooth, subtle crossfade when the theme flips between light and dark. Scoped
    to color properties only (never layout) and disabled for reduced-motion. The
    `[data-theme-ready]` gate means the transition is armed only AFTER the initial

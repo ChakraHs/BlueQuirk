@@ -356,7 +356,7 @@ export default function ProductDetailClient({
 
   return (
     <div className="mx-auto grid max-w-7xl gap-4 px-4 pb-8 pt-3 sm:px-6 md:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] md:gap-10 md:px-12 md:py-12">
-      <section aria-label="Product images">
+      <section aria-label="Product images" className="min-w-0">
         <ProductGallery
           images={galleryImages}
           video={product.video}
@@ -391,7 +391,8 @@ export default function ProductDetailClient({
                 size="xl"
                 showDiscount
                 smallUnit
-                className="whitespace-nowrap"
+                stackMeta
+                className="items-end whitespace-nowrap"
               />
               {reviewSummary && <RatingSummary summary={reviewSummary} lang={lang} compact />}
             </div>
