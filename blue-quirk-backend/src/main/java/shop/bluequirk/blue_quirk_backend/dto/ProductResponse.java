@@ -3,6 +3,7 @@ package shop.bluequirk.blue_quirk_backend.dto;
 import java.util.List;
 
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
+import shop.bluequirk.blue_quirk_backend.domain.ProductType;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
 
 public record ProductResponse(
@@ -14,8 +15,16 @@ public record ProductResponse(
 	    Double compareAtPrice,
 	    Integer stockQuantity,
 	    String description,
-	    // Materials / composition (e.g. "100% Cotton") shown in the storefront.
+	    // Physical garment type (never null in the response — legacy null resolves to
+	    // T_SHIRT). Drives the storefront size guide (T-shirt vs hoodie).
+	    ProductType productType,
+	    // Legacy materials string (e.g. "100% Cotton") — kept for backward compat and
+	    // as the storefront fallback when the structured composition can't be resolved.
 	    String material,
+	    // Structured composition (Cotton 67% + Polyester 33%). Resolved from stored
+	    // structured data, or parsed from the legacy `material` string for older rows;
+	    // empty when neither is available (storefront then falls back to `material`).
+	    List<MaterialComponentDto> materialComposition,
 	    String fabricWeight,
 	    String fit,
 	    ProductStatus status,

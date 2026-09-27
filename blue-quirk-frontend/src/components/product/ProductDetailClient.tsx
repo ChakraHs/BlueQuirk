@@ -17,7 +17,7 @@ import { recommendSize, setPreferredSize } from "@/lib/sizePreference";
 import { useActiveBundles, offerForProductPage } from "@/lib/bundle";
 import BundleBuilder from "@/components/product/BundleBuilder";
 import ProgressiveProductHint from "@/components/product/ProgressiveProductHint";
-import { t, localizedMaterial, localizedFit } from "@/lib/i18n";
+import { t, localizedMaterial, localizedFit, localizedComposition } from "@/lib/i18n";
 import SizeGuideModal from "@/components/product/SizeGuideModal";
 import SizeCalculatorModal from "@/components/product/SizeCalculatorModal";
 import ProductGallery from "@/components/product/ProductGallery";
@@ -237,8 +237,13 @@ export default function ProductDetailClient({
   // not invent a universal "220G" or "oversized" promise for every product.
   const characteristics = useMemo(() => {
     const facts: { label: string; icon: typeof Leaf }[] = [];
-    if (product.material?.trim()) {
-      facts.push({ label: localizedMaterial(product.material, lang), icon: Leaf });
+    // Prefer the structured composition (renders every material + percentage,
+    // localized), falling back to the legacy free-text material for older rows.
+    const compositionLabel =
+      localizedComposition(product.materialComposition, lang) ||
+      (product.material?.trim() ? localizedMaterial(product.material, lang) : "");
+    if (compositionLabel) {
+      facts.push({ label: compositionLabel, icon: Leaf });
     }
     if (product.fabricWeight?.trim()) {
       const weight = product.fabricWeight.trim();
@@ -260,7 +265,7 @@ export default function ProductDetailClient({
       });
     });
     return facts.slice(0, 3);
-  }, [colorAttribute?.id, lang, product.fabricWeight, product.fit, product.material, productAttributes, selectedAttributeLabels, sizeAttribute?.id]);
+  }, [colorAttribute?.id, lang, product.fabricWeight, product.fit, product.material, product.materialComposition, productAttributes, selectedAttributeLabels, sizeAttribute?.id]);
 
   const buildCartItem = () => ({
     id: product.id,
@@ -681,6 +686,7 @@ export default function ProductDetailClient({
         open={sizeGuideOpen}
         onClose={() => setSizeGuideOpen(false)}
         lang={lang}
+        productType={product.productType}
       />
 
       <SizeCalculatorModal
@@ -720,7 +726,8 @@ export default function ProductDetailClient({
             />
             <p className="mt-1 flex items-center gap-1 truncate text-xs text-gray-500">
               <Star className="size-3 shrink-0 fill-amber-400 text-amber-400" />
-              {product.material ? localizedMaterial(product.material, lang) : t(lang, "product.premiumQuality")}
+              {localizedComposition(product.materialComposition, lang) ||
+                (product.material ? localizedMaterial(product.material, lang) : t(lang, "product.premiumQuality"))}
             </p>
           </div>
 

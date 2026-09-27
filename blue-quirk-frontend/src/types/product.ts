@@ -1,3 +1,13 @@
+/** Physical garment type. Kept separate from marketing categories. */
+export type ProductType = "T_SHIRT" | "HOODIE";
+
+/** One line of a product's material composition (e.g. Cotton 67%). `material`
+ *  is the backend MaterialType name ("COTTON" | "POLYESTER" | …). */
+export interface MaterialComponent {
+  material: string;
+  percentage: number;
+}
+
 export interface Product {
   id: number;
   name: string;
@@ -7,9 +17,16 @@ export interface Product {
   // ≤ price) means "no previous price". See lib/productPricing + ProductPrice.
   compareAtPrice?: number | null;
   description: string;
-  // Materials / composition (e.g. "100% Cotton"). Shown in the storefront
-  // "Product Highlights" and editable from the admin product form.
+  // Physical garment type — drives the storefront size guide (T-shirt vs hoodie).
+  // The backend always resolves this (legacy null → "T_SHIRT").
+  productType?: ProductType;
+  // Legacy materials string (e.g. "100% Cotton"). Kept as the display fallback
+  // when the structured composition below is absent.
   material?: string;
+  // Structured composition (Cotton 67% + Polyester 33%). Authoritative for the
+  // storefront composition display; empty/absent for rows the backend couldn't
+  // resolve, where `material` is used instead.
+  materialComposition?: MaterialComponent[];
   // Admin-selected presentation facts for the product page (e.g. "220G",
   // "Oversized"). Optional so products without them make no claim.
   fabricWeight?: string | null;

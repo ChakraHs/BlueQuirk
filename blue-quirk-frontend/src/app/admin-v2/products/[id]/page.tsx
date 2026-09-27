@@ -8,6 +8,9 @@ import PageHeader from "@/components/admin/ui/PageHeader";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import ProductVideoManager from "@/components/admin/ProductVideoManager";
 import PricingFields from "@/components/admin/PricingFields";
+import MaterialCompositionEditor, {
+  isCompositionValid,
+} from "@/components/admin/MaterialCompositionEditor";
 import ProductTranslationsEditor, {
   TranslationDrafts,
   emptyTranslationDrafts,
@@ -17,7 +20,13 @@ import ProductTranslationsEditor, {
 import { ProductService } from "@/services/product.service";
 import { CategoryService } from "@/services/category.service";
 import { TodifyService } from "@/services/todify.service";
-import { Product, ProductAttribute, ProductImage, ProductVideo } from "@/types/product";
+import {
+  MaterialComponent,
+  Product,
+  ProductAttribute,
+  ProductImage,
+  ProductVideo,
+} from "@/types/product";
 import { Category } from "@/types/category";
 import { colorOptionsFromAttributes, findColorAttribute } from "@/lib/colorImages";
 import { colorSwatch, isLightColor, colorLabel } from "@/lib/colors";
@@ -29,7 +38,7 @@ type FormState = {
   compareAtPrice: number;
   stockQuantity: number;
   description: string;
-  material: string;
+  productType: string;
   fabricWeight: string;
   fit: string;
   status: string;
@@ -52,6 +61,9 @@ export default function EditProductPage() {
   const [translations, setTranslations] = useState<TranslationDrafts>(
     emptyTranslationDrafts()
   );
+  const [materialComposition, setMaterialComposition] = useState<MaterialComponent[]>([
+    { material: "COTTON", percentage: 100 },
+  ]);
   const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
   // Id of the COLOR attribute so its values render as swatches (not text) below.
   const colorAttributeId = useMemo(
@@ -76,7 +88,7 @@ export default function EditProductPage() {
     compareAtPrice: 0,
     stockQuantity: 0,
     description: "",
-    material: "100% Cotton",
+    productType: "T_SHIRT",
     fabricWeight: "",
     fit: "",
     status: "PUBLISHED",
@@ -100,7 +112,7 @@ export default function EditProductPage() {
           compareAtPrice: p.compareAtPrice ?? 0,
           stockQuantity: p.stockQuantity ?? 0,
           description: p.description ?? "",
-          material: p.material ?? "100% Cotton",
+          productType: p.productType ?? "T_SHIRT",
           fabricWeight: p.fabricWeight ?? "",
           fit: p.fit ?? "",
           status: p.status ?? "PUBLISHED",
@@ -110,6 +122,15 @@ export default function EditProductPage() {
         setVideo(p.video ?? null);
         setCategoryIds((p.categories ?? []).map((c) => c.id));
         setTranslations(draftsFromTranslations(p.translations));
+        // Prefill the composition editor from the product's structured data. The
+        // backend resolves legacy "100% Cotton" rows into structured components, so
+        // this is populated even for older products; fall back to 100% Cotton only
+        // when nothing resolved (keeps the editor valid).
+        setMaterialComposition(
+          p.materialComposition?.length
+            ? p.materialComposition
+            : [{ material: "COTTON", percentage: 100 }]
+        );
       } catch {
         setError("Product not found.");
       } finally {
@@ -156,6 +177,10 @@ export default function EditProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isCompositionValid(materialComposition)) {
+      setError("Material composition must total 100%, with a positive percentage for each material.");
+      return;
+    }
     setSaving(true);
     setError(null);
     try {
@@ -165,6 +190,7 @@ export default function EditProductPage() {
         cost: Number(form.cost),
         compareAtPrice: Number(form.compareAtPrice) || 0,
         stockQuantity: Number(form.stockQuantity),
+        materialComposition,
         attributes,
         images,
         video,
@@ -235,6 +261,23 @@ export default function EditProductPage() {
             />
           </div>
 
+          {/* Product type — the physical garment (drives the size guide). Kept
+              separate from marketing categories. */}
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Product type
+            </label>
+            <select
+              name="productType"
+              value={form.productType}
+              onChange={handleChange}
+              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
+            >
+              <option value="T_SHIRT">T-shirt</option>
+              <option value="HOODIE">Hoodie</option>
+            </select>
+          </div>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium text-gray-700">Fabric weight</label>
@@ -285,21 +328,11 @@ export default function EditProductPage() {
             />
           </div>
 
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">
-              Materials
-            </label>
-            <input
-              name="material"
-              value={form.material}
-              onChange={handleChange}
-              placeholder="e.g. 100% Cotton"
-              className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-black focus:outline-none focus:ring-2 focus:ring-black"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Shown in the product highlights (composition).
-            </p>
-          </div>
+          {/* Materials / composition (structured; must total 100%) */}
+          <MaterialCompositionEditor
+            value={materialComposition}
+            onChange={setMaterialComposition}
+          />
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

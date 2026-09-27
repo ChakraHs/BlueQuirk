@@ -87,6 +87,8 @@ const fr: Dict = {
   "product.highlightsTitle": "Points forts du produit",
   "product.composition": "Composition",
   "product.materialDefault": "100% Coton",
+  "material.cotton": "Coton",
+  "material.polyester": "Polyester",
   "product.fitNormal": "Coupe normale",
   "product.fitOversized": "Coupe oversize",
   "product.premiumQuality": "Qualité premium",
@@ -389,6 +391,8 @@ const en: Dict = {
   "product.highlightsTitle": "Product highlights",
   "product.composition": "Composition",
   "product.materialDefault": "100% Cotton",
+  "material.cotton": "Cotton",
+  "material.polyester": "Polyester",
   "product.fitNormal": "Regular fit",
   "product.fitOversized": "Oversized fit",
   "product.premiumQuality": "Premium quality",
@@ -682,6 +686,8 @@ const ar: Dict = {
   "product.highlightsTitle": "مميزات المنتج",
   "product.composition": "المكوّن",
   "product.materialDefault": "قطن 100%",
+  "material.cotton": "قطن",
+  "material.polyester": "بوليستر",
   "product.fitNormal": "قصة عادية",
   "product.fitOversized": "قصة واسعة",
   "product.premiumQuality": "جودة ممتازة",
@@ -994,6 +1000,48 @@ export function localizedFit(fit: string | null | undefined, lang: string): stri
   if (!norm) return "";
   const key = FIT_LABEL_KEYS[norm];
   return key ? t(lang, key) : (fit as string);
+}
+
+// Structured material composition is stored as backend MaterialType names
+// (COTTON / POLYESTER / …). Each maps to a localized label; an unknown name
+// (a material added on the backend before the storefront learns its label) is
+// title-cased so it still renders instead of showing a raw enum.
+const MATERIAL_LABEL_KEYS: Record<string, string> = {
+  cotton: "material.cotton",
+  polyester: "material.polyester",
+};
+
+function materialName(name: string, lang: string): string {
+  const key = MATERIAL_LABEL_KEYS[(name ?? "").toLowerCase().trim()];
+  if (key) return t(lang, key);
+  const raw = (name ?? "").trim();
+  return raw ? raw.charAt(0).toUpperCase() + raw.slice(1).toLowerCase() : raw;
+}
+
+// Percentage/name order is language-specific so a single material reads exactly
+// like the current default: Arabic places the name first ("قطن 100%"), French and
+// English place the percentage first ("100% Coton" / "100% Cotton").
+function materialPart(percentage: number, name: string, lang: string): string {
+  return lang === "ar" ? `${name} ${percentage}%` : `${percentage}% ${name}`;
+}
+
+export type MaterialCompositionPart = { material: string; percentage: number };
+
+/**
+ * Localized composition label from structured data. A single material reads like
+ * the current T-shirt default ("100% Coton" / "قطن 100%" / "100% Cotton"); a blend
+ * lists every material and percentage joined with " · " ("67% Coton · 33% Polyester").
+ * Returns "" for an empty/absent composition so callers can fall back to the legacy
+ * `material` string via {@link localizedMaterial}.
+ */
+export function localizedComposition(
+  composition: MaterialCompositionPart[] | null | undefined,
+  lang: string
+): string {
+  if (!composition || composition.length === 0) return "";
+  return composition
+    .map((c) => materialPart(c.percentage, materialName(c.material, lang), lang))
+    .join(" · ");
 }
 
 export type { LangCode };

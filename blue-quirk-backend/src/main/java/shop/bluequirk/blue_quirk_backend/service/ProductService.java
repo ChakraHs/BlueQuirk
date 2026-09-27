@@ -10,8 +10,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -31,7 +34,10 @@ import shop.bluequirk.blue_quirk_backend.dto.AdminProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeValueDto;
 import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
+import shop.bluequirk.blue_quirk_backend.dto.MaterialComponentDto;
+import shop.bluequirk.blue_quirk_backend.domain.MaterialType;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
+import shop.bluequirk.blue_quirk_backend.domain.ProductType;
 import shop.bluequirk.blue_quirk_backend.dto.ProductDTO;
 import shop.bluequirk.blue_quirk_backend.dto.ProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.ProductTranslationDto;
@@ -41,6 +47,7 @@ import shop.bluequirk.blue_quirk_backend.entity.Attribute;
 import shop.bluequirk.blue_quirk_backend.entity.AttributeValue;
 import shop.bluequirk.blue_quirk_backend.entity.Category;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
+import shop.bluequirk.blue_quirk_backend.entity.MaterialComponent;
 import shop.bluequirk.blue_quirk_backend.entity.Product;
 import shop.bluequirk.blue_quirk_backend.entity.ProductVideo;
 import shop.bluequirk.blue_quirk_backend.entity.translation.CategoryTranslation;
@@ -117,11 +124,19 @@ public class ProductService {
             existing.setStockQuantity(dto.getStockQuantity());
         }
     	existing.setDescription(dto.getDescription());
+        // Product type: only overwrite when submitted, so an omitting form never
+        // flips the stored type.
+        if (dto.getProductType() != null) {
+            existing.setProductType(dto.getProductType());
+        }
         // Only overwrite the material when the admin actually submitted one, so a
         // form that omits it never wipes the stored value.
         if (dto.getMaterial() != null && !dto.getMaterial().isBlank()) {
             existing.setMaterial(dto.getMaterial().trim());
         }
+        // Structured composition: null leaves it untouched; a submitted list is
+        // validated, replaces the stored composition, and re-derives `material`.
+        applyMaterialComposition(existing, dto.getMaterialComposition());
         if (dto.getFabricWeight() != null) {
             existing.setFabricWeight(normalizedFabricWeight(dto.getFabricWeight()));
         }
@@ -336,7 +351,9 @@ public class ProductService {
             displayCompareAt(product),
             product.getStockQuantity(),
             resolveDescription(product, lang),
+            resolveProductType(product),
             product.getMaterial(),
+            resolveComposition(product),
             product.getFabricWeight(),
             product.getFit(),
             product.getStatus(),
@@ -454,6 +471,147 @@ public class ProductService {
     /** Trims the submitted material, falling back to the default when blank. */
     private String normalizedMaterial(String material) {
         return (material == null || material.isBlank()) ? DEFAULT_MATERIAL : material.trim();
+    }
+
+    /* ----------------------- product type + composition ---------------------- */
+
+    /** Physical type for the response — legacy null rows resolve to T_SHIRT so
+     *  every pre-existing product keeps behaving as a T-shirt. */
+    private ProductType resolveProductType(Product product) {
+        return product.getProductType() != null ? product.getProductType() : ProductType.T_SHIRT;
+    }
+
+    /**
+     * Validates a submitted material composition and applies it to the product,
+     * MUTATING the managed element collection in place (element collections don't
+     * tolerate being swapped for a fresh instance). A null list leaves the stored
+     * composition untouched; an empty list clears it. Each percentage must be a
+     * positive whole number and the entries must total exactly 100 — otherwise a
+     * 400 is thrown. When a non-empty composition is applied, the denormalized
+     * {@code material} string is re-derived from it so legacy consumers keep
+     * working.
+     */
+    private void applyMaterialComposition(Product product, List<MaterialComponentDto> incoming) {
+        if (incoming == null) {
+            return; // caller decides when composition should be left untouched
+        }
+
+        List<MaterialComponent> parsed = new ArrayList<>();
+        int total = 0;
+        for (MaterialComponentDto dto : incoming) {
+            if (dto == null) continue;
+            MaterialType type = parseMaterialType(dto.material());
+            Integer pct = dto.percentage();
+            if (pct == null || pct <= 0) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Each material percentage must be a positive whole number");
+            }
+            parsed.add(new MaterialComponent(type, pct));
+            total += pct;
+        }
+        if (!parsed.isEmpty() && total != 100) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Material composition must total 100% (got " + total + "%)");
+        }
+
+        List<MaterialComponent> managed = product.getMaterialComposition();
+        if (managed == null) {
+            managed = new ArrayList<>();
+            product.setMaterialComposition(managed);
+        }
+        managed.clear();
+        managed.addAll(parsed);
+
+        if (!parsed.isEmpty()) {
+            product.setMaterial(deriveMaterialString(parsed));
+        }
+    }
+
+    /** Parses a material name to its enum, throwing a 400 on unknown/blank input. */
+    private MaterialType parseMaterialType(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Material is required");
+        }
+        try {
+            return MaterialType.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown material: " + raw);
+        }
+    }
+
+    /** Denormalized English composition string cached on {@code material} for
+     *  legacy consumers, e.g. "100% Cotton" or "67% Cotton, 33% Polyester". */
+    private String deriveMaterialString(List<MaterialComponent> composition) {
+        return composition.stream()
+                .map(c -> c.getPercentage() + "% " + materialEnglishName(c.getMaterial()))
+                .collect(Collectors.joining(", "));
+    }
+
+    private String materialEnglishName(MaterialType type) {
+        return switch (type) {
+            case COTTON -> "Cotton";
+            case POLYESTER -> "Polyester";
+        };
+    }
+
+    /**
+     * Structured composition for the response: the stored composition when the
+     * product has one, otherwise a best-effort parse of the legacy {@code material}
+     * string (so pre-existing "100% Cotton" rows still expose structured data). An
+     * empty list means "couldn't resolve" — the storefront then falls back to the
+     * raw {@code material} string. Parsing never mutates stored data.
+     */
+    private List<MaterialComponentDto> resolveComposition(Product product) {
+        List<MaterialComponent> stored = product.getMaterialComposition();
+        if (stored != null && !stored.isEmpty()) {
+            return stored.stream()
+                    .map(c -> new MaterialComponentDto(c.getMaterial().name(), c.getPercentage()))
+                    .collect(Collectors.toList());
+        }
+        return parseLegacyMaterial(product.getMaterial());
+    }
+
+    private static final Pattern NUMBER = Pattern.compile("\\d{1,3}");
+
+    /**
+     * Best-effort parse of a free-text material string ("100% Cotton", "100% Coton",
+     * "قطن 100%", "67% Cotton, 33% Polyester") into structured components. Returns
+     * an empty list when any segment is unrecognized or the total isn't 100, so an
+     * unusual custom material simply falls through to the raw-string display.
+     */
+    private List<MaterialComponentDto> parseLegacyMaterial(String material) {
+        if (material == null || material.isBlank()) {
+            return List.of();
+        }
+        List<MaterialComponentDto> out = new ArrayList<>();
+        int total = 0;
+        for (String segment : material.split("[,+·]")) {
+            if (segment.isBlank()) continue;
+            MaterialType type = matchMaterialKeyword(segment);
+            Integer pct = firstNumber(segment);
+            if (type == null || pct == null || pct <= 0) {
+                return List.of();
+            }
+            out.add(new MaterialComponentDto(type.name(), pct));
+            total += pct;
+        }
+        return (out.isEmpty() || total != 100) ? List.of() : out;
+    }
+
+    private MaterialType matchMaterialKeyword(String segment) {
+        String low = segment.toLowerCase(Locale.ROOT);
+        if (low.contains("cotton") || low.contains("coton") || segment.contains("قطن")) {
+            return MaterialType.COTTON;
+        }
+        if (low.contains("polyester") || segment.contains("بوليستر") || segment.contains("بوليستير")) {
+            return MaterialType.POLYESTER;
+        }
+        return null;
+    }
+
+    private Integer firstNumber(String segment) {
+        Matcher m = NUMBER.matcher(segment);
+        return m.find() ? Integer.valueOf(m.group()) : null;
     }
 
     /** Optional storefront fact: blank input clears the value rather than
@@ -650,7 +808,11 @@ public class ProductService {
         product.setCost(dto.getCost() != null ? validatedCost(dto.getCost()) : 0);
         product.setStockQuantity(dto.getStockQuantity() != null ? dto.getStockQuantity() : 0);
         product.setDescription(dto.getDescription());
+        product.setProductType(dto.getProductType() != null ? dto.getProductType() : ProductType.T_SHIRT);
         product.setMaterial(normalizedMaterial(dto.getMaterial()));
+        // Structured composition (when provided) is validated and also derives the
+        // `material` string above, so it wins over the raw material for consistency.
+        applyMaterialComposition(product, dto.getMaterialComposition());
         product.setFabricWeight(normalizedFabricWeight(dto.getFabricWeight()));
         product.setFit(normalizedOptionalFact(dto.getFit()));
         product.setStatus(dto.getStatus());
@@ -715,7 +877,9 @@ public class ProductService {
                 displayCompareAt(product),
                 product.getStockQuantity(),
                 resolveDescription(product, lang),
+                resolveProductType(product),
                 product.getMaterial(),
+                resolveComposition(product),
                 product.getFabricWeight(),
                 product.getFit(),
                 product.getStatus(),

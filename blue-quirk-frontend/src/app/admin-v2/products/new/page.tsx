@@ -5,10 +5,13 @@ import { useRouter } from "next/navigation";
 import { ProductService } from "@/services/product.service";
 import { AttributeService } from "@/services/attribute.service";
 import { Attribute } from "@/types/attribute";
-import { ProductImage, ProductVideo } from "@/types/product";
+import { MaterialComponent, ProductImage, ProductVideo } from "@/types/product";
 import ProductImageManager from "@/components/admin/ProductImageManager";
 import ProductVideoManager from "@/components/admin/ProductVideoManager";
 import PricingFields from "@/components/admin/PricingFields";
+import MaterialCompositionEditor, {
+  isCompositionValid,
+} from "@/components/admin/MaterialCompositionEditor";
 import { colorOptionsFromAttributes, findColorAttribute } from "@/lib/colorImages";
 import { colorSwatch, isLightColor, colorLabel } from "@/lib/colors";
 import ProductTranslationsEditor, {
@@ -42,11 +45,16 @@ export default function NewProductPage() {
     compareAtPrice: 0,
     stockQuantity: 0,
     description: "",
-    material: "100% Cotton",
+    productType: "T_SHIRT",
     fabricWeight: "",
     fit: "",
     status: "PUBLISHED",
   });
+  // Structured material composition (Cotton 100%, or a blend). Defaults to 100%
+  // Cotton — the shop's standard — so a new product is valid out of the box.
+  const [materialComposition, setMaterialComposition] = useState<MaterialComponent[]>([
+    { material: "COTTON", percentage: 100 },
+  ]);
   const [translations, setTranslations] = useState<TranslationDrafts>(
     emptyTranslationDrafts()
   );
@@ -89,6 +97,11 @@ export default function NewProductPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!isCompositionValid(materialComposition)) {
+      alert("Material composition must total 100%, with a positive percentage for each material.");
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -98,6 +111,7 @@ export default function NewProductPage() {
         cost: Number(form.cost),
         compareAtPrice: Number(form.compareAtPrice) || 0,
         stockQuantity: Number(form.stockQuantity),
+        materialComposition,
         attributes,
         images,
         video,
@@ -141,6 +155,25 @@ export default function NewProductPage() {
                          text-gray-900 placeholder-gray-400
                          focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
             />
+          </div>
+
+          {/* Product type — the physical garment (drives the size guide). Kept
+              separate from marketing categories. */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Product type
+            </label>
+            <select
+              name="productType"
+              value={form.productType}
+              onChange={handleChange}
+              className="w-full border border-gray-300 rounded-md px-3 py-2
+                         text-gray-900
+                         focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
+            >
+              <option value="T_SHIRT">T-shirt</option>
+              <option value="HOODIE">Hoodie</option>
+            </select>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
@@ -198,24 +231,11 @@ export default function NewProductPage() {
             />
           </div>
 
-          {/* Materials / composition */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Materials
-            </label>
-            <input
-              name="material"
-              placeholder="e.g. 100% Cotton"
-              value={form.material}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2
-                         text-gray-900 placeholder-gray-400
-                         focus:outline-none focus:ring-2 focus:ring-black focus:border-black"
-            />
-            <p className="mt-1 text-xs text-gray-400">
-              Shown in the product highlights (composition). Defaults to 100% Cotton.
-            </p>
-          </div>
+          {/* Materials / composition (structured; must total 100%) */}
+          <MaterialCompositionEditor
+            value={materialComposition}
+            onChange={setMaterialComposition}
+          />
 
           {/* Description */}
           <div>

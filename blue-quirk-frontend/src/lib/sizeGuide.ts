@@ -19,6 +19,46 @@ export const SIZE_GUIDE: readonly SizeGuideRow[] = [
   { size: "XXL", chest: 58, length: 78 },
 ] as const;
 
+// --- Per-product-type size guides ------------------------------------------
+//
+// The Size Guide dialog picks a guide by the product's type so a T-shirt page
+// shows the T-shirt chart/illustration and a hoodie page shows the hoodie's.
+
+export type ProductKind = "T_SHIRT" | "HOODIE";
+
+export type SizeGuideDef = {
+  /** When false the guide is not verified/published yet: the dialog shows a
+   *  "measurements coming soon / contact us" state instead of a chart, rather
+   *  than reusing another garment's illustration or inventing numbers. */
+  ready: boolean;
+  /** Public path of the flat-lay illustration, or null when none exists yet. */
+  image: string | null;
+  /** Flat-lay measurement rows (empty until verified data is supplied). */
+  rows: readonly SizeGuideRow[];
+};
+
+// Hoodie flat-lay measurements (cm), supplied by the shop. `chest` (A) is
+// pit-to-pit half-chest; `length` (B) is highest shoulder point → bottom hem —
+// the same conventions as the T-shirt guide, so the dialog renders them the same.
+const HOODIE_SIZE_GUIDE: readonly SizeGuideRow[] = [
+  { size: "S", chest: 61, length: 67 },
+  { size: "M", chest: 63, length: 69 },
+  { size: "L", chest: 65, length: 73 },
+  { size: "XL", chest: 67, length: 75 },
+  { size: "XXL", chest: 69, length: 77 },
+] as const;
+
+export const SIZE_GUIDES: Record<ProductKind, SizeGuideDef> = {
+  T_SHIRT: { ready: true, image: "/size-guide.png", rows: SIZE_GUIDE },
+  HOODIE: { ready: true, image: "/hoodie-size-guide.png", rows: HOODIE_SIZE_GUIDE },
+};
+
+/** The size guide for a product type ("HOODIE" → hoodie, everything else and
+ *  legacy null → the T-shirt guide). */
+export function sizeGuideFor(kind: string | null | undefined): SizeGuideDef {
+  return kind === "HOODIE" ? SIZE_GUIDES.HOODIE : SIZE_GUIDES.T_SHIRT;
+}
+
 // --- Fit model -------------------------------------------------------------
 //
 // The recommender predicts the wearer's position on the SIZE_GUIDE ladder

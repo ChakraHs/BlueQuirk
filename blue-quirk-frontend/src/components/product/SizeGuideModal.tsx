@@ -10,8 +10,8 @@
 // the bottom hem.
 import { useEffect, useRef } from "react";
 import Image from "next/image";
-import { X, Ruler, Lightbulb } from "lucide-react";
-import { SIZE_GUIDE } from "@/lib/sizeGuide";
+import { X, Ruler, Lightbulb, Info } from "lucide-react";
+import { sizeGuideFor } from "@/lib/sizeGuide";
 
 const COPY = {
   fr: {
@@ -20,6 +20,8 @@ const COPY = {
     proTip: "Astuce de pro",
     tipBody:
       "Mesurez l'un de vos t-shirts à la maison et comparez-le à ce guide pour un ajustement parfait.",
+    tipBodyHoodie:
+      "Mesurez l'un de vos hoodies préférés et comparez-le à ce guide pour une coupe oversize parfaite.",
     size: "Taille",
     chest: "Poitrine (A)",
     length: "Longueur (B)",
@@ -29,6 +31,10 @@ const COPY = {
       "Mesures du vêtement posé à plat. Les mesures réelles peuvent varier jusqu'à 2 cm.",
     close: "Fermer",
     diagramAlt: "T-shirt indiquant la mesure A (poitrine) et la mesure B (longueur)",
+    diagramAltHoodie: "Hoodie indiquant la mesure A (poitrine) et la mesure B (longueur)",
+    comingSoonTitle: "Guide des tailles bientôt disponible",
+    comingSoonBody:
+      "Le guide des tailles pour les hoodies est en cours de finalisation. Contactez-nous pour les mesures exactes avant de commander.",
   },
   ar: {
     title: "دليل المقاسات",
@@ -36,6 +42,8 @@ const COPY = {
     proTip: "نصيحة احترافية",
     tipBody:
       "قِس أحد قمصانك في المنزل وقارنه بهذا الدليل للحصول على أفضل مقاس.",
+    tipBodyHoodie:
+      "قِس أحد الهوديز المفضّلة لديك وقارنه بهذا الدليل للحصول على قصّة أوسع مثالية.",
     size: "المقاس",
     chest: "الصدر (A)",
     length: "الطول (B)",
@@ -45,6 +53,10 @@ const COPY = {
       "قياسات الملابس وهي مفرودة. قد تختلف القياسات الفعلية حتى 2 سم.",
     close: "إغلاق",
     diagramAlt: "قميص يوضّح قياس A (الصدر) وقياس B (الطول)",
+    diagramAltHoodie: "هودي يوضّح قياس A (الصدر) وقياس B (الطول)",
+    comingSoonTitle: "دليل مقاسات الهودي قريباً",
+    comingSoonBody:
+      "دليل مقاسات الهودي قيد الإعداد حالياً. تواصل معنا للحصول على القياسات الدقيقة قبل الطلب.",
   },
   en: {
     title: "Size guide",
@@ -52,6 +64,8 @@ const COPY = {
     proTip: "Pro tip",
     tipBody:
       "Measure one of your t-shirts at home and compare it to this guide for a perfect fit.",
+    tipBodyHoodie:
+      "Measure one of your favorite hoodies and compare it to this guide for the perfect oversized fit.",
     size: "Size",
     chest: "Chest (A)",
     length: "Length (B)",
@@ -61,6 +75,10 @@ const COPY = {
       "Flat-lay garment measurements. Actual measurements may vary by up to 2 cm.",
     close: "Close",
     diagramAlt: "T-shirt showing measurement A (chest) and measurement B (length)",
+    diagramAltHoodie: "Hoodie showing measurement A (chest) and measurement B (length)",
+    comingSoonTitle: "Hoodie size guide coming soon",
+    comingSoonBody:
+      "The hoodie size guide is being finalized. Contact us for the exact measurements before ordering.",
   },
 } as const;
 
@@ -68,13 +86,25 @@ export default function SizeGuideModal({
   open,
   onClose,
   lang = "fr",
+  productType,
 }: {
   open: boolean;
   onClose: () => void;
   lang?: string;
+  // Drives which guide is shown (T-shirt vs hoodie). Legacy/undefined → T-shirt.
+  productType?: string;
 }) {
   const closeRef = useRef<HTMLButtonElement>(null);
   const t = lang === "ar" ? COPY.ar : lang === "en" ? COPY.en : COPY.fr;
+  // Guide selected by product type. When it isn't published yet (no verified
+  // chart/illustration) we show a "coming soon" state instead of a fabricated
+  // table or the wrong garment's illustration.
+  const guide = sizeGuideFor(productType);
+  // Garment-specific illustration alt + pro tip (the rest of the copy is
+  // garment-agnostic and shared).
+  const isHoodie = productType === "HOODIE";
+  const diagramAlt = isHoodie ? t.diagramAltHoodie : t.diagramAlt;
+  const tipBody = isHoodie ? t.tipBodyHoodie : t.tipBody;
 
   useEffect(() => {
     if (!open) return;
@@ -142,87 +172,104 @@ export default function SizeGuideModal({
 
         {/* body (scrollable) */}
         <div className="overflow-y-auto px-6 py-6">
-          <div className="grid gap-6 sm:grid-cols-2">
-            {/* illustration */}
-            <figure className="flex items-center justify-center rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100/60 p-4">
-              <Image
-                src="/size-guide.png"
-                alt={t.diagramAlt}
-                width={400}
-                height={420}
-                priority
-                className="h-auto w-full max-w-[240px] object-contain"
-              />
-            </figure>
-
-            {/* measurement legend */}
-            <div className="flex flex-col justify-center gap-4">
-              <Legend
-                badge="A"
-                badgeClass="bg-blue-600"
-                title={t.chest}
-                desc={t.chestDesc}
-              />
-              <Legend
-                badge="B"
-                badgeClass="bg-emerald-600"
-                title={t.length}
-                desc={t.lengthDesc}
-              />
-
-              {/* pro tip */}
-              <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
-                <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-500" />
-                <p>
-                  <strong>{t.proTip}.</strong> {t.tipBody}
-                </p>
-              </div>
+          {!guide.ready ? (
+            // Guide not published for this garment yet (e.g. hoodies): show an
+            // honest "coming soon" state — never the wrong garment's chart/image
+            // or invented measurements.
+            <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-200 bg-gray-50/70 px-6 py-10 text-center">
+              <span className="flex size-12 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                <Info className="size-6" />
+              </span>
+              <p className="text-base font-semibold text-gray-900">{t.comingSoonTitle}</p>
+              <p className="max-w-sm text-sm leading-relaxed text-gray-500">{t.comingSoonBody}</p>
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="grid gap-6 sm:grid-cols-2">
+                {/* illustration */}
+                {guide.image && (
+                  <figure className="flex items-center justify-center rounded-2xl border border-gray-200 bg-gradient-to-br from-gray-50 to-gray-100/60 p-4">
+                    <Image
+                      src={guide.image}
+                      alt={diagramAlt}
+                      width={400}
+                      height={420}
+                      priority
+                      className="h-auto w-full max-w-[240px] object-contain"
+                    />
+                  </figure>
+                )}
 
-          {/* table */}
-          <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
-            <table className="w-full border-collapse text-sm">
-              <thead>
-                <tr className="bg-gray-900 text-gray-50">
-                  <th className="px-4 py-3 text-start font-semibold">{t.size}</th>
-                  <th className="px-4 py-3 text-center font-semibold">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-blue-400" />
-                      {t.chest}
-                    </span>
-                  </th>
-                  <th className="px-4 py-3 text-center font-semibold">
-                    <span className="inline-flex items-center gap-1.5">
-                      <span className="size-2 rounded-full bg-emerald-400" />
-                      {t.length}
-                    </span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {SIZE_GUIDE.map((row, i) => (
-                  <tr
-                    key={row.size}
-                    className={i % 2 === 0 ? "bg-surface" : "bg-gray-50/70"}
-                  >
-                    <td className="px-4 py-3 text-start font-bold text-gray-900">
-                      {row.size}
-                    </td>
-                    <td className="px-4 py-3 text-center tabular-nums text-gray-700">
-                      {row.chest} cm
-                    </td>
-                    <td className="px-4 py-3 text-center tabular-nums text-gray-700">
-                      {row.length} cm
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                {/* measurement legend */}
+                <div className="flex flex-col justify-center gap-4">
+                  <Legend
+                    badge="A"
+                    badgeClass="bg-blue-600"
+                    title={t.chest}
+                    desc={t.chestDesc}
+                  />
+                  <Legend
+                    badge="B"
+                    badgeClass="bg-emerald-600"
+                    title={t.length}
+                    desc={t.lengthDesc}
+                  />
 
-          {/* disclaimer */}
-          <p className="mt-4 text-xs leading-relaxed text-gray-500">{t.disclaimer}</p>
+                  {/* pro tip */}
+                  <div className="flex items-start gap-2.5 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                    <p>
+                      <strong>{t.proTip}.</strong> {tipBody}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* table */}
+              <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="bg-gray-900 text-gray-50">
+                      <th className="px-4 py-3 text-start font-semibold">{t.size}</th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="size-2 rounded-full bg-blue-400" />
+                          {t.chest}
+                        </span>
+                      </th>
+                      <th className="px-4 py-3 text-center font-semibold">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="size-2 rounded-full bg-emerald-400" />
+                          {t.length}
+                        </span>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {guide.rows.map((row, i) => (
+                      <tr
+                        key={row.size}
+                        className={i % 2 === 0 ? "bg-surface" : "bg-gray-50/70"}
+                      >
+                        <td className="px-4 py-3 text-start font-bold text-gray-900">
+                          {row.size}
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums text-gray-700">
+                          {row.chest} cm
+                        </td>
+                        <td className="px-4 py-3 text-center tabular-nums text-gray-700">
+                          {row.length} cm
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* disclaimer */}
+              <p className="mt-4 text-xs leading-relaxed text-gray-500">{t.disclaimer}</p>
+            </>
+          )}
         </div>
       </div>
     </div>

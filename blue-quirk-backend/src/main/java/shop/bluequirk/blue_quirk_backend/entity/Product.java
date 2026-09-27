@@ -2,7 +2,9 @@ package shop.bluequirk.blue_quirk_backend.entity;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.hibernate.annotations.BatchSize;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
+import shop.bluequirk.blue_quirk_backend.domain.ProductType;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
 
 import java.time.LocalDateTime;
@@ -27,12 +29,41 @@ public class Product {
     @Lob
     private String description; // will store HTML text
 
+    // Physical garment type. Kept separate from the marketing `categories`
+    // taxonomy (Botanical, Playful…): a product is exactly one type but can sit
+    // in several categories. Nullable so existing rows migrate cleanly — the
+    // service reads a null type as T_SHIRT, so every pre-existing product keeps
+    // behaving as a T-shirt. Drives the storefront size guide (T-shirt vs hoodie).
+    @Enumerated(EnumType.STRING)
+    @Column(name = "product_type")
+    private ProductType productType = ProductType.T_SHIRT;
+
     // Materials / composition of the product (e.g. "100% Cotton"). Purely
     // descriptive (not a variant) — shown in the storefront "Product Highlights"
     // and editable from the admin product form. Defaults to "100% Cotton" so
     // pre-existing products and new ones always have a sensible value.
+    //
+    // This is a denormalized display cache kept in sync with the structured
+    // `materialComposition` below: when a composition is submitted, the service
+    // derives this string from it ("67% Cotton, 33% Polyester") so the many
+    // legacy consumers of `material` keep working unchanged.
     @Column(name = "material")
     private String material = "100% Cotton";
+
+    // Structured material composition — the authoritative per-material breakdown
+    // (Cotton 67% + Polyester 33%). Ordered so the storefront renders it in the
+    // admin's chosen order; percentages are validated (>0, total 100) by the
+    // service before persisting. Empty for legacy rows that predate the column;
+    // the service falls back to (or parses) the `material` string above for them.
+    // BatchSize keeps list endpoints from N+1-loading each product's composition.
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
+        name = "product_material_components",
+        joinColumns = @JoinColumn(name = "product_id")
+    )
+    @OrderColumn(name = "position")
+    @BatchSize(size = 64)
+    private List<MaterialComponent> materialComposition = new ArrayList<>();
 
     // Optional editorial product facts. These are product properties (not
     // purchasable variants) selected by the admin and shown beside material on
@@ -149,8 +180,16 @@ public class Product {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
+    public ProductType getProductType() { return productType; }
+    public void setProductType(ProductType productType) { this.productType = productType; }
+
     public String getMaterial() { return material; }
     public void setMaterial(String material) { this.material = material; }
+
+    public List<MaterialComponent> getMaterialComposition() { return materialComposition; }
+    public void setMaterialComposition(List<MaterialComponent> materialComposition) {
+        this.materialComposition = materialComposition;
+    }
 
     public String getFabricWeight() { return fabricWeight; }
     public void setFabricWeight(String fabricWeight) { this.fabricWeight = fabricWeight; }
