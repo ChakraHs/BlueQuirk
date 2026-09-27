@@ -12,6 +12,7 @@ import PricingFields from "@/components/admin/PricingFields";
 import MaterialCompositionEditor, {
   isCompositionValid,
 } from "@/components/admin/MaterialCompositionEditor";
+import CareGuideSelect from "@/components/admin/CareGuideSelect";
 import { colorOptionsFromAttributes, findColorAttribute } from "@/lib/colorImages";
 import { colorSwatch, isLightColor, colorLabel } from "@/lib/colors";
 import ProductTranslationsEditor, {
@@ -55,6 +56,8 @@ export default function NewProductPage() {
   const [materialComposition, setMaterialComposition] = useState<MaterialComponent[]>([
     { material: "COTTON", percentage: 100 },
   ]);
+  // Optional Care & Wear guide (0 = none). Sent to the backend as careGuideTemplateId.
+  const [careGuideTemplateId, setCareGuideTemplateId] = useState(0);
   const [translations, setTranslations] = useState<TranslationDrafts>(
     emptyTranslationDrafts()
   );
@@ -112,6 +115,7 @@ export default function NewProductPage() {
         compareAtPrice: Number(form.compareAtPrice) || 0,
         stockQuantity: Number(form.stockQuantity),
         materialComposition,
+        careGuideTemplateId,
         attributes,
         images,
         video,
@@ -236,6 +240,9 @@ export default function NewProductPage() {
             value={materialComposition}
             onChange={setMaterialComposition}
           />
+
+          {/* Optional Care & Wear guide */}
+          <CareGuideSelect value={careGuideTemplateId} onChange={setCareGuideTemplateId} />
 
           {/* Description */}
           <div>

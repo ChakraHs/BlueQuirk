@@ -11,6 +11,7 @@ import PricingFields from "@/components/admin/PricingFields";
 import MaterialCompositionEditor, {
   isCompositionValid,
 } from "@/components/admin/MaterialCompositionEditor";
+import CareGuideSelect from "@/components/admin/CareGuideSelect";
 import ProductTranslationsEditor, {
   TranslationDrafts,
   emptyTranslationDrafts,
@@ -64,6 +65,9 @@ export default function EditProductPage() {
   const [materialComposition, setMaterialComposition] = useState<MaterialComponent[]>([
     { material: "COTTON", percentage: 100 },
   ]);
+  // Attached Care & Wear guide (0 = none). Prefilled from the product; resubmitting
+  // it keeps the attachment when other fields are edited.
+  const [careGuideTemplateId, setCareGuideTemplateId] = useState(0);
   const colorOptions = useMemo(() => colorOptionsFromAttributes(attributes), [attributes]);
   // Id of the COLOR attribute so its values render as swatches (not text) below.
   const colorAttributeId = useMemo(
@@ -131,6 +135,7 @@ export default function EditProductPage() {
             ? p.materialComposition
             : [{ material: "COTTON", percentage: 100 }]
         );
+        setCareGuideTemplateId(p.careGuideTemplateId ?? 0);
       } catch {
         setError("Product not found.");
       } finally {
@@ -191,6 +196,7 @@ export default function EditProductPage() {
         compareAtPrice: Number(form.compareAtPrice) || 0,
         stockQuantity: Number(form.stockQuantity),
         materialComposition,
+        careGuideTemplateId,
         attributes,
         images,
         video,
@@ -333,6 +339,9 @@ export default function EditProductPage() {
             value={materialComposition}
             onChange={setMaterialComposition}
           />
+
+          {/* Optional Care & Wear guide */}
+          <CareGuideSelect value={careGuideTemplateId} onChange={setCareGuideTemplateId} />
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">

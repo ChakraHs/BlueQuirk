@@ -5,6 +5,7 @@ import { ChevronRight } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import ProductDetailClient from "@/components/product/ProductDetailClient";
 import ProductReviews from "@/components/product/reviews/ProductReviews";
+import CareGuide from "@/components/product/CareGuide";
 import { ProductService } from "@/services/product.service";
 import {
   fetchReviewSummary,
@@ -264,6 +265,12 @@ export default async function ProductPage({
           initial={reviewPage}
           photos={reviewPhotos}
         />
+      )}
+
+      {/* "Care & Wear" guide — immediately after the reviews, before related
+          products. Hidden when the product has no attached guide. */}
+      {product.careGuide && product.careGuide.sections.length > 0 && (
+        <CareGuide guide={product.careGuide} lang={lang} />
       )}
 
       {!!relatedProducts.length && (

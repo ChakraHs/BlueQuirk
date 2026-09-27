@@ -26,6 +26,7 @@ import {
   Star,
   MapPin,
   Wallet,
+  Droplets,
   type LucideIcon,
 } from "lucide-react";
 
@@ -51,6 +52,7 @@ const groups: Group[] = [
       { name: "Products", href: "/admin-v2/products", icon: Package },
       { name: "Categories", href: "/admin-v2/categories", icon: Tags },
       { name: "Attributes", href: "/admin-v2/attributes", icon: SlidersHorizontal },
+      { name: "Care & Wear", href: "/admin-v2/care-guides", icon: Droplets },
     ],
   },
   {

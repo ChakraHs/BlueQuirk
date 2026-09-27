@@ -1,6 +1,15 @@
 /** Physical garment type. Kept separate from marketing categories. */
 export type ProductType = "T_SHIRT" | "HOODIE";
 
+/** A "Care & Wear" guide resolved to the page language for the storefront. Each
+ *  section's `key` maps to a fixed localized title (see care.* in lib/i18n);
+ *  `body` is the admin-authored plain text. */
+export type CareGuideSectionKey = "fabric" | "washDry" | "ironing" | "print" | "tips";
+export interface CareGuide {
+  templateId: number;
+  sections: { key: CareGuideSectionKey; body: string }[];
+}
+
 /** One line of a product's material composition (e.g. Cotton 67%). `material`
  *  is the backend MaterialType name ("COTTON" | "POLYESTER" | …). */
 export interface MaterialComponent {
@@ -31,6 +40,12 @@ export interface Product {
   // "Oversized"). Optional so products without them make no claim.
   fabricWeight?: string | null;
   fit?: string | null;
+  // Attached "Care & Wear" guide template id (for the admin edit form). Null when
+  // the product has none. Only present on the single-product read.
+  careGuideTemplateId?: number | null;
+  // The care guide resolved to the page language (storefront). Absent/null when the
+  // product has no guide — the PDP then hides the "Care & Wear" section.
+  careGuide?: CareGuide | null;
   quantity?: number;
   stockQuantity?: number;
   status: string;

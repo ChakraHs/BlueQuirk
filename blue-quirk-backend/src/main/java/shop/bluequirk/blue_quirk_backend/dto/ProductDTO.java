@@ -36,6 +36,10 @@ public class ProductDTO {
     private List<MaterialComponentDto> materialComposition;
     private String fabricWeight;
     private String fit;
+    // Optional "Care & Wear" guide attachment. Tri-state so an unrelated edit never
+    // detaches it: null = leave the current guide untouched; <= 0 = clear it (none);
+    // > 0 = attach that care-guide template (validated to exist).
+    private Long careGuideTemplateId;
     private ProductStatus status;
     
     private Set<Image> images;
@@ -101,6 +105,9 @@ public class ProductDTO {
 
     public String getFit() { return fit; }
     public void setFit(String fit) { this.fit = fit; }
+
+    public Long getCareGuideTemplateId() { return careGuideTemplateId; }
+    public void setCareGuideTemplateId(Long careGuideTemplateId) { this.careGuideTemplateId = careGuideTemplateId; }
 
     public Set<AttributeDto> getAttributes() { return attributes; }
     public void setAttributes(Set<AttributeDto> attributes) { this.attributes = attributes; }

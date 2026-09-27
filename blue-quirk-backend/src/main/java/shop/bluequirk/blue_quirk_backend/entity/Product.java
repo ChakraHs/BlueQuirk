@@ -3,6 +3,7 @@ package shop.bluequirk.blue_quirk_backend.entity;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.hibernate.annotations.BatchSize;
+import shop.bluequirk.blue_quirk_backend.careguide.entity.CareGuideTemplate;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.domain.ProductType;
 import shop.bluequirk.blue_quirk_backend.entity.translation.ProductTranslation;
@@ -136,6 +137,14 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ProductTranslation> translations = new HashSet<>();
 
+    // Optional reusable "Care & Wear" guide (many products → one template). Null =
+    // no guide (the storefront hides the section). Referenced by id, so editing the
+    // template updates every product that uses it. Not a cascade: deleting a
+    // template is blocked by CareGuideService while any product still points here.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "care_guide_template_id")
+    private CareGuideTemplate careGuideTemplate;
+
     // --- Todify integration (all nullable; existing products are unaffected) ---
     // The linked Todify template id (UUID). Null = a normal local-only product.
     @Column(name = "todify_template_id")
@@ -235,6 +244,11 @@ public class Product {
 
     public void setTranslations(Set<ProductTranslation> translations) {
         this.translations = translations;
+    }
+
+    public CareGuideTemplate getCareGuideTemplate() { return careGuideTemplate; }
+    public void setCareGuideTemplate(CareGuideTemplate careGuideTemplate) {
+        this.careGuideTemplate = careGuideTemplate;
     }
 
     public String getTodifyTemplateId() { return todifyTemplateId; }

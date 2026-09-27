@@ -2,6 +2,7 @@ package shop.bluequirk.blue_quirk_backend.dto;
 
 import java.util.List;
 
+import shop.bluequirk.blue_quirk_backend.careguide.dto.CareGuidePublic;
 import shop.bluequirk.blue_quirk_backend.domain.ProductStatus;
 import shop.bluequirk.blue_quirk_backend.domain.ProductType;
 import shop.bluequirk.blue_quirk_backend.entity.Image;
@@ -27,6 +28,15 @@ public record ProductResponse(
 	    List<MaterialComponentDto> materialComposition,
 	    String fabricWeight,
 	    String fit,
+	    // Attached care-guide template id (for the admin edit form to preselect it);
+	    // null when the product has no guide. Only populated on the single-product
+	    // read — list responses leave it null.
+	    Long careGuideTemplateId,
+	    // The care guide resolved to the request's language for the storefront
+	    // (title-less section bodies). Null when the product has no guide or on list
+	    // responses (only the product detail page needs it) — the storefront then
+	    // hides the "Care & Wear" section entirely.
+	    CareGuidePublic careGuide,
 	    ProductStatus status,
 	    List<Image> images,
 	    // Optional featured video — null when the product has none, so existing

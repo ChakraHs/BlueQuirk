@@ -33,6 +33,9 @@ import shop.bluequirk.blue_quirk_backend.analytics.repository.AnalyticsPageViewR
 import shop.bluequirk.blue_quirk_backend.dto.AdminProductResponse;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeDto;
 import shop.bluequirk.blue_quirk_backend.dto.AttributeValueDto;
+import shop.bluequirk.blue_quirk_backend.careguide.dto.CareGuidePublic;
+import shop.bluequirk.blue_quirk_backend.careguide.entity.CareGuideTemplate;
+import shop.bluequirk.blue_quirk_backend.careguide.repository.CareGuideTemplateRepository;
 import shop.bluequirk.blue_quirk_backend.dto.CategoryRef;
 import shop.bluequirk.blue_quirk_backend.dto.MaterialComponentDto;
 import shop.bluequirk.blue_quirk_backend.domain.MaterialType;
@@ -64,6 +67,7 @@ public class ProductService {
     private final ImageRepository imageRepository;
     private final AttributeRepository attributeRepository;
     private final CategoryRepository categoryRepository;
+    private final CareGuideTemplateRepository careGuideRepository;
     private final FinancialCalculationService finance;
     private final AnalyticsOrderStatsRepository orderStatsRepository;
     private final AnalyticsPageViewRepository pageViewRepository;
@@ -78,6 +82,7 @@ public class ProductService {
 
     public ProductService(ProductRepository productRepository, ImageRepository imageRepository,
             AttributeRepository attributeRepository, CategoryRepository categoryRepository,
+            CareGuideTemplateRepository careGuideRepository,
             FinancialCalculationService finance,
             AnalyticsOrderStatsRepository orderStatsRepository,
             AnalyticsPageViewRepository pageViewRepository,
@@ -86,6 +91,7 @@ public class ProductService {
         this.imageRepository = imageRepository;
         this.attributeRepository = attributeRepository;
         this.categoryRepository = categoryRepository;
+        this.careGuideRepository = careGuideRepository;
         this.finance = finance;
         this.orderStatsRepository = orderStatsRepository;
         this.pageViewRepository = pageViewRepository;
@@ -143,6 +149,9 @@ public class ProductService {
         if (dto.getFit() != null) {
             existing.setFit(normalizedOptionalFact(dto.getFit()));
         }
+        // Care guide: null leaves the current attachment untouched (so unrelated
+        // edits never detach it); <= 0 clears it; > 0 attaches that template.
+        applyCareGuide(existing, dto.getCareGuideTemplateId());
         existing.setStatus(dto.getStatus());
         applyImages(existing, dto.getImages());
         applyVideo(existing, dto.getVideo());
@@ -356,6 +365,8 @@ public class ProductService {
             resolveComposition(product),
             product.getFabricWeight(),
             product.getFit(),
+            careGuideTemplateId(product),
+            resolveCareGuide(product, lang),
             product.getStatus(),
             sortedImages(product),
             ProductVideoResponse.from(product.getVideo()),
@@ -479,6 +490,41 @@ public class ProductService {
      *  every pre-existing product keeps behaving as a T-shirt. */
     private ProductType resolveProductType(Product product) {
         return product.getProductType() != null ? product.getProductType() : ProductType.T_SHIRT;
+    }
+
+    /**
+     * Applies the tri-state care-guide attachment: {@code null} leaves the current
+     * attachment untouched (so editing unrelated product fields never detaches the
+     * guide); {@code <= 0} clears it; {@code > 0} attaches that template (validated
+     * to exist, else 400).
+     */
+    private void applyCareGuide(Product product, Long careGuideTemplateId) {
+        if (careGuideTemplateId == null) {
+            return; // leave untouched
+        }
+        if (careGuideTemplateId <= 0) {
+            product.setCareGuideTemplate(null);
+            return;
+        }
+        CareGuideTemplate template = careGuideRepository.findById(careGuideTemplateId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                        "Care guide template not found: " + careGuideTemplateId));
+        product.setCareGuideTemplate(template);
+    }
+
+    /** The attached template's id, or null when the product has no care guide. */
+    private Long careGuideTemplateId(Product product) {
+        return product.getCareGuideTemplate() != null ? product.getCareGuideTemplate().getId() : null;
+    }
+
+    /**
+     * The product's care guide resolved to {@code lang} for the storefront, or null
+     * when the product has none / it has no content. Called only on the single
+     * product read (the detail page), never on list responses, so it never causes an
+     * N+1 across a catalog page.
+     */
+    private CareGuidePublic resolveCareGuide(Product product, String lang) {
+        return CareGuidePublic.from(product.getCareGuideTemplate(), lang);
     }
 
     /**
@@ -815,6 +861,7 @@ public class ProductService {
         applyMaterialComposition(product, dto.getMaterialComposition());
         product.setFabricWeight(normalizedFabricWeight(dto.getFabricWeight()));
         product.setFit(normalizedOptionalFact(dto.getFit()));
+        applyCareGuide(product, dto.getCareGuideTemplateId());
         product.setStatus(dto.getStatus());
         applyImages(product, dto.getImages());
         applyVideo(product, dto.getVideo());
@@ -882,6 +929,10 @@ public class ProductService {
                 resolveComposition(product),
                 product.getFabricWeight(),
                 product.getFit(),
+                // Care guide is only needed on the product detail page — never load
+                // it for list cards (would be an N+1 across the catalog page).
+                null,
+                null,
                 product.getStatus(),
                 sortedImages(product),
                 ProductVideoResponse.from(product.getVideo()),
