@@ -103,7 +103,7 @@ export default function ProductReviews({
       id="reviews"
       ref={sectionRef}
       aria-label={t(lang, "reviews.sectionTitle")}
-      className="mx-auto max-w-7xl px-6 py-12 md:px-12"
+      className="mx-auto max-w-7xl px-6 py-8 md:px-12 md:py-12"
     >
       <div className="mb-8 flex flex-col gap-1">
         <h2 className="text-2xl font-semibold text-gray-900">

@@ -261,7 +261,7 @@ export default function Header({
             )}
 
             <div className="flex items-center justify-between gap-2 border-t border-gray-100 pt-2">
-              <LanguageSwitcher current={lang} />
+              <LanguageSwitcher current={lang} align="start" />
               <ThemeToggle lang={lang} />
             </div>
 

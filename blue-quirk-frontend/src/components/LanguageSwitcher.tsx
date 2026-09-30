@@ -14,7 +14,16 @@ import {
 import { getAuthUser } from "@/lib/auth";
 import { PreferenceService } from "@/services/preference.service";
 
-export default function LanguageSwitcher({ current }: { current: string }) {
+export default function LanguageSwitcher({
+  current,
+  // Which edge the dropdown aligns to. "end" (default) suits the header, where the
+  // switcher sits on the trailing side. In the mobile drawer the switcher is on the
+  // leading side, so "start" keeps the panel from spilling off the screen edge.
+  align = "end",
+}: {
+  current: string;
+  align?: "start" | "end";
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -78,7 +87,9 @@ export default function LanguageSwitcher({ current }: { current: string }) {
       {open && (
         <ul
           role="listbox"
-          className="absolute right-0 z-50 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-surface py-1 shadow-lg"
+          className={`absolute z-50 mt-2 w-44 overflow-hidden rounded-xl border border-gray-200 bg-surface py-1 shadow-lg ${
+            align === "start" ? "start-0" : "end-0"
+          }`}
         >
           {LANGS.map((lang) => {
             const selected = lang.code === active.code;

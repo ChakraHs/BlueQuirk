@@ -2,13 +2,14 @@
 
 // "Care & Wear" guide shown on the product detail page (after the reviews,
 // before the related products). By default it stays compact — only the first
-// couple of care sections are shown, with the rest folded behind a "See more"
-// toggle so the page reads clean and pro. Every section is still rendered into
-// the SSR HTML (the extra ones are just visually hidden until expanded), so the
-// content stays crawlable for SEO. The section title and each subsection label
-// are fixed localized strings; the bodies come from the product's attached care
-// guide, already resolved to the page language by the backend. Rendered only when
-// a guide exists (the page hides it otherwise), so there is no empty state here.
+// section shows, its body clamped to ~4 lines (trailing "…"), with everything
+// else folded behind a "See more" toggle so the page reads clean and pro. Every
+// section is still rendered into the SSR HTML (the extra ones are just visually
+// hidden, the first one just clamped, until expanded), so the content stays
+// crawlable for SEO. The section title and each subsection label are fixed
+// localized strings; the bodies come from the product's attached care guide,
+// already resolved to the page language by the backend. Rendered only when a
+// guide exists (the page hides it otherwise), so there is no empty state here.
 import { useState } from "react";
 import { ChevronDown, Droplets, Lightbulb, Shirt, Sparkles, Wind } from "lucide-react";
 import type { CareGuide as CareGuideData, CareGuideSectionKey } from "@/types/product";
@@ -23,8 +24,10 @@ const SECTION_META: Record<CareGuideSectionKey, { labelKey: string; icon: typeof
   tips: { labelKey: "care.tips", icon: Lightbulb },
 };
 
-// How many sections to show before collapsing the rest behind "See more".
-const COLLAPSED_COUNT = 2;
+// How many sections to show before collapsing the rest behind "See more". The
+// single visible section is additionally line-clamped to keep the teaser to ~4
+// lines.
+const COLLAPSED_COUNT = 1;
 
 export default function CareGuide({
   guide,
@@ -35,25 +38,31 @@ export default function CareGuide({
 }) {
   const isRtl = lang === "ar";
   const [expanded, setExpanded] = useState(false);
-  const hasMore = guide.sections.length > COLLAPSED_COUNT;
+  // Show the toggle whenever the collapsed teaser hides something — either extra
+  // sections, or a first section long enough that the 4-line clamp trims it.
+  const hasMore =
+    guide.sections.length > COLLAPSED_COUNT ||
+    (guide.sections[0]?.body.length ?? 0) > 160;
 
   return (
     <section
       aria-label={t(lang, "care.title")}
       dir={isRtl ? "rtl" : "ltr"}
-      className="mx-auto max-w-7xl px-6 py-12 md:px-12"
+      className="mx-auto max-w-7xl px-6 pb-8 pt-4 md:px-12 md:py-12"
     >
-      <div className="mb-8">
+      <div className="mb-6 md:mb-8">
         <h2 className="text-2xl font-semibold text-gray-900">{t(lang, "care.title")}</h2>
       </div>
 
-      {/* One readable column on mobile, two on larger screens. Sections beyond the
-          collapsed count stay in the DOM (SEO) but are hidden until expanded. */}
+      {/* One readable column on mobile, two on larger screens. When collapsed only
+          the first section shows (its body clamped to ~4 lines); the rest stay in
+          the DOM (SEO) but hidden until expanded. */}
       <dl className="grid gap-x-12 gap-y-8 sm:grid-cols-2">
         {guide.sections.map(({ key, body }, index) => {
           const meta = SECTION_META[key];
           const Icon = meta?.icon ?? Shirt;
           const hidden = !expanded && index >= COLLAPSED_COUNT;
+          const clamp = !expanded && index === 0;
           return (
             <div key={key} className={`flex gap-3.5${hidden ? " hidden" : ""}`}>
               <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-600">
@@ -63,7 +72,11 @@ export default function CareGuide({
                 <dt className="text-sm font-semibold text-gray-900">
                   {meta ? t(lang, meta.labelKey) : key}
                 </dt>
-                <dd className="mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-600">
+                <dd
+                  className={`mt-1 whitespace-pre-line text-sm leading-relaxed text-gray-600${
+                    clamp ? " line-clamp-4" : ""
+                  }`}
+                >
                   {body}
                 </dd>
               </div>
@@ -73,7 +86,7 @@ export default function CareGuide({
       </dl>
 
       {hasMore && (
-        <div className="mt-8">
+        <div className="mt-6 md:mt-8">
           <button
             type="button"
             onClick={() => setExpanded((v) => !v)}

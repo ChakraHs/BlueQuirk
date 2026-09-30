@@ -385,7 +385,7 @@ export default function ProductDetailClient({
           )}
 
           <div className="flex items-start justify-between gap-4">
-            <h1 className="font-editorial min-w-0 flex-1 text-3xl uppercase leading-[1.15] text-gray-950 md:text-4xl">
+            <h1 className="font-editorial min-w-0 flex-1 hyphens-auto break-words text-3xl uppercase leading-[1.15] text-gray-950 md:text-4xl">
               {product.name}
             </h1>
             <div className="flex shrink-0 flex-col items-end gap-1.5">
