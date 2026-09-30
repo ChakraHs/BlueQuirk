@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, X } from "lucide-react";
+import { BadgeCheck, ChevronDown, X } from "lucide-react";
 import { t, reviewCount } from "@/lib/i18n";
 import { track } from "@/lib/analytics/tracker";
 import {
@@ -41,7 +41,12 @@ export default function ProductReviews({
   const [hasMore, setHasMore] = useState(initial.hasMore);
   const [loading, setLoading] = useState(false);
   const [lightbox, setLightbox] = useState<ReviewCard | null>(null);
+  // Keep the section compact by default — only the first couple of reviews are shown
+  // until the shopper chooses to see all of them ("See all reviews").
+  const [expanded, setExpanded] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+
+  const COLLAPSED_COUNT = 2;
 
   // Fire review_section_view once, when the section actually scrolls into view.
   const viewed = useRef(false);
@@ -82,7 +87,16 @@ export default function ProductReviews({
     track("review_photo_view", { productId, meta: { reviewId: photo.id } });
   };
 
+  const collapse = () => {
+    setExpanded(false);
+    // Return focus to the top of the section so the list doesn't collapse out from
+    // under the shopper's scroll position.
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   const hasReviews = reviews.length > 0;
+  const visibleReviews = expanded ? reviews : reviews.slice(0, COLLAPSED_COUNT);
+  const hiddenCount = reviews.length - COLLAPSED_COUNT;
 
   return (
     <section
@@ -121,22 +135,47 @@ export default function ProductReviews({
 
           {/* Right: review cards */}
           <div className="space-y-5">
-            {reviews.map((r) => (
+            {visibleReviews.map((r) => (
               <ReviewItem key={r.id} review={r} lang={lang} productId={productId} onOpenPhoto={openPhoto} />
             ))}
 
-            {hasMore && (
+            {/* Collapsed: a single "See all reviews" invitation. Expanded: the usual
+                "Load more" pagination plus a "Show less" to fold the list back up. */}
+            {!expanded && (hiddenCount > 0 || hasMore) ? (
               <div className="pt-2">
                 <button
                   type="button"
-                  onClick={loadMore}
-                  disabled={loading}
-                  className="inline-flex h-11 items-center justify-center rounded-full border border-gray-300 px-6 text-sm font-semibold text-gray-800 transition hover:border-gray-900 disabled:opacity-60"
+                  onClick={() => setExpanded(true)}
+                  className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-gray-300 px-6 text-sm font-semibold text-gray-800 transition hover:border-gray-900"
                 >
-                  {loading ? t(lang, "reviews.loading") : t(lang, "reviews.loadMore")}
+                  {t(lang, "reviews.seeAll")}
+                  <ChevronDown className="size-4" />
                 </button>
               </div>
-            )}
+            ) : expanded ? (
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                {hasMore && (
+                  <button
+                    type="button"
+                    onClick={loadMore}
+                    disabled={loading}
+                    className="inline-flex h-11 items-center justify-center rounded-full border border-gray-300 px-6 text-sm font-semibold text-gray-800 transition hover:border-gray-900 disabled:opacity-60"
+                  >
+                    {loading ? t(lang, "reviews.loading") : t(lang, "reviews.loadMore")}
+                  </button>
+                )}
+                {hiddenCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={collapse}
+                    className="inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold text-gray-500 transition hover:text-gray-900"
+                  >
+                    {t(lang, "reviews.showLess")}
+                    <ChevronDown className="size-4 rotate-180" />
+                  </button>
+                )}
+              </div>
+            ) : null}
           </div>
         </div>
       ) : (
