@@ -35,7 +35,7 @@ const fr: Dict = {
     "T-shirts en coton premium, imprimés au Maroc. Paiement à la livraison, livraison gratuite partout au Maroc.",
   "hero.shopAll": "Voir tous les produits",
   "hero.explore": "Explorer les créations",
-  "hero.reassure1": "Livraison partout au Maroc",
+  "hero.reassure1": "Livraison gratuite partout au Maroc",
   "hero.reassure2": "Paiement à la livraison",
   "hero.reassure3": "Retours sous 14 jours",
   // value intro
@@ -352,7 +352,7 @@ const en: Dict = {
   "nav.menu": "Menu",
   "hero.badge": "Original designs by independent artists",
   "hero.title": "Designs you won't see on anyone else.",
-  "hero.reassure1": "Delivery across Morocco",
+  "hero.reassure1": "Free shipping anywhere in Morocco",
   "hero.reassure2": "Cash on delivery",
   "hero.reassure3": "14-day returns",
   "hero.subtitle":
@@ -662,7 +662,7 @@ const ar: Dict = {
     "تي شيرتات وهوديز من قطن فاخر، مطبوعة في المغرب. الدفع عند الاستلام، وتوصيل مجاني لكل أنحاء المغرب.",
   "hero.shopAll": "تسوّق كل المنتجات",
   "hero.explore": "استكشف التصاميم",
-  "hero.reassure1": "توصيل لكل المغرب",
+  "hero.reassure1": "توصيل مجاني لكل المغرب",
   "hero.reassure2": "الدفع عند الاستلام",
   "hero.reassure3": "إرجاع خلال 14 يومًا",
   "value.title": "فنّ ذو معنى مميّز",
