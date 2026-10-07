@@ -256,8 +256,10 @@ export default async function ProductPage({
         reviewSummary={config.reviewsEnabled ? reviewSummary : null}
       />
 
-      {/* "What our customers say" — rendered only when reviews are enabled. */}
-      {config.reviewsEnabled && reviewSummary && reviewPage && (
+      {/* "What our customers say" — rendered only when reviews are enabled AND the
+          product actually has at least one approved review. A product with zero
+          reviews shows no reviews section at all (no lonely empty state). */}
+      {hasApprovedReviews && reviewSummary && reviewPage && (
         <ProductReviews
           productId={product.id}
           lang={lang}
